@@ -1,0 +1,244 @@
+/*
+  Font rationale:
+  - Display (Outfit): geometric, has character without being decorative —
+    works for anime titles and hero text, warm but not childish
+  - Body (Inter): clean, highly readable, modern, pairs well with Outfit
+  - Mono (JetBrains Mono): sharp and clear for ratings/episode counts/metadata
+*/
+
+@import "tailwindcss";
+
+/* ── Design tokens ─────────────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg: #0d0d12;
+  --bg-elevated: #13131a;
+  --bg-card: #1a1a24;
+  --bg-overlay: rgba(13, 13, 18, 0.95);
+
+  /* Foregrounds */
+  --fg: #e8e8f0;
+  --fg-muted: #8888a0;
+  --fg-subtle: #4a4a60;
+
+  /* Accent — muted indigo-violet */
+  --accent: #7c6af7;
+  --accent-bright: #9d8fff;
+  --accent-muted: rgba(124, 106, 247, 0.15);
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-bright: rgba(255, 255, 255, 0.15);
+
+  /* Status */
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+
+  /* Score colors */
+  --score-high: #4ade80;
+  --score-mid: #fbbf24;
+  --score-low: #f87171;
+
+  /* Typography */
+  --font-display: var(--font-outfit), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Transitions */
+  --transition: 0.2s ease;
+}
+
+/* ── Tailwind theme bridge ─────────────────────────────────────────────── */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-card: var(--bg-card);
+  --color-accent: var(--accent);
+  --color-accent-bright: var(--accent-bright);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-border: var(--border);
+  --color-score-high: var(--score-high);
+  --color-score-mid: var(--score-mid);
+  --color-score-low: var(--score-low);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+/* ── Base reset ────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100dvh;
+}
+
+/* ── Utility classes ───────────────────────────────────────────────────── */
+
+/* Card base */
+.card-base {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+}
+
+.card-hover:hover {
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: var(--bg-card);
+  color: var(--fg-muted);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition);
+  border: none;
+  text-decoration: none;
+  min-height: 44px;
+}
+
+.btn-primary:hover {
+  background: var(--accent-bright);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--fg-muted);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  border: 1px solid var(--border);
+  text-decoration: none;
+  min-height: 44px;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-card);
+  color: var(--fg);
+}
+
+/* Score badge */
+.score-badge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  line-height: 1.4;
+}
+
+.score-badge.high {
+  color: var(--score-high);
+  background: rgba(74, 222, 128, 0.12);
+}
+
+.score-badge.mid {
+  color: var(--score-mid);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.score-badge.low {
+  color: var(--score-low);
+  background: rgba(248, 113, 113, 0.12);
+}
+
+/* Horizontal scroll carousels */
+.scroll-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.scroll-row::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-row > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Section header */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+/* Skeleton pulse */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 0%,
+    var(--bg-card) 50%,
+    var(--bg-elevated) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Display font helper */
+.font-display {
+  font-family: var(--font-display);
+}
