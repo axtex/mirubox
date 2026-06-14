@@ -4,6 +4,14 @@ import Resend from "next-auth/providers/resend";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
+// Auth.js requires a full URL (with protocol). Vercel env vars are often set as "mirubox.vercel.app".
+for (const key of ["AUTH_URL", "NEXTAUTH_URL"] as const) {
+  const value = process.env[key];
+  if (value && !/^https?:\/\//i.test(value)) {
+    process.env[key] = `https://${value}`;
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,

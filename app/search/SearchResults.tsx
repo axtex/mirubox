@@ -1,7 +1,11 @@
 import { searchMedia } from "@/lib/anilist";
 import { AnimeCard } from "@/components/anime/AnimeCard";
+import { hybridSearch } from "@/lib/hybrid-search";
 import type { SearchFilters } from "@/lib/anilist";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
+import type { HybridResult } from "@/lib/hybrid-search";
+
+const IS_DEV = process.env.NODE_ENV === "development";
 
 interface SearchResultsProps {
   params: Record<string, string | string[] | undefined>;
@@ -11,41 +15,41 @@ function str(v: string | string[] | undefined): string {
   return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
 }
 
-function isSemanticQuery(q: string): boolean {
-  if (q.length > 25) return true;
-  const semanticWords = ["like", "similar", "but", "with", "something", "that has", "about", "where", "feel", "vibe", "mood"];
-  return semanticWords.some((w) => q.toLowerCase().includes(w));
-}
-
-interface DbAnimeRow {
-  id: number;
-  title: string;
-  titleEnglish: string | null;
-  coverImage: string | null;
-  genres: string[];
-  averageScore: number | null;
-  format: string | null;
-  type: string;
-  similarity: number;
-}
-
-function dbToCard(row: DbAnimeRow): AnimeCardType {
+function hybridToCard(r: HybridResult): AnimeCardType {
   return {
-    id: row.id,
-    title: { romaji: row.title, english: row.titleEnglish, native: null },
-    coverImage: { large: row.coverImage, extraLarge: row.coverImage },
+    id: r.id,
+    title: { romaji: r.title, english: r.titleEnglish, native: null },
+    coverImage: { large: r.coverImage, extraLarge: r.coverImage },
     bannerImage: null,
-    genres: row.genres ?? [],
+    genres: r.genres ?? [],
     episodes: null,
     chapters: null,
     status: null,
     season: null,
     seasonYear: null,
-    averageScore: row.averageScore,
+    averageScore: r.averageScore,
     popularity: null,
-    format: row.format,
-    type: row.type ?? "ANIME",
+    format: r.format,
+    type: r.type ?? "ANIME",
   };
+}
+
+function SourceBadge({ source }: { source: HybridResult["source"] }) {
+  if (!IS_DEV) return null;
+  const styles: Record<string, { bg: string; color: string }> = {
+    semantic: { bg: "#6366f133", color: "#a5b4fc" },
+    anilist: { bg: "#ffffff11", color: "#888" },
+    both: { bg: "#22c55e22", color: "#4ade80" },
+  };
+  const s = styles[source] ?? styles.anilist;
+  return (
+    <span
+      className="text-[9px] px-1.5 py-0.5 rounded-full font-mono"
+      style={{ background: s.bg, color: s.color }}
+    >
+      {source}
+    </span>
+  );
 }
 
 export async function SearchResults({ params }: SearchResultsProps) {
@@ -58,57 +62,60 @@ export async function SearchResults({ params }: SearchResultsProps) {
   const sort = str(params.sort) || undefined;
   const page = Number(str(params.page)) || 1;
 
-  // Semantic mode: long or descriptive queries on ANIME only
-  if (query && isSemanticQuery(query) && type === "ANIME") {
-    const { generateEmbedding } = await import("@/lib/embeddings");
-    const { prisma } = await import("@/lib/prisma");
-
-    let semanticRows: DbAnimeRow[] = [];
+  // ── Hybrid search: any non-empty query on ANIME ───────────────────────
+  if (query.length >= 2 && type === "ANIME") {
+    let results: HybridResult[] = [];
     try {
-      const queryEmbedding = await generateEmbedding(query);
-      const vectorStr = `[${queryEmbedding.join(",")}]`;
-
-      semanticRows = await prisma.$queryRaw<DbAnimeRow[]>`
-        SELECT
-          id, title, "titleEnglish", "coverImage",
-          genres, "averageScore", format, type,
-          (1 - (embedding <=> ${vectorStr}::vector)) AS similarity
-        FROM "Anime"
-        WHERE embedding IS NOT NULL
-          AND (1 - (embedding <=> ${vectorStr}::vector)) > 0.25
-        ORDER BY similarity DESC
-        LIMIT 24
-      `;
+      results = await hybridSearch(query, 24);
     } catch {
-      // Fall through to AniList keyword search if vector search fails
-    }
-
-    if (semanticRows.length > 0) {
       return (
-        <div>
-          <p className="text-sm mb-2" style={{ color: "var(--fg-muted)" }}>
-            Results based on meaning, not exact title
-          </p>
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
-            {semanticRows.map((row) => (
-              <div key={row.id} className="flex flex-col gap-1">
-                <AnimeCard anime={dbToCard(row)} size="md" />
-                <p
-                  className="text-[10px] text-center"
-                  style={{ color: "var(--fg-subtle)", fontFamily: "var(--font-mono)" }}
-                >
-                  {Math.round(row.similarity * 100)}% match
-                </p>
-              </div>
-            ))}
-          </div>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <span className="text-4xl opacity-20">✦</span>
+          <p style={{ color: "var(--fg-muted)" }}>Search unavailable — try again</p>
         </div>
       );
     }
-    // If no semantic results, fall through to AniList search below
+
+    if (results.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <span className="text-4xl opacity-20">✦</span>
+          <p style={{ color: "var(--fg-muted)" }}>No results for &ldquo;{query}&rdquo;</p>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <p className="text-sm mb-4" style={{ color: "var(--fg-muted)" }}>
+          <span style={{ fontFamily: "var(--font-mono)", color: "var(--fg)" }}>
+            {results.length}
+          </span>{" "}
+          results for &ldquo;{query}&rdquo;
+        </p>
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+          {results.map((r) => (
+            <div key={r.id} className="flex flex-col gap-1">
+              <AnimeCard anime={hybridToCard(r)} size="md" />
+              <div className="flex items-center justify-center gap-1 flex-wrap">
+                {(r.source === "semantic" || r.source === "both") && r.similarity !== null && (
+                  <p
+                    className="text-[10px] text-center"
+                    style={{ color: "var(--fg-subtle)", fontFamily: "var(--font-mono)" }}
+                  >
+                    {Math.round(r.similarity * 100)}% match
+                  </p>
+                )}
+                <SourceBadge source={r.source} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
-  // Keyword search via AniList
+  // ── Filter / browse mode: AniList with pagination ────────────────────
   const filters: SearchFilters = {
     genres: genre ? [genre] : [],
     status: status || undefined,
@@ -153,7 +160,14 @@ export async function SearchResults({ params }: SearchResultsProps) {
         <div className="flex justify-center gap-2 mt-10">
           {page > 1 && (
             <a
-              href={`?${new URLSearchParams({ ...Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])), page: String(page - 1) })}`}
+              href={`?${new URLSearchParams({
+                ...Object.fromEntries(
+                  Object.entries(params)
+                    .filter(([, v]) => v !== undefined)
+                    .map(([k, v]) => [k, String(v)])
+                ),
+                page: String(page - 1),
+              })}`}
               className="btn-ghost"
             >
               ← Prev
@@ -167,7 +181,14 @@ export async function SearchResults({ params }: SearchResultsProps) {
           </span>
           {results.pageInfo.hasNextPage && (
             <a
-              href={`?${new URLSearchParams({ ...Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])), page: String(page + 1) })}`}
+              href={`?${new URLSearchParams({
+                ...Object.fromEntries(
+                  Object.entries(params)
+                    .filter(([, v]) => v !== undefined)
+                    .map(([k, v]) => [k, String(v)])
+                ),
+                page: String(page + 1),
+              })}`}
               className="btn-ghost"
             >
               Next →

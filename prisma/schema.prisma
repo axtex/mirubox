@@ -81,6 +81,7 @@ model Anime {
   format       String?
   type         String   @default("ANIME")
   cachedAt     DateTime @default(now())
+  embedding    Unsupported("vector(1536)")?
 
   watchlistEntries WatchlistEntry[]
   ratings          Rating[]

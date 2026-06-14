@@ -50,7 +50,7 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         navigate({ q: value || undefined });
-      }, 300);
+      }, 400);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [params]
@@ -63,16 +63,10 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
   const format = str(params.format);
   const year = str(params.year);
 
-  const isSemantic = query.length > 0 && (
-    query.length > 25 ||
-    ["like", "similar", "but", "with", "something", "that has", "about", "where", "feel", "vibe", "mood"]
-      .some((w) => query.toLowerCase().includes(w))
-  );
-
   return (
     <div className="mb-6">
       {/* Search input */}
-      <div className="relative mb-2">
+      <div className="relative mb-4">
         <Search
           className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
           style={{ color: "var(--fg-muted)" }}
@@ -92,23 +86,6 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
           onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
         />
-      </div>
-
-      {/* Semantic mode indicator */}
-      <div className="h-6 mb-2 flex items-center">
-        {isSemantic && (
-          <span
-            className="text-xs px-2.5 py-0.5 rounded-full font-medium"
-            style={{
-              background: "var(--accent-muted)",
-              color: "var(--accent-bright)",
-              border: "1px solid var(--accent)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            ✦ Searching by meaning
-          </span>
-        )}
       </div>
 
       {/* Filter chips — horizontal scroll */}
