@@ -24,7 +24,7 @@ export function NavbarClient({ session }: NavbarClientProps) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  if (!session) {
+  if (!session?.user) {
     return (
       <Link href="/auth/signin" className="btn-primary shrink-0">
         Sign in

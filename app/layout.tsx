@@ -53,7 +53,7 @@ export default async function RootLayout({
           {children}
         </main>
         <MobileNav />
-        {session && <ChatbotLoader />}
+        {session?.user && <ChatbotLoader />}
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import type { XpEvent } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { CHARACTER_ROSTER } from "@/lib/characters";
@@ -187,7 +188,7 @@ export default async function ProfilePage() {
             XP History
           </h2>
           <div className="flex flex-col gap-1.5">
-            {xpEvents.map((event) => (
+            {xpEvents.map((event: XpEvent) => (
               <div
                 key={event.id}
                 className="flex items-center justify-between px-3 py-2 rounded-lg"
