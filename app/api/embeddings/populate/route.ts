@@ -79,6 +79,22 @@ export async function POST(req: Request) {
 
       write({ status: `Fetched ${fetched} anime. Starting embeddings…`, fetched });
 
+      const [{ count: alreadyEmbedded }] = await prisma.$queryRaw<{ count: number }[]>`
+        SELECT COUNT(*)::int AS count FROM "Anime" WHERE embedding IS NOT NULL
+      `;
+      const [{ count: pending }] = await prisma.$queryRaw<{ count: number }[]>`
+        SELECT COUNT(*)::int AS count FROM "Anime" WHERE embedding IS NULL
+      `;
+
+      write({
+        status:
+          pending === 0
+            ? `All ${alreadyEmbedded} cached anime already have embeddings — nothing to generate.`
+            : `Generating embeddings for ${pending} anime (${alreadyEmbedded} already embedded)…`,
+        alreadyEmbedded,
+        pending,
+      });
+
       // ── Step 2: Generate embeddings in batches of 20 ────────────────────
       const BATCH = 20;
       let batchNum = 0;
@@ -131,13 +147,24 @@ export async function POST(req: Request) {
         }
       }
 
+      const [{ count: totalEmbedded }] = await prisma.$queryRaw<{ count: number }[]>`
+        SELECT COUNT(*)::int AS count FROM "Anime" WHERE embedding IS NOT NULL
+      `;
+
+      const message =
+        embedded === 0 && skipped === 0 && errors === 0
+          ? `Done! ${totalEmbedded} anime already embedded, 0 newly embedded.`
+          : `Done! ${embedded} newly embedded (${totalEmbedded} total with embeddings)${skipped ? `, ${skipped} skipped` : ""}${errors ? `, ${errors} errors` : ""}.`;
+
       write({
         done: true,
         fetched,
         embedded,
+        alreadyEmbedded,
+        totalEmbedded,
         skipped,
         errors,
-        message: `Done! ${embedded} anime embedded, ${errors} errors`,
+        message,
       });
 
       controller.close();
