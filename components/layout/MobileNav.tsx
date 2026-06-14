@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, BookMarked, User } from "lucide-react";
+import { Home, Search, BookMarked, BookOpen, User } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/search", icon: Search, label: "Search" },
+  { href: "/manga", icon: BookOpen, label: "Manga" },
   { href: "/watchlist", icon: BookMarked, label: "Watchlist" },
   { href: "/profile", icon: User, label: "Profile" },
 ];
@@ -25,16 +26,13 @@ export function MobileNav() {
       }}
     >
       {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-        const active =
-          href === "/" ? pathname === "/" : pathname.startsWith(href);
+        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
         return (
           <Link
             key={href}
             href={href}
             className="flex-1 flex flex-col items-center justify-center gap-1 min-h-[44px] transition-colors"
-            style={{
-              color: active ? "var(--accent)" : "var(--fg-subtle)",
-            }}
+            style={{ color: active ? "var(--accent)" : "var(--fg-subtle)" }}
           >
             <Icon className="w-5 h-5" />
             <span className="text-[10px] font-medium">{label}</span>

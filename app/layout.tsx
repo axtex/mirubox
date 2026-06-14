@@ -3,12 +3,9 @@ import { Inter, Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { ChatbotLoader } from "@/components/chat/ChatbotLoader";
+import { auth } from "@/auth";
 
-/*
-  Outfit — display font with geometric warmth; great for anime titles/hero text
-  Inter — clean, highly readable body text
-  JetBrains Mono — sharp mono for ratings, episode counts, metadata
-*/
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -38,11 +35,13 @@ export const metadata: Metadata = {
   description: "Intelligent anime & manga discovery platform",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html
       lang="en"
@@ -54,6 +53,7 @@ export default function RootLayout({
           {children}
         </main>
         <MobileNav />
+        {session && <ChatbotLoader />}
       </body>
     </html>
   );

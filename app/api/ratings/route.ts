@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
   // Only award XP on first rating
   if (!existing) {
-    await awardXP(session.user.id, 10);
+    await awardXP(session.user.id, 10, "Rated an anime");
   }
 
   return NextResponse.json({ rating });

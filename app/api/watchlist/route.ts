@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { getMediaById } from "@/lib/anilist";
 import { awardXP } from "@/lib/xp";
+import { embedAnimeIfNeeded } from "@/lib/embed-on-cache";
 
 export async function GET() {
   const session = await auth();
@@ -50,9 +51,13 @@ export async function POST(req: Request) {
     update: { status, progress },
   });
 
-  // XP: +10 for completing, +5 for adding
-  const xpAmount = status === "COMPLETED" ? 10 : 5;
-  await awardXP(session.user.id, xpAmount);
+  // XP: +20 for completing, +5 for adding/updating
+  const xpAmount = status === "COMPLETED" ? 20 : 5;
+  const reason = status === "COMPLETED" ? "Marked anime as completed" : "Added anime to watchlist";
+  await awardXP(session.user.id, xpAmount, reason);
+
+  // Background embedding (fire-and-forget)
+  void embedAnimeIfNeeded(animeId);
 
   return NextResponse.json({ entry });
 }

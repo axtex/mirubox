@@ -22,6 +22,12 @@ export async function Navbar() {
         miru<span style={{ color: "var(--accent)" }}>box</span>
       </Link>
 
+      {/* Nav links */}
+      <div className="flex items-center gap-1 mx-4">
+        <NavLink href="/">Anime</NavLink>
+        <NavLink href="/manga">Manga</NavLink>
+      </div>
+
       {/* Search */}
       <NavSearchBar />
 
@@ -31,29 +37,31 @@ export async function Navbar() {
   );
 }
 
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+      style={{ color: "var(--fg-muted)" }}
+    >
+      {children}
+    </Link>
+  );
+}
+
 function NavSearchBar() {
   return (
     <Link
       href="/search"
-      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm flex-1 max-w-sm mx-8 transition-all"
+      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm flex-1 max-w-sm mx-4 transition-all"
       style={{
         background: "var(--bg-card)",
         border: "1px solid var(--border)",
         color: "var(--fg-muted)",
       }}
     >
-      <svg
-        className="w-4 h-4 shrink-0"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z"
-        />
+      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
       </svg>
       <span className="flex-1">Search anime, manga…</span>
       <kbd

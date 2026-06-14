@@ -8,9 +8,12 @@ import {
   getDisplayTitle,
 } from "@/lib/anilist";
 import { SectionRow } from "@/components/anime/SectionRow";
+import { ForYouSection } from "@/components/home/ForYouSection";
+import { auth } from "@/auth";
 
 export default async function HomePage() {
   const { season, year } = getCurrentSeason();
+  const session = await auth();
 
   const [trending, popular, seasonal, manga] = await Promise.all([
     getTrending("ANIME", 1, 18),
@@ -114,6 +117,7 @@ export default async function HomePage() {
 
       {/* ── Content sections ─────────────────────────────────────────── */}
       <div className="flex flex-col gap-10 py-8">
+        {session && <ForYouSection />}
         <SectionRow
           title="Trending This Week"
           seeAllHref="/search?sort=TRENDING_DESC"

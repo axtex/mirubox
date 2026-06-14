@@ -1,14 +1,15 @@
 import { prisma } from "@/lib/prisma";
 
-export async function awardXP(userId: string, amount: number): Promise<{ xp: number; level: number }> {
+export async function awardXP(
+  userId: string,
+  amount: number,
+  reason: string
+): Promise<{ xp: number; level: number }> {
+  await prisma.xpEvent.create({ data: { userId, amount, reason } });
+
   const user = await prisma.user.update({
     where: { id: userId },
-    data: {
-      xp: { increment: amount },
-      level: {
-        set: undefined,
-      },
-    },
+    data: { xp: { increment: amount } },
     select: { xp: true, level: true },
   });
 
