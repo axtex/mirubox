@@ -98,7 +98,7 @@ export default function CharacterChatbot() {
           style={{
             width: 56,
             height: 56,
-            bottom: 80, // above mobile nav (64px + 16px)
+            bottom: 84, // above mobile nav (64px + 20px gap)
             right: 16,
             background: character.accentColor,
             border: `2px solid ${character.accentColor}`,
@@ -229,7 +229,7 @@ export default function CharacterChatbot() {
                       </p>
                       <p className="text-[10px]" style={{ color: "var(--fg-subtle)" }}>{char.anime}</p>
                       {!isUnlocked && (
-                        <p className="text-[10px] mt-1" style={{ color: "var(--accent)", fontFamily: "var(--font-mono)" }}>
+                        <p className="text-[10px] mt-1 text-label" style={{ color: "var(--accent)" }}>
                           Unlock at {char.xpRequired} XP
                         </p>
                       )}
@@ -254,7 +254,7 @@ export default function CharacterChatbot() {
           {messages.length === 0 && !isLoading && (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
               <span className="text-5xl">{character.avatarEmoji}</span>
-              <p className="text-base font-semibold" style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}>
+              <p className="text-base font-semibold font-display" style={{ color: "var(--fg)" }}>
                 {character.name}
               </p>
               <p className="text-sm" style={{ color: "var(--fg-muted)" }}>

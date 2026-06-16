@@ -4,11 +4,11 @@ import { useState } from "react";
 import { ChevronDown, Check } from "lucide-react";
 
 const STATUSES = [
-  { value: "PLAN_TO_WATCH", label: "Plan to Watch" },
-  { value: "WATCHING", label: "Watching" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "ON_HOLD", label: "On Hold" },
-  { value: "DROPPED", label: "Dropped" },
+  { value: "PLAN_TO_WATCH", label: "PLAN TO WATCH",  dot: "#e4e1e6" },
+  { value: "WATCHING",      label: "WATCHING",       dot: "#3b82f6" },
+  { value: "COMPLETED",     label: "COMPLETED",      dot: "#4ade80" },
+  { value: "ON_HOLD",       label: "ON HOLD",        dot: "#fbbf24" },
+  { value: "DROPPED",       label: "DROPPED",        dot: "#e61e2a" },
 ] as const;
 
 interface WatchlistButtonProps {
@@ -17,23 +17,15 @@ interface WatchlistButtonProps {
   isLoggedIn: boolean;
 }
 
-export function WatchlistButton({
-  animeId,
-  initialStatus,
-  isLoggedIn,
-}: WatchlistButtonProps) {
+export function WatchlistButton({ animeId, initialStatus, isLoggedIn }: WatchlistButtonProps) {
   const [status, setStatus] = useState<string | null>(initialStatus);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   if (!isLoggedIn) {
     return (
-      <a
-        href="/auth/signin"
-        className="btn-ghost"
-        style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
-      >
-        Sign in to track
+      <a href="/auth/signin" className="btn-ghost w-full justify-center">
+        SIGN IN TO TRACK
       </a>
     );
   }
@@ -68,63 +60,70 @@ export function WatchlistButton({
     }
   }
 
-  const currentLabel =
-    STATUSES.find((s) => s.value === status)?.label ?? "Add to Watchlist";
+  const current = STATUSES.find((s) => s.value === status);
+  const label = current?.label ?? "+ ADD TO WATCHLIST";
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <button
         onClick={() => setOpen((o) => !o)}
         disabled={loading}
-        className="btn-primary gap-2"
-        style={status ? { background: "var(--bg-card)", border: "1px solid var(--accent)", color: "var(--accent)" } : {}}
+        className="flex items-center justify-between gap-2 w-full px-4 py-3"
+        style={{
+          background: status ? "var(--bg-card)" : "var(--primary)",
+          border: `1px solid ${status ? "var(--primary)" : "transparent"}`,
+          color: status ? "var(--primary)" : "#fff",
+          borderRadius: 2,
+          fontFamily: "var(--font-space-mono)",
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: "0.1em",
+          cursor: loading ? "not-allowed" : "pointer",
+          transition: "all 0.15s ease",
+        }}
       >
-        {status && <Check className="w-4 h-4" />}
-        {loading ? "Saving…" : currentLabel}
-        <ChevronDown className="w-4 h-4" />
+        <div className="flex items-center gap-2">
+          {current && (
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: current.dot }} />
+          )}
+          {loading ? "SAVING…" : label}
+        </div>
+        {status && <ChevronDown className="w-4 h-4 shrink-0" />}
       </button>
 
       {open && (
         <div
-          className="absolute left-0 top-12 w-48 rounded-lg overflow-hidden z-20"
+          className="absolute left-0 right-0 top-full mt-1 overflow-hidden z-30"
           style={{
             background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            border: "1px solid var(--border-bright)",
+            borderRadius: 4,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           }}
         >
-          {STATUSES.map(({ value, label }) => (
+          {STATUSES.map(({ value, label: lab, dot }) => (
             <button
               key={value}
               onClick={() => handleSelect(value)}
-              className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm transition-colors"
-              style={{
-                color: status === value ? "var(--accent)" : "var(--fg-muted)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "";
-              }}
+              className="flex items-center gap-3 w-full text-left px-4 py-2.5 transition-colors"
+              style={{ color: status === value ? "var(--fg)" : "var(--fg-muted)" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
             >
-              {status === value && <Check className="w-3 h-3 shrink-0" />}
-              {label}
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: dot }} />
+              <span className="text-label">{lab}</span>
+              {status === value && <Check className="w-3 h-3 ml-auto shrink-0" />}
             </button>
           ))}
           {status && (
             <button
               onClick={handleRemove}
-              className="w-full text-left px-4 py-2.5 text-sm border-t transition-colors"
-              style={{ color: "var(--danger)", borderColor: "var(--border)" }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "";
-              }}
+              className="w-full text-left px-4 py-2.5 text-label transition-colors"
+              style={{ color: "var(--score-low)", borderTop: "1px solid var(--border)" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
             >
-              Remove
+              REMOVE
             </button>
           )}
         </div>

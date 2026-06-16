@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { auth } from "@/auth";
 import { NavbarClient } from "./NavbarClient";
 
@@ -7,31 +8,34 @@ export async function Navbar() {
 
   return (
     <nav
-      className="hidden md:flex items-center justify-between px-6 h-[60px] sticky top-0 z-50 backdrop-blur-md"
+      className="hidden md:flex items-center justify-between px-8 h-[60px] sticky top-0 z-50 backdrop-blur-[20px]"
       style={{
-        background: "var(--bg-overlay)",
+        background: "rgba(15,15,18,0.95)",
         borderBottom: "1px solid var(--border)",
       }}
     >
       {/* Wordmark */}
       <Link
         href="/"
-        className="text-xl font-bold tracking-tight shrink-0"
-        style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}
+        className="shrink-0 text-[22px] font-bold tracking-tight"
+        style={{ fontFamily: "var(--font-anybody)" }}
       >
-        miru<span style={{ color: "var(--accent)" }}>box</span>
+        <span style={{ color: "var(--fg)" }}>miru</span>
+        <span style={{ color: "var(--primary)" }}>box</span>
       </Link>
 
-      {/* Nav links */}
-      <div className="flex items-center gap-1 mx-4">
-        <NavLink href="/">Anime</NavLink>
-        <NavLink href="/manga">Manga</NavLink>
+      {/* Center nav */}
+      <div className="flex items-center gap-7 mx-8">
+        <NavLink href="/">ANIME</NavLink>
+        <NavLink href="/manga">MANGA</NavLink>
+        <ComingSoon label="STUDIOS" />
+        <ComingSoon label="COMMUNITY" />
       </div>
 
       {/* Search */}
       <NavSearchBar />
 
-      {/* Right: auth */}
+      {/* Auth */}
       <NavbarClient session={session} />
     </nav>
   );
@@ -39,13 +43,33 @@ export async function Navbar() {
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link
-      href={href}
-      className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-      style={{ color: "var(--fg-muted)" }}
-    >
+    <Link href={href} className="text-label link-subtle">
       {children}
     </Link>
+  );
+}
+
+function ComingSoon({ label }: { label: string }) {
+  return (
+    <div className="relative group">
+      <span className="text-label cursor-default" style={{ color: "var(--fg-subtle)", opacity: 0.5 }}>
+        {label}
+      </span>
+      <div
+        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap"
+        style={{
+          background: "var(--bg-card-high)",
+          border: "1px solid var(--border-bright)",
+          borderRadius: 2,
+          fontSize: 9,
+          fontFamily: "var(--font-space-mono)",
+          letterSpacing: "0.08em",
+          color: "var(--fg-muted)",
+        }}
+      >
+        COMING SOON
+      </div>
+    </div>
   );
 }
 
@@ -53,24 +77,24 @@ function NavSearchBar() {
   return (
     <Link
       href="/search"
-      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm flex-1 max-w-sm mx-4 transition-all"
+      className="flex items-center gap-2.5 px-3 py-2 flex-1 max-w-[280px] mx-6 transition-all"
       style={{
         background: "var(--bg-card)",
         border: "1px solid var(--border)",
+        borderRadius: 2,
         color: "var(--fg-muted)",
       }}
     >
-      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
-      </svg>
-      <span className="flex-1">Search anime, manga…</span>
+      <Search className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--fg-subtle)" }} />
+      <span className="flex-1 text-label" style={{ color: "var(--fg-subtle)" }}>SEARCH</span>
       <kbd
-        className="text-xs px-1.5 py-0.5 rounded"
+        className="text-[10px] px-1.5 py-0.5 shrink-0"
         style={{
           background: "var(--bg-elevated)",
           color: "var(--fg-subtle)",
           border: "1px solid var(--border)",
-          fontFamily: "var(--font-mono)",
+          fontFamily: "var(--font-space-mono)",
+          borderRadius: 2,
         }}
       >
         ⌘K

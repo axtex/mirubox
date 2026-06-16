@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { EMBEDDING_DIMS, parsePgVector, toVectorLiteral } from "@/lib/embeddings";
 
 interface RatedAnimeRow {
-  embedding: number[];
+  embedding: unknown;
   score: number;
 }
 
@@ -17,6 +18,13 @@ interface RecommendationRow {
   similarity: number;
 }
 
+function isValidTasteVector(vector: number[]): boolean {
+  return (
+    vector.length === EMBEDDING_DIMS &&
+    vector.every((n) => Number.isFinite(n))
+  );
+}
+
 export async function getUserTasteVector(userId: string): Promise<number[] | null> {
   const ratedAnime = await prisma.$queryRaw<RatedAnimeRow[]>`
     SELECT
@@ -29,57 +37,68 @@ export async function getUserTasteVector(userId: string): Promise<number[] | nul
       AND r."userId" = we."userId"
     WHERE we."userId" = ${userId}
       AND a.embedding IS NOT NULL
+      AND vector_dims(a.embedding) = ${EMBEDDING_DIMS}
       AND we.status IN ('COMPLETED', 'WATCHING')
   `;
 
-  if (ratedAnime.length < 3) return null;
+  const validRated = ratedAnime
+    .map((row) => ({ score: Number(row.score), embedding: parsePgVector(row.embedding) }))
+    .filter((row): row is { score: number; embedding: number[] } => row.embedding !== null);
 
-  const weights = ratedAnime.map((a) => Math.max(0.1, (Number(a.score) - 5) / 5 + 0.5));
+  if (validRated.length < 3) return null;
+
+  const weights = validRated.map((a) => Math.max(0.1, (a.score - 5) / 5 + 0.5));
   const totalWeight = weights.reduce((a, b) => a + b, 0);
+  if (!Number.isFinite(totalWeight) || totalWeight <= 0) return null;
 
-  const dims = 1536;
-  const tasteVector = new Array<number>(dims).fill(0);
+  const tasteVector = new Array<number>(EMBEDDING_DIMS).fill(0);
 
-  for (let i = 0; i < ratedAnime.length; i++) {
+  for (let i = 0; i < validRated.length; i++) {
     const w = weights[i] / totalWeight;
-    const emb = ratedAnime[i].embedding as unknown as number[];
-    for (let d = 0; d < dims; d++) {
+    const emb = validRated[i].embedding;
+    for (let d = 0; d < EMBEDDING_DIMS; d++) {
       tasteVector[d] += emb[d] * w;
     }
   }
 
-  return tasteVector;
+  return isValidTasteVector(tasteVector) ? tasteVector : null;
 }
 
 export async function getRecommendations(userId: string, limit = 20) {
-  const tasteVector = await getUserTasteVector(userId);
-  if (!tasteVector) {
+  try {
+    const tasteVector = await getUserTasteVector(userId);
+    if (!tasteVector) {
+      return { recommendations: [], needsMoreData: true };
+    }
+
+    const watched = await prisma.watchlistEntry.findMany({
+      where: { userId },
+      select: { animeId: true },
+    });
+    const watchedIds = watched.map((w) => w.animeId);
+    const vectorStr = toVectorLiteral(tasteVector);
+
+    const recommendations = await prisma.$queryRaw<RecommendationRow[]>`
+      SELECT
+        id, title, "titleEnglish", "coverImage",
+        genres, "averageScore", format, type,
+        (1 - (embedding <=> ${vectorStr}::vector)) AS similarity
+      FROM "Anime"
+      WHERE embedding IS NOT NULL
+        AND vector_dims(embedding) = ${EMBEDDING_DIMS}
+        AND id != ALL(${watchedIds}::int[])
+        AND (1 - (embedding <=> ${vectorStr}::vector)) > 0.3
+      ORDER BY similarity DESC
+      LIMIT ${limit}
+    `;
+
+    return {
+      recommendations,
+      needsMoreData: false,
+      basedOn: watchedIds.length,
+    };
+  } catch (err) {
+    console.error("[getRecommendations]", err);
     return { recommendations: [], needsMoreData: true };
   }
-
-  const watched = await prisma.watchlistEntry.findMany({
-    where: { userId },
-    select: { animeId: true },
-  });
-  const watchedIds = watched.map((w) => w.animeId);
-  const vectorStr = `[${tasteVector.join(",")}]`;
-
-  const recommendations = await prisma.$queryRaw<RecommendationRow[]>`
-    SELECT
-      id, title, "titleEnglish", "coverImage",
-      genres, "averageScore", format, type,
-      (1 - (embedding <=> ${vectorStr}::vector)) AS similarity
-    FROM "Anime"
-    WHERE embedding IS NOT NULL
-      AND id != ALL(${watchedIds}::int[])
-      AND (1 - (embedding <=> ${vectorStr}::vector)) > 0.3
-    ORDER BY similarity DESC
-    LIMIT ${limit}
-  `;
-
-  return {
-    recommendations,
-    needsMoreData: false,
-    basedOn: watchedIds.length,
-  };
 }

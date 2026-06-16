@@ -102,7 +102,7 @@ export function MangaWatchlistButton({ animeId, initialStatus, isLoggedIn }: Man
             <button
               onClick={() => void handleRemove()}
               className="w-full text-left px-4 py-2.5 text-sm border-t transition-colors"
-              style={{ color: "var(--danger)", borderColor: "var(--border)" }}
+              style={{ color: "var(--score-low)", borderColor: "var(--border)" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
             >

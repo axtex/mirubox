@@ -14,7 +14,7 @@ export default async function MangaPage() {
       <div className="px-4 md:px-8 pt-8 pb-4">
         <h1
           className="text-3xl md:text-4xl font-bold mb-1"
-          style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}
+          style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}
         >
           Manga
         </h1>

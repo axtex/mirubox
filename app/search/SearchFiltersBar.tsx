@@ -1,9 +1,8 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback, useTransition, useRef, useEffect } from "react";
 import { Search } from "lucide-react";
-import { useRef, useEffect } from "react";
 
 const GENRES = [
   "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror",
@@ -28,13 +27,20 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
   const pathname = usePathname();
   const [, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [focused, setFocused] = useState(false);
 
   const [query, setQuery] = useState(str(params.q));
   const type = str(params.type) || "ANIME";
+  const genre = str(params.genre);
+  const status = str(params.status);
+  const format = str(params.format);
+  const year = str(params.year);
 
   function buildHref(overrides: Record<string, string | undefined>) {
-    const next = { ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v ?? "")])), ...overrides };
-    // Remove empty values
+    const next = {
+      ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v ?? "")])),
+      ...overrides,
+    };
     Object.keys(next).forEach((k) => { if (!next[k]) delete next[k]; });
     delete next.page;
     return `${pathname}?${new URLSearchParams(next as Record<string, string>)}`;
@@ -58,124 +64,155 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
 
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
-  const genre = str(params.genre);
-  const status = str(params.status);
-  const format = str(params.format);
-  const year = str(params.year);
+  const activeFilterCount = [genre, status, format, year].filter(Boolean).length;
 
   return (
     <div className="mb-6">
-      {/* Search input */}
+      {/* Large search input */}
       <div className="relative mb-4">
         <Search
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
-          style={{ color: "var(--fg-muted)" }}
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none"
+          style={{ color: focused ? "var(--primary)" : "var(--fg-muted)" }}
         />
         <input
           autoFocus
           type="text"
           value={query}
           onChange={(e) => handleQueryChange(e.target.value)}
-          placeholder="Search anime, manga, characters…"
-          className="w-full pl-12 pr-4 py-3 rounded-xl text-base outline-none transition-all"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder="SEARCH ANIME, MANGA, GENRES…"
+          className="w-full pl-12 pr-16 outline-none transition-all"
           style={{
+            height: 56,
             background: "var(--bg-card)",
-            border: "1px solid var(--border)",
+            border: `1px solid ${focused ? "var(--primary)" : "var(--border)"}`,
+            borderRadius: 2,
             color: "var(--fg)",
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 12,
+            letterSpacing: "0.08em",
           }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
         />
+        <kbd
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5"
+          style={{
+            background: "var(--bg-elevated)",
+            color: "var(--fg-subtle)",
+            border: "1px solid var(--border)",
+            fontFamily: "var(--font-space-mono)",
+            borderRadius: 2,
+          }}
+        >
+          ⌘K
+        </kbd>
       </div>
 
-      {/* Filter chips — horizontal scroll */}
-      <div className="scroll-row gap-2">
-        {/* Type */}
-        {["ANIME", "MANGA"].map((t) => (
+      {/* Filter bar */}
+      <div className="flex scroll-row gap-2">
+        {/* Type toggle */}
+        {(["ANIME", "MANGA"] as const).map((t) => (
           <button
             key={t}
             onClick={() => navigate({ type: t })}
-            className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+            className="shrink-0 text-label px-3 py-1.5 transition-all"
             style={{
-              background: type === t ? "var(--accent)" : "var(--bg-card)",
+              background: type === t ? "var(--primary)" : "var(--bg-card)",
               color: type === t ? "#fff" : "var(--fg-muted)",
-              border: `1px solid ${type === t ? "var(--accent)" : "var(--border)"}`,
+              border: `1px solid ${type === t ? "var(--primary)" : "var(--border)"}`,
+              borderRadius: 2,
             }}
           >
             {t}
           </button>
         ))}
 
-        <div className="w-px shrink-0" style={{ background: "var(--border)" }} />
+        <div className="w-px shrink-0 self-stretch" style={{ background: "var(--border)" }} />
 
         {/* Genre */}
-        <select
+        <FilterSelect
           value={genre}
-          onChange={(e) => navigate({ genre: e.target.value || undefined })}
-          className="shrink-0 px-3 py-1.5 rounded-full text-xs outline-none cursor-pointer"
-          style={{
-            background: genre ? "var(--accent-muted)" : "var(--bg-card)",
-            color: genre ? "var(--accent-bright)" : "var(--fg-muted)",
-            border: `1px solid ${genre ? "var(--accent)" : "var(--border)"}`,
-          }}
-        >
-          <option value="">Genre</option>
-          {GENRES.map((g) => (
-            <option key={g} value={g}>{g}</option>
-          ))}
-        </select>
+          onChange={(v) => navigate({ genre: v || undefined })}
+          placeholder="GENRE"
+          options={GENRES.map((g) => ({ value: g, label: g.toUpperCase() }))}
+          active={!!genre}
+        />
 
         {/* Status */}
-        <select
+        <FilterSelect
           value={status}
-          onChange={(e) => navigate({ status: e.target.value || undefined })}
-          className="shrink-0 px-3 py-1.5 rounded-full text-xs outline-none cursor-pointer"
-          style={{
-            background: status ? "var(--accent-muted)" : "var(--bg-card)",
-            color: status ? "var(--accent-bright)" : "var(--fg-muted)",
-            border: `1px solid ${status ? "var(--accent)" : "var(--border)"}`,
-          }}
-        >
-          <option value="">Status</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
-          ))}
-        </select>
+          onChange={(v) => navigate({ status: v || undefined })}
+          placeholder="STATUS"
+          options={STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, " ") }))}
+          active={!!status}
+        />
 
         {/* Format */}
-        <select
+        <FilterSelect
           value={format}
-          onChange={(e) => navigate({ format: e.target.value || undefined })}
-          className="shrink-0 px-3 py-1.5 rounded-full text-xs outline-none cursor-pointer"
-          style={{
-            background: format ? "var(--accent-muted)" : "var(--bg-card)",
-            color: format ? "var(--accent-bright)" : "var(--fg-muted)",
-            border: `1px solid ${format ? "var(--accent)" : "var(--border)"}`,
-          }}
-        >
-          <option value="">Format</option>
-          {FORMATS_ANIME.map((f) => (
-            <option key={f} value={f}>{f}</option>
-          ))}
-        </select>
+          onChange={(v) => navigate({ format: v || undefined })}
+          placeholder="FORMAT"
+          options={FORMATS_ANIME.map((f) => ({ value: f, label: f }))}
+          active={!!format}
+        />
 
         {/* Year */}
-        <select
+        <FilterSelect
           value={year}
-          onChange={(e) => navigate({ year: e.target.value || undefined })}
-          className="shrink-0 px-3 py-1.5 rounded-full text-xs outline-none cursor-pointer"
-          style={{
-            background: year ? "var(--accent-muted)" : "var(--bg-card)",
-            color: year ? "var(--accent-bright)" : "var(--fg-muted)",
-            border: `1px solid ${year ? "var(--accent)" : "var(--border)"}`,
-          }}
-        >
-          <option value="">Year</option>
-          {YEARS.map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
+          onChange={(v) => navigate({ year: v || undefined })}
+          placeholder="YEAR"
+          options={YEARS.map((y) => ({ value: y, label: y }))}
+          active={!!year}
+        />
+
+        {activeFilterCount > 0 && (
+          <button
+            onClick={() => navigate({ genre: undefined, status: undefined, format: undefined, year: undefined })}
+            className="shrink-0 text-label px-3 py-1.5 transition-all"
+            style={{
+              background: "transparent",
+              color: "var(--score-low)",
+              border: "1px solid var(--score-low)",
+              borderRadius: 2,
+            }}
+          >
+            CLEAR {activeFilterCount}×
+          </button>
+        )}
       </div>
     </div>
+  );
+}
+
+function FilterSelect({
+  value,
+  onChange,
+  placeholder,
+  options,
+  active,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  options: { value: string; label: string }[];
+  active: boolean;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="shrink-0 text-label px-3 py-1.5 outline-none cursor-pointer appearance-none"
+      style={{
+        background: active ? "var(--primary)" : "var(--bg-card)",
+        color: active ? "#fff" : "var(--fg-muted)",
+        border: `1px solid ${active ? "var(--primary)" : "var(--border)"}`,
+        borderRadius: 2,
+      }}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </select>
   );
 }

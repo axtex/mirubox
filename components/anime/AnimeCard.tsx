@@ -7,114 +7,130 @@ import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 interface AnimeCardProps {
   anime: AnimeCardType;
   size?: "sm" | "md" | "lg";
-  showScore?: boolean;
+  watchlistStatus?: string | null;
+  similarity?: number | null;
 }
 
 const SIZES = {
-  sm: { width: 120, height: 170 },
-  md: { width: 160, height: 225 },
-  lg: { width: 200, height: 285 },
+  sm: { width: 100, height: 150 },
+  md: { width: 140, height: 210 },
+  lg: { width: 180, height: 270 },
 };
 
-function scoreClass(score: number | null): string {
-  if (!score) return "";
-  if (score >= 80) return "high";
-  if (score >= 60) return "mid";
-  return "low";
-}
+const STATUS_DOT: Record<string, string> = {
+  WATCHING:      "#3b82f6",
+  COMPLETED:     "#4ade80",
+  PLAN_TO_WATCH: "#e4e1e6",
+  DROPPED:       "#e61e2a",
+  ON_HOLD:       "#fbbf24",
+};
 
-export function AnimeCard({ anime, size = "md", showScore = true }: AnimeCardProps) {
+export function AnimeCard({ anime, size = "md", watchlistStatus, similarity }: AnimeCardProps) {
   const { width, height } = SIZES[size];
   const title = getDisplayTitle(anime.title);
   const score = anime.averageScore;
+  const dotColor = watchlistStatus ? STATUS_DOT[watchlistStatus] : null;
 
   return (
     <Link
       href={`/anime/${anime.id}`}
-      className="group relative block overflow-hidden card-base card-hover"
-      style={{ width, flexShrink: 0 }}
+      className="anime-card group relative block overflow-hidden"
+      style={{
+        width,
+        flexShrink: 0,
+        borderRadius: 4,
+        border: "1px solid rgba(255,255,255,0.08)",
+        display: "block",
+      }}
     >
-      {/* Cover image */}
-      <div className="relative overflow-hidden" style={{ height, width }}>
+      {/* Poster — full card height */}
+      <div className="relative" style={{ height, width }}>
         {anime.coverImage.extraLarge || anime.coverImage.large ? (
           <Image
             src={(anime.coverImage.extraLarge ?? anime.coverImage.large)!}
             alt={title}
             fill
             sizes={`${width}px`}
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover"
+            style={{ transition: "none" }}
           />
         ) : (
           <div
             className="w-full h-full flex items-center justify-center"
             style={{ background: "var(--bg-card)" }}
           >
-            <span className="text-3xl opacity-20">✦</span>
+            <span style={{ fontSize: 24, opacity: 0.15 }}>✦</span>
           </div>
         )}
 
-        {/* Score badge */}
-        {showScore && score !== null && (
-          <div className="absolute top-2 right-2">
-            <span className={`score-badge ${scoreClass(score)}`}>
-              {score}
-            </span>
-          </div>
-        )}
-
-        {/* Hover overlay */}
-        <div
-          className="absolute inset-0 flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(13,13,18,0.95) 0%, rgba(13,13,18,0.4) 60%, transparent 100%)",
-          }}
-        >
-          <p
-            className="text-xs font-semibold leading-snug mb-2 line-clamp-2"
-            style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}
-          >
-            {title}
-          </p>
+        {/* Score pill — top right, crimson */}
+        {score !== null && (
           <div
-            className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-md w-full justify-center"
+            className="absolute top-1.5 right-1.5 leading-none font-bold"
             style={{
-              background: "var(--accent)",
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 10,
+              background: "var(--primary)",
               color: "#fff",
-              minHeight: "32px",
+              borderRadius: 2,
+              padding: "2px 5px",
             }}
           >
-            <Plus className="w-3 h-3" />
-            View Details
+            {(score / 10).toFixed(1)}
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Below image */}
-      <div className="px-2 py-2">
-        <p
-          className="text-xs font-medium truncate leading-snug"
-          style={{ color: "var(--fg-muted)" }}
+        {/* Watchlist status dot — bottom left */}
+        {dotColor && (
+          <div
+            className="absolute bottom-2 left-2 w-2 h-2 rounded-full"
+            style={{ background: dotColor, boxShadow: `0 0 5px ${dotColor}` }}
+          />
+        )}
+
+        {/* Hover overlay — gradient + text reveal */}
+        <div
+          className="absolute inset-0 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          style={{
+            background: "linear-gradient(to top, rgba(15,15,18,0.97) 0%, rgba(15,15,18,0.65) 55%, transparent 100%)",
+          }}
         >
-          {title}
-        </p>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          {anime.format && (
-            <span className="badge" style={{ fontSize: "10px", padding: "1px 5px" }}>
-              {anime.format.replace("_", " ")}
-            </span>
-          )}
-          {anime.seasonYear && (
-            <span
-              className="text-[10px]"
+          <div className="p-2 flex flex-col gap-1.5">
+            <p
+              className="text-[13px] font-medium leading-snug line-clamp-2"
+              style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}
+            >
+              {title}
+            </p>
+
+            {(anime.format || anime.seasonYear) && (
+              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-muted)" }}>
+                {[anime.format?.replace(/_/g, " "), anime.seasonYear].filter(Boolean).join(" · ")}
+              </p>
+            )}
+
+            {similarity != null && (
+              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--primary)" }}>
+                {Math.round(similarity * 100)}% MATCH
+              </p>
+            )}
+
+            <div
+              className="flex items-center justify-center gap-1 py-1.5"
               style={{
-                color: "var(--fg-subtle)",
-                fontFamily: "var(--font-mono)",
+                background: "var(--primary)",
+                color: "#fff",
+                borderRadius: 2,
+                fontSize: 9,
+                fontFamily: "var(--font-space-mono)",
+                letterSpacing: "0.08em",
+                fontWeight: 700,
               }}
             >
-              {anime.seasonYear}
-            </span>
-          )}
+              <Plus className="w-2.5 h-2.5" />
+              WATCHLIST
+            </div>
+          </div>
         </div>
       </div>
     </Link>

@@ -5,8 +5,6 @@ import type { SearchFilters } from "@/lib/anilist";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 import type { HybridResult } from "@/lib/hybrid-search";
 
-const IS_DEV = process.env.NODE_ENV === "development";
-
 interface SearchResultsProps {
   params: Record<string, string | string[] | undefined>;
 }
@@ -34,23 +32,7 @@ function hybridToCard(r: HybridResult): AnimeCardType {
   };
 }
 
-function SourceBadge({ source }: { source: HybridResult["source"] }) {
-  if (!IS_DEV) return null;
-  const styles: Record<string, { bg: string; color: string }> = {
-    semantic: { bg: "#6366f133", color: "#a5b4fc" },
-    anilist: { bg: "#ffffff11", color: "#888" },
-    both: { bg: "#22c55e22", color: "#4ade80" },
-  };
-  const s = styles[source] ?? styles.anilist;
-  return (
-    <span
-      className="text-[9px] px-1.5 py-0.5 rounded-full font-mono"
-      style={{ background: s.bg, color: s.color }}
-    >
-      {source}
-    </span>
-  );
-}
+const GRID = "grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-3";
 
 export async function SearchResults({ params }: SearchResultsProps) {
   const query = str(params.q);
@@ -62,60 +44,39 @@ export async function SearchResults({ params }: SearchResultsProps) {
   const sort = str(params.sort) || undefined;
   const page = Number(str(params.page)) || 1;
 
-  // ── Hybrid search: any non-empty query on ANIME ───────────────────────
+  /* ── Hybrid semantic search ──────────────────────────────────────── */
   if (query.length >= 2 && type === "ANIME") {
     let results: HybridResult[] = [];
     try {
-      results = await hybridSearch(query, 24);
+      results = await hybridSearch(query, 28);
     } catch {
-      return (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <span className="text-4xl opacity-20">✦</span>
-          <p style={{ color: "var(--fg-muted)" }}>Search unavailable — try again</p>
-        </div>
-      );
+      return <EmptyState message="SEARCH UNAVAILABLE — TRY AGAIN" />;
     }
 
     if (results.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <span className="text-4xl opacity-20">✦</span>
-          <p style={{ color: "var(--fg-muted)" }}>No results for &ldquo;{query}&rdquo;</p>
-        </div>
-      );
+      return <EmptyState query={query} />;
     }
 
     return (
       <div>
-        <p className="text-sm mb-4" style={{ color: "var(--fg-muted)" }}>
-          <span style={{ fontFamily: "var(--font-mono)", color: "var(--fg)" }}>
-            {results.length}
-          </span>{" "}
-          results for &ldquo;{query}&rdquo;
+        <p className="text-label mb-4" style={{ color: "var(--fg-subtle)" }}>
+          <span style={{ color: "var(--fg)" }}>{results.length}</span> RESULTS FOR &ldquo;{query.toUpperCase()}&rdquo;
         </p>
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+        <div className={GRID}>
           {results.map((r) => (
-            <div key={r.id} className="flex flex-col gap-1">
-              <AnimeCard anime={hybridToCard(r)} size="md" />
-              <div className="flex items-center justify-center gap-1 flex-wrap">
-                {(r.source === "semantic" || r.source === "both") && r.similarity !== null && (
-                  <p
-                    className="text-[10px] text-center"
-                    style={{ color: "var(--fg-subtle)", fontFamily: "var(--font-mono)" }}
-                  >
-                    {Math.round(r.similarity * 100)}% match
-                  </p>
-                )}
-                <SourceBadge source={r.source} />
-              </div>
-            </div>
+            <AnimeCard
+              key={r.id}
+              anime={hybridToCard(r)}
+              size="md"
+              similarity={(r.source === "semantic" || r.source === "both") && r.similarity !== null ? r.similarity : undefined}
+            />
           ))}
         </div>
       </div>
     );
   }
 
-  // ── Filter / browse mode: AniList with pagination ────────────────────
+  /* ── Browse / filter mode ────────────────────────────────────────── */
   const filters: SearchFilters = {
     genres: genre ? [genre] : [],
     status: status || undefined,
@@ -124,33 +85,22 @@ export async function SearchResults({ params }: SearchResultsProps) {
     sort,
   };
 
-  const results = await searchMedia(query, type, filters, page, 24);
+  const results = await searchMedia(query, type, filters, page, 28);
 
   if (results.media.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <span className="text-4xl opacity-20">✦</span>
-        <p style={{ color: "var(--fg-muted)" }} className="text-center">
-          {query ? `No results for "${query}"` : "Nothing found. Try different filters."}
-        </p>
-      </div>
-    );
+    return <EmptyState query={query} />;
   }
 
   return (
     <div>
-      <p className="text-sm mb-4" style={{ color: "var(--fg-muted)" }}>
-        {results.pageInfo.total !== null ? (
-          <>
-            <span style={{ fontFamily: "var(--font-mono)", color: "var(--fg)" }}>
-              {results.pageInfo.total.toLocaleString()}
-            </span>{" "}
-            results{query ? ` for "${query}"` : ""}
-          </>
-        ) : null}
-      </p>
+      {results.pageInfo.total !== null && (
+        <p className="text-label mb-4" style={{ color: "var(--fg-subtle)" }}>
+          <span style={{ color: "var(--fg)" }}>{results.pageInfo.total.toLocaleString()}</span>
+          {" "}RESULTS{query ? ` FOR "${query.toUpperCase()}"` : ""}
+        </p>
+      )}
 
-      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+      <div className={GRID}>
         {results.media.map((anime) => (
           <AnimeCard key={anime.id} anime={anime} size="md" />
         ))}
@@ -162,40 +112,59 @@ export async function SearchResults({ params }: SearchResultsProps) {
             <a
               href={`?${new URLSearchParams({
                 ...Object.fromEntries(
-                  Object.entries(params)
-                    .filter(([, v]) => v !== undefined)
-                    .map(([k, v]) => [k, String(v)])
+                  Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
                 ),
                 page: String(page - 1),
               })}`}
               className="btn-ghost"
             >
-              ← Prev
+              ← PREV
             </a>
           )}
-          <span
-            className="flex items-center px-4 text-sm"
-            style={{ color: "var(--fg-muted)", fontFamily: "var(--font-mono)" }}
-          >
+          <span className="flex items-center px-4 text-label" style={{ color: "var(--fg-muted)" }}>
             {page} / {results.pageInfo.lastPage}
           </span>
           {results.pageInfo.hasNextPage && (
             <a
               href={`?${new URLSearchParams({
                 ...Object.fromEntries(
-                  Object.entries(params)
-                    .filter(([, v]) => v !== undefined)
-                    .map(([k, v]) => [k, String(v)])
+                  Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
                 ),
                 page: String(page + 1),
               })}`}
               className="btn-ghost"
             >
-              Next →
+              NEXT →
             </a>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function EmptyState({ query, message }: { query?: string; message?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+      <div
+        className="font-display"
+        style={{
+          fontFamily: "var(--font-anybody)",
+          fontSize: "clamp(64px, 12vw, 96px)",
+          fontWeight: 800,
+          color: "var(--fg-subtle)",
+          lineHeight: 1,
+          opacity: 0.3,
+        }}
+      >
+        ?
+      </div>
+      <p className="text-headline-md font-display" style={{ color: "var(--fg-muted)" }}>
+        {message ?? (query ? `NO RESULTS FOR "${query.toUpperCase()}"` : "NOTHING FOUND")}
+      </p>
+      <p className="text-label" style={{ color: "var(--fg-subtle)", maxWidth: 320 }}>
+        TRY A BROADER SEARCH OR DESCRIBE WHAT YOU&apos;RE LOOKING FOR
+      </p>
     </div>
   );
 }

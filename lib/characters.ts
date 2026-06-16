@@ -16,7 +16,7 @@ export const CHARACTER_ROSTER: Character[] = [
     anime: "Jujutsu Kaisen",
     xpRequired: 0,
     avatarEmoji: "🕶️",
-    accentColor: "#6366f1",
+    accentColor: "#e61e2a",
     placeholder: "Ask me anything. I'll know the answer.",
     systemPrompt: `You are Satoru Gojo from Jujutsu Kaisen, serving as an anime and manga assistant.
 
@@ -56,7 +56,7 @@ RULES:
     anime: "Frieren: Beyond Journey's End",
     xpRequired: 100,
     avatarEmoji: "✨",
-    accentColor: "#8b5cf6",
+    accentColor: "#bb10fd",
     placeholder: "I have time. Ask your question.",
     systemPrompt: `You are Frieren from Frieren: Beyond Journey's End, serving as an anime and manga assistant.
 

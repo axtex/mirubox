@@ -110,14 +110,14 @@ export default async function MangaDetailPage({ params }: PageProps) {
               )}
               {media.format && <span className="badge">{media.format.replace(/_/g, " ")}</span>}
               {media.status && (
-                <span className="text-xs" style={{ color: "var(--fg-subtle)", fontFamily: "var(--font-mono)" }}>
+                <span className="text-xs" style={{ color: "var(--fg-subtle)", fontFamily: "var(--font-space-mono)" }}>
                   {formatStatus(media.status)}
                 </span>
               )}
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}>
+          <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}>
             {title}
           </h1>
           {media.title.native && title !== media.title.native && (
@@ -154,7 +154,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
         {/* Desktop layout */}
         <div className="hidden md:flex gap-8">
           <div className="flex-1 min-w-0">
-            <h1 className="text-4xl font-bold mb-1 mt-8" style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}>
+            <h1 className="text-4xl font-bold mb-1 mt-8" style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}>
               {title}
             </h1>
             {media.title.native && title !== media.title.native && (
@@ -204,7 +204,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
         {/* Characters */}
         {media.characters.edges.length > 0 && (
           <section className="mt-8 mb-8">
-            <h2 className="text-base font-bold mb-4" style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}>
+            <h2 className="text-base font-bold mb-4" style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}>
               Characters
             </h2>
             <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
@@ -220,7 +220,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
                   <p className="text-xs text-center leading-tight line-clamp-2" style={{ color: "var(--fg-muted)" }}>
                     {node.name.full}
                   </p>
-                  <span className="text-[10px]" style={{ color: "var(--fg-subtle)", fontFamily: "var(--font-mono)" }}>
+                  <span className="text-[10px]" style={{ color: "var(--fg-subtle)", fontFamily: "var(--font-space-mono)" }}>
                     {role}
                   </span>
                 </div>
@@ -232,10 +232,10 @@ export default async function MangaDetailPage({ params }: PageProps) {
         {/* Related */}
         {related.length > 0 && (
           <section className="mb-10">
-            <h2 className="text-base font-bold mb-4" style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}>
+            <h2 className="text-base font-bold mb-4" style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}>
               Related
             </h2>
-            <div className="scroll-row md:flex md:flex-wrap md:gap-4">
+            <div className="flex scroll-row md:flex-wrap md:gap-4">
               {related.slice(0, 8).map(({ node, relationType }) => (
                 <div key={node.id} className="flex flex-col gap-1" style={{ width: 120 }}>
                   <AnimeCard
@@ -251,9 +251,8 @@ export default async function MangaDetailPage({ params }: PageProps) {
                       popularity: null,
                     }}
                     size="sm"
-                    showScore={false}
                   />
-                  <span className="text-[10px] text-center" style={{ color: "var(--fg-subtle)", fontFamily: "var(--font-mono)" }}>
+                  <span className="text-[10px] text-center" style={{ color: "var(--fg-subtle)", fontFamily: "var(--font-space-mono)" }}>
                     {relationType.replace(/_/g, " ")}
                   </span>
                 </div>
@@ -295,7 +294,7 @@ function MangaMetadataGrid({
           >
             {label}
           </span>
-          <span className="text-sm" style={{ color: "var(--fg-muted)", fontFamily: "var(--font-mono)" }}>
+          <span className="text-sm" style={{ color: "var(--fg-muted)", fontFamily: "var(--font-space-mono)" }}>
             {value}
           </span>
         </div>

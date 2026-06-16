@@ -9,6 +9,32 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
+export const EMBEDDING_DIMS = 1536;
+
+/** Parse a pgvector column value into a validated float array. */
+export function parsePgVector(value: unknown): number[] | null {
+  if (value == null) return null;
+
+  let values: number[];
+  if (Array.isArray(value)) {
+    values = value.map((n) => Number(n));
+  } else if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return null;
+    values = trimmed.slice(1, -1).split(",").map((n) => Number(n.trim()));
+  } else {
+    return null;
+  }
+
+  if (values.length !== EMBEDDING_DIMS) return null;
+  if (values.some((n) => !Number.isFinite(n))) return null;
+  return values;
+}
+
+export function toVectorLiteral(vector: number[]): string {
+  return `[${vector.join(",")}]`;
+}
+
 export async function generateEmbedding(text: string): Promise<number[]> {
   const response = await getOpenAI().embeddings.create({
     model: "text-embedding-3-small",

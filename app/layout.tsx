@@ -1,33 +1,30 @@
 import type { Metadata } from "next";
-import { Inter, Outfit, JetBrains_Mono } from "next/font/google";
+import { Anybody, Geist, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { Footer } from "@/components/layout/Footer";
 import { ChatbotLoader } from "@/components/chat/ChatbotLoader";
 import { auth } from "@/auth";
 
-const inter = Inter({
-  variable: "--font-inter",
+const anybody = Anybody({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-anybody",
   display: "swap",
-  preload: false,
-  fallback: ["system-ui", "sans-serif"],
 });
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+const geist = Geist({
   subsets: ["latin"],
+  variable: "--font-geist",
   display: "swap",
-  preload: false,
-  fallback: ["system-ui", "sans-serif"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+const spaceMono = Space_Mono({
   subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-space-mono",
   display: "swap",
-  preload: false,
-  fallback: ["ui-monospace", "monospace"],
 });
 
 export const metadata: Metadata = {
@@ -43,15 +40,25 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable}`}
-    >
-      <body className="min-h-dvh flex flex-col" style={{ background: "var(--bg)", color: "var(--fg)" }}>
+    <html lang="en">
+      <body
+        className={`
+          ${anybody.variable}
+          ${geist.variable}
+          ${spaceMono.variable}
+          font-sans
+          bg-[#0f0f12]
+          text-[#e4e1e6]
+          min-h-dvh
+          flex
+          flex-col
+        `}
+      >
         <Navbar />
         <main className="flex-1 pb-20 md:pb-0">
           {children}
         </main>
+        <Footer />
         <MobileNav />
         {session?.user && <ChatbotLoader />}
       </body>

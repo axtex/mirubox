@@ -44,7 +44,7 @@ export function SignInForm() {
       <div className="text-center">
         <span
           className="text-2xl font-bold tracking-tight"
-          style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}
+          style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}
         >
           miru
           <span style={{ color: "var(--accent)" }}>box</span>
@@ -129,7 +129,7 @@ export function SignInForm() {
               }}
             />
             {error && (
-              <p className="text-xs" style={{ color: "var(--danger)" }}>
+              <p className="text-xs" style={{ color: "var(--score-low)" }}>
                 {error}
               </p>
             )}

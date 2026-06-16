@@ -3,9 +3,9 @@ interface AnimeCardSkeletonProps {
 }
 
 const SIZES = {
-  sm: { width: 120, height: 170 },
-  md: { width: 160, height: 225 },
-  lg: { width: 200, height: 285 },
+  sm: { width: 100, height: 150 },
+  md: { width: 140, height: 210 },
+  lg: { width: 180, height: 270 },
 };
 
 export function AnimeCardSkeleton({ size = "md" }: AnimeCardSkeletonProps) {
@@ -13,19 +13,15 @@ export function AnimeCardSkeleton({ size = "md" }: AnimeCardSkeletonProps) {
 
   return (
     <div
-      className="rounded-lg overflow-hidden"
       style={{
         width,
         flexShrink: 0,
-        background: "var(--bg-elevated)",
+        borderRadius: 4,
+        overflow: "hidden",
         border: "1px solid var(--border)",
       }}
     >
-      <div className="skeleton" style={{ height, width }} />
-      <div className="px-2 py-2 flex flex-col gap-1.5">
-        <div className="skeleton h-3 rounded" style={{ width: "80%" }} />
-        <div className="skeleton h-2.5 rounded" style={{ width: "50%" }} />
-      </div>
+      <div className="shimmer" style={{ height, width }} />
     </div>
   );
 }

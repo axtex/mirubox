@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AnimeCard } from "./AnimeCard";
+import { AnimeCardSkeleton } from "./AnimeCardSkeleton";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 
 interface SectionRowProps {
@@ -7,41 +8,39 @@ interface SectionRowProps {
   seeAllHref?: string;
   items: AnimeCardType[];
   size?: "sm" | "md" | "lg";
+  loading?: boolean;
 }
 
-export function SectionRow({ title, seeAllHref, items, size = "md" }: SectionRowProps) {
+const ROW_LIMIT = 7;
+
+export function SectionRow({ title, seeAllHref, items, size = "md", loading }: SectionRowProps) {
+  const rowItems = items.slice(0, ROW_LIMIT);
+
   return (
-    <section className="px-4 md:px-6">
+    <section className="px-4 md:px-8">
       <div className="section-header">
-        <h2
-          className="text-base md:text-lg font-bold"
-          style={{ fontFamily: "var(--font-display)", color: "var(--fg)" }}
-        >
-          {title}
-        </h2>
-        {seeAllHref && (
-          <Link
-            href={seeAllHref}
-            className="text-xs transition-colors"
-            style={{ color: "var(--accent)" }}
-          >
-            See all →
-          </Link>
-        )}
+        <div className="section-header-row">
+          <h2 className="text-headline-md font-display uppercase">{title}</h2>
+          {seeAllHref && (
+            <Link
+              href={seeAllHref}
+              className="text-label link-subtle"
+            >
+              VIEW ALL →
+            </Link>
+          )}
+        </div>
+        <div className="section-underline" />
       </div>
 
-      {/* Mobile: horizontal scroll */}
-      <div className="scroll-row md:hidden">
-        {items.map((anime) => (
-          <AnimeCard key={anime.id} anime={anime} size="sm" />
-        ))}
-      </div>
-
-      {/* Desktop: grid */}
-      <div className="hidden md:grid grid-cols-6 gap-4">
-        {items.slice(0, 6).map((anime) => (
-          <AnimeCard key={anime.id} anime={anime} size={size} />
-        ))}
+      <div className="section-cards">
+        {loading
+          ? Array.from({ length: ROW_LIMIT }).map((_, i) => (
+              <AnimeCardSkeleton key={i} size={size} />
+            ))
+          : rowItems.map((anime) => (
+              <AnimeCard key={anime.id} anime={anime} size={size} />
+            ))}
       </div>
     </section>
   );

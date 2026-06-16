@@ -33,7 +33,7 @@ export default function VerifyPage() {
           <h1
             className="text-xl font-semibold"
             style={{
-              fontFamily: "var(--font-display)",
+              fontFamily: "var(--font-anybody)",
               color: "var(--fg)",
             }}
           >
