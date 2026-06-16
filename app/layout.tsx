@@ -55,11 +55,11 @@ export default async function RootLayout({
         `}
       >
         <Navbar />
-        <main className="flex-1 pb-20 md:pb-0">
+        <MobileNav />
+        <main className="flex-1 pt-14 md:pt-0">
           {children}
         </main>
         <Footer />
-        <MobileNav />
         {session?.user && <ChatbotLoader />}
       </body>
     </html>

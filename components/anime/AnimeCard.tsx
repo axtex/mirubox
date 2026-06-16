@@ -1,72 +1,84 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus } from "lucide-react";
 import { getDisplayTitle } from "@/lib/anilist";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
+import { AnimeCardActions } from "./AnimeCardActions";
 
 interface AnimeCardProps {
   anime: AnimeCardType;
   size?: "sm" | "md" | "lg";
   watchlistStatus?: string | null;
+  userRating?: number | null;
   similarity?: number | null;
 }
 
-const SIZES = {
-  sm: { width: 100, height: 150 },
-  md: { width: 140, height: 210 },
-  lg: { width: 180, height: 270 },
+const IMAGE_SIZES = {
+  sm: "100px",
+  md: "(min-width: 768px) 15vw, 140px",
+  lg: "(min-width: 768px) 20vw, 180px",
 };
 
 const STATUS_DOT: Record<string, string> = {
-  WATCHING:      "#3b82f6",
-  COMPLETED:     "#4ade80",
+  WATCHING: "#3b82f6",
+  COMPLETED: "#4ade80",
   PLAN_TO_WATCH: "#e4e1e6",
-  DROPPED:       "#e61e2a",
-  ON_HOLD:       "#fbbf24",
+  DROPPED: "#e61e2a",
+  ON_HOLD: "#fbbf24",
 };
 
-export function AnimeCard({ anime, size = "md", watchlistStatus, similarity }: AnimeCardProps) {
-  const { width, height } = SIZES[size];
+export function AnimeCard({
+  anime,
+  size = "md",
+  watchlistStatus,
+  userRating,
+  similarity,
+}: AnimeCardProps) {
+  const [status, setStatus] = useState<string | null>(watchlistStatus ?? null);
   const title = getDisplayTitle(anime.title);
   const score = anime.averageScore;
-  const dotColor = watchlistStatus ? STATUS_DOT[watchlistStatus] : null;
+  const dotColor = status ? STATUS_DOT[status] : null;
+  const detailHref = anime.type === "MANGA" ? `/manga/${anime.id}` : `/anime/${anime.id}`;
 
   return (
-    <Link
-      href={`/anime/${anime.id}`}
-      className="anime-card group relative block overflow-hidden"
+    <div
+      tabIndex={0}
+      className={`anime-card anime-card--${size} group relative overflow-hidden`}
       style={{
-        width,
-        flexShrink: 0,
         borderRadius: 4,
         border: "1px solid rgba(255,255,255,0.08)",
-        display: "block",
       }}
     >
-      {/* Poster — full card height */}
-      <div className="relative" style={{ height, width }}>
+      <div className="relative w-full aspect-[2/3]">
         {anime.coverImage.extraLarge || anime.coverImage.large ? (
           <Image
             src={(anime.coverImage.extraLarge ?? anime.coverImage.large)!}
             alt={title}
             fill
-            sizes={`${width}px`}
+            sizes={IMAGE_SIZES[size]}
             className="object-cover"
             style={{ transition: "none" }}
           />
         ) : (
           <div
-            className="w-full h-full flex items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center"
             style={{ background: "var(--bg-card)" }}
           >
             <span style={{ fontSize: 24, opacity: 0.15 }}>✦</span>
           </div>
         )}
 
-        {/* Score pill — top right, crimson */}
+        <Link
+          href={detailHref}
+          className="absolute inset-0 z-[1]"
+          aria-label={`View ${title}`}
+        />
+
         {score !== null && (
           <div
-            className="absolute top-1.5 right-1.5 leading-none font-bold"
+            className="absolute top-1.5 right-1.5 z-[1] leading-none font-bold pointer-events-none"
             style={{
               fontFamily: "var(--font-space-mono)",
               fontSize: 10,
@@ -80,31 +92,39 @@ export function AnimeCard({ anime, size = "md", watchlistStatus, similarity }: A
           </div>
         )}
 
-        {/* Watchlist status dot — bottom left */}
         {dotColor && (
           <div
-            className="absolute bottom-2 left-2 w-2 h-2 rounded-full"
+            className="absolute bottom-2 left-2 z-[1] w-2 h-2 rounded-full pointer-events-none"
             style={{ background: dotColor, boxShadow: `0 0 5px ${dotColor}` }}
           />
         )}
 
-        {/* Hover overlay — gradient + text reveal */}
         <div
-          className="absolute inset-0 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          className="absolute inset-0 z-10 flex flex-col justify-end opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity duration-200"
           style={{
-            background: "linear-gradient(to top, rgba(15,15,18,0.97) 0%, rgba(15,15,18,0.65) 55%, transparent 100%)",
+            background:
+              "linear-gradient(to top, rgba(15,15,18,0.97) 0%, rgba(15,15,18,0.65) 55%, transparent 100%)",
           }}
         >
-          <div className="p-2 flex flex-col gap-1.5">
-            <p
-              className="text-[13px] font-medium leading-snug line-clamp-2"
-              style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}
+          <div className="p-2">
+            <Link
+              href={detailHref}
+              className="block mb-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
+              style={{ outlineColor: "var(--accent-bright)" }}
             >
-              {title}
-            </p>
+              <p
+                className="text-[13px] font-medium leading-snug line-clamp-2"
+                style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}
+              >
+                {title}
+              </p>
+            </Link>
 
             {(anime.format || anime.seasonYear) && (
-              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-muted)" }}>
+              <p
+                className="mb-1"
+                style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-muted)" }}
+              >
                 {[anime.format?.replace(/_/g, " "), anime.seasonYear].filter(Boolean).join(" · ")}
               </p>
             )}
@@ -115,24 +135,16 @@ export function AnimeCard({ anime, size = "md", watchlistStatus, similarity }: A
               </p>
             )}
 
-            <div
-              className="flex items-center justify-center gap-1 py-1.5"
-              style={{
-                background: "var(--primary)",
-                color: "#fff",
-                borderRadius: 2,
-                fontSize: 9,
-                fontFamily: "var(--font-space-mono)",
-                letterSpacing: "0.08em",
-                fontWeight: 700,
-              }}
-            >
-              <Plus className="w-2.5 h-2.5" />
-              WATCHLIST
-            </div>
+            <AnimeCardActions
+              mediaId={anime.id}
+              mediaType={anime.type}
+              initialStatus={status}
+              initialRating={userRating}
+              onStatusChange={setStatus}
+            />
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

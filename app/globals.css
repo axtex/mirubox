@@ -307,6 +307,24 @@ h1, h2, h3 {
   animation: shimmer 1.5s infinite;
 }
 
+/* ── Anime card sizes ───────────────────────────────────────────────────── */
+
+.anime-card--sm { width: 100px; flex-shrink: 0; }
+.anime-card--md { width: 140px; flex-shrink: 0; }
+.anime-card--lg { width: 180px; flex-shrink: 0; }
+
+.grid > .anime-card {
+  width: 100%;
+  max-width: none;
+}
+
+@media (min-width: 768px) {
+  .section-cards > .anime-card {
+    width: 100%;
+    max-width: none;
+  }
+}
+
 /* ── Homepage section card row (single row, responsive) ─────────────────── */
 
 .section-cards {
@@ -336,11 +354,6 @@ h1, h2, h3 {
     overflow: visible;
     padding-bottom: 0;
   }
-
-  .section-cards > * {
-    width: 100% !important;
-    max-width: none;
-  }
 }
 
 /* ── Horizontal scroll carousel ─────────────────────────────────────────── */
@@ -369,6 +382,11 @@ h1, h2, h3 {
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
+.anime-card:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+
 .anime-card:hover {
   box-shadow: 0 0 24px var(--primary-glow);
   transform: scale(1.03);
@@ -385,13 +403,49 @@ h1, h2, h3 {
 /* ── Hero responsive height ─────────────────────────────────────────────── */
 
 .hero-section {
-  height: 50vh;
-  min-height: 300px;
+  height: 24vh;
+  min-height: 180px;
+  max-height: 260px;
 }
 
 @media (min-width: 768px) {
   .hero-section {
-    height: 75vh;
-    min-height: 480px;
+    height: 28vh;
+    min-height: 200px;
+    max-height: 300px;
+  }
+}
+
+.hero-carousel-track {
+  transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.hero-carousel-dot {
+  width: 6px;
+  height: 3px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.35);
+  transition: background 0.2s ease, width 0.2s ease;
+}
+
+.hero-carousel-dot[data-active="true"] {
+  width: 14px;
+  background: var(--primary);
+}
+
+.hero-carousel-dot:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.hero-carousel-dot[data-active="true"]:hover {
+  background: var(--accent-bright);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-carousel-track {
+    transition: none;
   }
 }

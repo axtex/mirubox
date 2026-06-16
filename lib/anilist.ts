@@ -276,6 +276,20 @@ export function getCurrentSeason(): { season: string; year: number } {
   return { season, year };
 }
 
+const SEASON_ORDER = ["WINTER", "SPRING", "SUMMER", "FALL"] as const;
+
+export function getNextSeason(): { season: string; year: number } {
+  const { season, year } = getCurrentSeason();
+  const idx = SEASON_ORDER.indexOf(season as (typeof SEASON_ORDER)[number]);
+  const nextIdx = (idx + 1) % SEASON_ORDER.length;
+  const nextYear = nextIdx === 0 ? year + 1 : year;
+  return { season: SEASON_ORDER[nextIdx], year: nextYear };
+}
+
+export function formatSeasonLabel(season: string): string {
+  return season[0].toUpperCase() + season.slice(1).toLowerCase();
+}
+
 export function getDisplayTitle(
   title: { romaji: string | null; english: string | null; native: string | null } | null
 ): string {

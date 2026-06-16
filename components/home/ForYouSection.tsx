@@ -11,11 +11,13 @@ export interface ForYouItem {
 interface ForYouSectionProps {
   items: ForYouItem[];
   needsMoreData: boolean;
+  isLoggedIn: boolean;
 }
 
 export function ForYouSection({
   items = [],
   needsMoreData = true,
+  isLoggedIn = false,
 }: ForYouSectionProps) {
   return (
     <section className="px-4 md:px-8">
@@ -30,7 +32,29 @@ export function ForYouSection({
         <div className="section-underline" />
       </div>
 
-      {needsMoreData && (
+      {!isLoggedIn && (
+        <div
+          className="flex flex-col items-center gap-3 p-8 text-center"
+          style={{
+            border: "1px dashed var(--border-bright)",
+            borderRadius: 4,
+            background: "var(--bg-surface)",
+          }}
+        >
+          <Sparkles className="w-6 h-6" style={{ color: "var(--fg-subtle)" }} />
+          <p className="text-headline-md font-display uppercase" style={{ fontSize: 16 }}>
+            PERSONALIZED PICKS
+          </p>
+          <p className="text-label" style={{ color: "var(--fg-subtle)" }}>
+            SIGN IN TO UNLOCK →
+          </p>
+          <Link href="/auth/signin" className="btn-primary" style={{ minHeight: 36, padding: "7px 16px", fontSize: 10 }}>
+            SIGN IN
+          </Link>
+        </div>
+      )}
+
+      {isLoggedIn && needsMoreData && (
         <div
           className="flex flex-col items-center gap-3 p-8 text-center"
           style={{
@@ -52,7 +76,7 @@ export function ForYouSection({
         </div>
       )}
 
-      {!needsMoreData && items.length > 0 && (
+      {isLoggedIn && !needsMoreData && items.length > 0 && (
         <div className="section-cards">
           {items.slice(0, 7).map(({ anime, similarity }) => (
             <AnimeCard key={anime.id} anime={anime} size="md" similarity={similarity} />

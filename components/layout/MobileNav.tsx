@@ -17,12 +17,12 @@ export function MobileNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex backdrop-blur-[20px]"
+      className="md:hidden fixed top-0 left-0 right-0 z-50 flex"
       style={{
-        background: "rgba(15,15,18,0.98)",
-        borderTop: "1px solid var(--border)",
-        height: 64,
-        paddingBottom: "env(safe-area-inset-bottom)",
+        background: "var(--bg-surface)",
+        borderBottom: "1px solid var(--border)",
+        height: 56,
+        paddingTop: "env(safe-area-inset-top)",
       }}
     >
       {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
