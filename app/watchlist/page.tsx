@@ -72,7 +72,7 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="px-4 md:px-8 py-8 min-h-screen" style={{ background: "var(--bg)" }}>
+    <div className="py-8 min-h-screen" style={{ background: "var(--bg)" }}>
 
       {/* ── Page header ──────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-6 gap-4">

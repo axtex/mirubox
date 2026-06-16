@@ -1,29 +1,58 @@
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Folder, Star, Eye, CheckCircle, Settings } from "lucide-react";
+import {
+  Settings,
+  Share2,
+  ShieldCheck,
+  List,
+  Lock,
+} from "lucide-react";
 import type { XpEvent } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { CHARACTER_ROSTER } from "@/lib/characters";
+import { timeAgo, xpIcon } from "@/lib/profile";
+import { getArchiveCounts } from "@/lib/archive";
+import { ArchiveFolderCard } from "@/components/profile/ArchiveFolderCard";
 
-function timeAgo(date: Date): string {
-  const diff = Date.now() - date.getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+function SectionHeader({
+  title,
+  href,
+  icon,
+}: {
+  title: string;
+  href?: string;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="section-header mb-4">
+      <div className="section-header-row">
+        <h2 className="text-headline-md font-display flex items-center gap-2 uppercase">
+          {icon}
+          {title}
+        </h2>
+        {href && (
+          <Link href={href} className="text-label link-subtle" style={{ fontSize: 9 }}>
+            VIEW ALL →
+          </Link>
+        )}
+      </div>
+      <div className="section-underline" />
+    </div>
+  );
 }
 
-function xpIcon(reason: string) {
-  if (reason.toLowerCase().includes("rate")) return <Star className="w-3.5 h-3.5" />;
-  if (reason.toLowerCase().includes("complet")) return <CheckCircle className="w-3.5 h-3.5" />;
-  return <Eye className="w-3.5 h-3.5" />;
-}
-
-function pad(n: number | string): string {
-  return String(n).padStart(2, "0");
+function StatBox({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={`p-4 h-full ${className}`}
+      style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 4 }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export default async function ProfilePage() {
@@ -35,29 +64,28 @@ export default async function ProfilePage() {
     select: {
       id: true,
       name: true,
-      email: true,
       image: true,
       xp: true,
       level: true,
       createdAt: true,
-      _count: { select: { watchlist: true, ratings: true } },
+      _count: { select: { watchlist: true } },
     },
   });
 
   if (!user) redirect("/auth/signin");
 
-  const [completedCount, avgRating, xpEvents, watchlistWithGenres, watchingCount] =
+  const [archiveCounts, avgRating, xpEvents, watchlistWithGenres, watchingCount] =
     await Promise.all([
-      prisma.watchlistEntry.count({ where: { userId: user.id, status: "COMPLETED" } }),
+      getArchiveCounts(user.id),
       prisma.rating.aggregate({ where: { userId: user.id }, _avg: { score: true } }),
       prisma.xpEvent.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "desc" },
-        take: 10,
+        take: 6,
       }),
       prisma.watchlistEntry.findMany({
         where: { userId: user.id },
-        include: { anime: { select: { genres: true, episodes: true } } },
+        include: { anime: { select: { genres: true, episodes: true, type: true } } },
       }),
       prisma.watchlistEntry.count({ where: { userId: user.id, status: "WATCHING" } }),
     ]);
@@ -79,31 +107,34 @@ export default async function ProfilePage() {
 
   const xpInLevel = user.xp % 100;
   const progressPct = Math.min(100, xpInLevel);
-  const xpToNext = 100 - xpInLevel;
+  const avgScore = archiveCounts.avgScore ?? avgRating._avg.score?.toFixed(1) ?? null;
+  const completedCount = watchlistWithGenres.filter((e) => e.status === "COMPLETED").length;
+  const classicsPct = Math.min(100, completedCount * 22 || 0);
+  const seasonalPct = Math.min(100, watchingCount * 14 || 0);
 
-  const avgScore = avgRating._avg.score ? avgRating._avg.score.toFixed(1) : null;
+  const previewCharacters = Array.from({ length: 6 }, (_, i) => CHARACTER_ROSTER[i] ?? null);
 
   return (
-    <div className="px-4 md:px-8 py-8 max-w-5xl mx-auto" style={{ background: "var(--bg)", minHeight: "100vh" }}>
+    <div className="py-8" style={{ background: "var(--bg)", minHeight: "100vh" }}>
 
-      {/* ── Profile header ───────────────────────────────────────────── */}
-      <div className="flex items-start gap-5 mb-8">
-        {/* Avatar with gradient border */}
+      {/* Profile header */}
+      <div className="flex items-start gap-5 mb-6">
         <div className="relative shrink-0">
           <div
-            className="p-[3px] rounded-lg"
+            className="p-[3px]"
             style={{
               background: "linear-gradient(135deg, var(--primary), var(--tertiary))",
               borderRadius: 8,
+              boxShadow: "0 0 24px var(--primary-glow)",
             }}
           >
-            <div className="overflow-hidden" style={{ width: 88, height: 88, borderRadius: 6 }}>
+            <div className="overflow-hidden" style={{ width: 96, height: 96, borderRadius: 6 }}>
               {user.image ? (
-                <Image src={user.image} alt={user.name ?? "User"} width={88} height={88} className="object-cover" />
+                <Image src={user.image} alt={user.name ?? "User"} width={96} height={96} className="object-cover" />
               ) : (
                 <div
-                  className="w-full h-full flex items-center justify-center text-2xl font-bold"
-                  style={{ background: "var(--primary)", color: "#fff", fontFamily: "var(--font-anybody)" }}
+                  className="w-full h-full flex items-center justify-center text-3xl font-bold"
+                  style={{ background: "var(--bg-elevated)", color: "var(--primary-dim)", fontFamily: "var(--font-anybody)" }}
                 >
                   {(user.name ?? "U")[0].toUpperCase()}
                 </div>
@@ -112,40 +143,130 @@ export default async function ProfilePage() {
           </div>
           <div
             className="absolute -bottom-1 -right-1 w-6 h-6 flex items-center justify-center"
-            style={{ background: "var(--bg-card-high)", border: "1px solid var(--border-bright)", borderRadius: "50%" }}
+            style={{ background: "var(--primary)", borderRadius: "50%", border: "2px solid var(--bg)" }}
           >
-            <Settings className="w-3 h-3" style={{ color: "var(--fg-muted)" }} />
+            <ShieldCheck className="w-3 h-3" style={{ color: "#fff" }} />
           </div>
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-label mb-1" style={{ color: "var(--primary)" }}>PREMIUM ARCHIVIST</p>
-          <h1 className="text-headline-lg font-display">{user.name ?? "Anime Fan"}</h1>
-          <p className="mt-1 text-label" style={{ color: "var(--fg-subtle)" }}>
+        <div className="flex-1 min-w-0 pt-1">
+          <p className="text-label mb-1" style={{ color: "var(--fg-subtle)" }}>
             MEMBER SINCE {user.createdAt.getFullYear()}
           </p>
+          <h1 className="text-headline-lg font-display">{user.name ?? "Anime Fan"}</h1>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 shrink-0 mt-1">
-          <Link href="#" className="p-2" style={{ color: "var(--fg-subtle)", borderRadius: 2, border: "1px solid var(--border)" }}>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="#"
+            className="p-2.5"
+            style={{ color: "var(--fg-subtle)", borderRadius: 4, border: "1px solid var(--border)", background: "var(--bg-card)" }}
+            aria-label="Settings"
+          >
             <Settings className="w-4 h-4" />
           </Link>
+          <span
+            className="p-2.5 inline-flex"
+            style={{ color: "var(--fg-subtle)", borderRadius: 4, border: "1px solid var(--border)", background: "var(--bg-card)" }}
+            aria-hidden
+          >
+            <Share2 className="w-4 h-4" />
+          </span>
         </div>
       </div>
 
-      {/* ── XP / Level card ──────────────────────────────────────────── */}
+      {/* Archive */}
+      <div className="mb-6">
+        <SectionHeader title="ARCHIVE" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <ArchiveFolderCard folder="all" value={String(archiveCounts.all)} />
+          <ArchiveFolderCard folder="watching" value={String(archiveCounts.watching)} />
+          <ArchiveFolderCard folder="reading" value={String(archiveCounts.reading)} />
+          <ArchiveFolderCard folder="ratings" value={avgScore ?? "—"} accent />
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+        <StatBox>
+          <p className="text-label mb-3" style={{ color: "var(--fg-subtle)" }}>TOP GENRES</p>
+          <div className="flex flex-wrap gap-2">
+            {topGenres.length > 0
+              ? topGenres.map((g) => (
+                  <Link key={g} href={`/search?genre=${encodeURIComponent(g)}`} className="genre-chip">
+                    {g}
+                  </Link>
+                ))
+              : <p className="text-label" style={{ color: "var(--fg-subtle)" }}>NO DATA YET</p>}
+          </div>
+        </StatBox>
+
+        <StatBox>
+          <p className="text-label mb-3" style={{ color: "var(--fg-subtle)" }}>SCORE</p>
+          <div className="flex flex-col gap-3">
+            {[
+              { label: "CLASSICS", pct: classicsPct, color: "var(--fg)" },
+              { label: "SEASONAL", pct: seasonalPct, color: "var(--primary)" },
+            ].map(({ label, pct, color }) => (
+              <div key={label}>
+                <div className="flex justify-between mb-1">
+                  <span className="text-label" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>{label}</span>
+                  <span className="text-label" style={{ color: "var(--fg-muted)", fontSize: 9 }}>{pct}%</span>
+                </div>
+                <div className="w-full overflow-hidden" style={{ height: 3, background: "var(--bg-elevated)", borderRadius: 1 }}>
+                  <div className="h-full" style={{ width: `${pct}%`, background: color, borderRadius: 1 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </StatBox>
+
+        <StatBox>
+          <p className="text-label mb-3" style={{ color: "var(--fg-subtle)" }}>WATCHED TIME</p>
+          <p
+            className="font-display mb-1"
+            style={{ fontFamily: "var(--font-anybody)", fontSize: 40, fontWeight: 800, lineHeight: 1, color: "var(--fg)" }}
+          >
+            {totalMinutes.toLocaleString()}
+          </p>
+          <p className="text-label" style={{ color: "var(--fg-subtle)" }}>TOTAL MINUTES RECORDED</p>
+        </StatBox>
+      </div>
+
+      {/* Social bar + your lists */}
+      <div
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 px-4 py-3"
+        style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 4 }}
+      >
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-label" style={{ color: "var(--fg-subtle)" }}>
+          <span>
+            <span style={{ color: "var(--primary)" }}>#--</span> LEADERBOARD
+          </span>
+          <span>0 LIKES</span>
+          <span>0 REPLIES</span>
+          <span>0 FRIENDS</span>
+        </div>
+        <Link
+          href="/watchlist"
+          className="btn-ghost shrink-0 flex items-center gap-2 self-start sm:self-auto"
+          style={{ minHeight: 36, padding: "6px 14px", fontSize: 9 }}
+        >
+          <List className="w-3.5 h-3.5" />
+          YOUR LISTS
+        </Link>
+      </div>
+
+      {/* Level bar */}
       <div className="mb-6 p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 4 }}>
-        <div className="flex items-center justify-between gap-4">
-          {/* Left: level badge */}
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-4 shrink-0">
             <div
-              className="flex items-center justify-center shrink-0"
+              className="flex items-center justify-center"
               style={{
-                width: 56, height: 56,
+                width: 56,
+                height: 56,
                 background: "var(--primary)",
-                borderRadius: 2,
+                borderRadius: 4,
                 fontFamily: "var(--font-anybody)",
                 fontWeight: 800,
                 fontSize: 28,
@@ -155,182 +276,42 @@ export default async function ProfilePage() {
               {user.level}
             </div>
             <div>
-              <p className="text-headline-md font-display">LEVEL {user.level}</p>
+              <p className="text-headline-md font-display">Level {user.level}</p>
               <p className="text-label mt-0.5" style={{ color: "var(--fg-subtle)" }}>
-                {user.xp} XP ACROSS {user._count.watchlist} SERIES
+                {user.xp} XP total tracked across {user._count.watchlist} series
               </p>
             </div>
           </div>
 
-          {/* Right: progress */}
-          <div className="flex-1 max-w-xs hidden md:block">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-label" style={{ color: "var(--fg-subtle)" }}>
+          <div className="flex-1 md:max-w-md md:ml-auto">
+            <div className="flex items-center justify-between mb-1.5 gap-4">
+              <span className="text-label" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>
                 {xpInLevel} / 100 XP TO LEVEL {user.level + 1}
               </span>
-              <span className="text-label" style={{ color: "var(--primary)" }}>
-                {progressPct}%
+              <span className="text-label shrink-0" style={{ color: "var(--primary)", fontSize: 9 }}>
+                {progressPct}% COMPLETE
               </span>
             </div>
             <div className="w-full overflow-hidden" style={{ height: 4, background: "var(--bg-elevated)", borderRadius: 2 }}>
-              <div
-                className="h-full transition-all"
-                style={{ width: `${progressPct}%`, background: "var(--primary)", borderRadius: 2 }}
-              />
+              <div className="h-full" style={{ width: `${progressPct}%`, background: "var(--primary)", borderRadius: 2 }} />
             </div>
-            <p className="text-label mt-1" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>
-              {xpToNext} XP NEEDED
-            </p>
-          </div>
-        </div>
-
-        {/* Mobile progress */}
-        <div className="mt-4 md:hidden">
-          <div className="flex justify-between mb-1">
-            <span className="text-label" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>{xpInLevel} / 100 XP</span>
-            <span className="text-label" style={{ color: "var(--primary)", fontSize: 9 }}>{progressPct}% COMPLETE</span>
-          </div>
-          <div className="w-full overflow-hidden" style={{ height: 4, background: "var(--bg-elevated)", borderRadius: 2 }}>
-            <div className="h-full" style={{ width: `${progressPct}%`, background: "var(--primary)", borderRadius: 2 }} />
           </div>
         </div>
       </div>
 
-      {/* ── Digital Archive stats ─────────────────────────────────────── */}
-      <div className="mb-8">
-        <div className="section-header">
-          <div className="section-header-row">
-            <h2 className="text-headline-md font-display flex items-center gap-2 uppercase">
-              <Folder className="w-5 h-5" style={{ color: "var(--primary)" }} />
-              DIGITAL ARCHIVE
-            </h2>
-          </div>
-          <div className="section-underline" />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "TRACKED",   value: pad(user._count.watchlist), sub: "ACTIVE FILES" },
-            { label: "FINISHED",  value: pad(completedCount),        sub: "SEALED RECORDS" },
-            { label: "WATCHING",  value: pad(watchingCount),         sub: "CURRENT STREAM" },
-            { label: "SCORES",    value: avgScore ?? "—",            sub: "AVG MAGNITUDE" },
-          ].map(({ label, value, sub }) => (
-            <div
-              key={label}
-              className="relative p-4 flex flex-col gap-1"
-              style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 4 }}
-            >
-              <p className="text-label" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>{label}</p>
-              <p
-                className="font-display"
-                style={{ fontFamily: "var(--font-anybody)", fontSize: 36, fontWeight: 800, lineHeight: 1, color: "var(--fg)" }}
-              >
-                {value}
-              </p>
-              <p className="text-label" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>{sub}</p>
-              <span
-                className="absolute bottom-3 right-3 text-label"
-                style={{ color: "var(--fg-subtle)", fontSize: 14 }}
-              >→</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Social stats row (static) ────────────────────────────────── */}
-      <div
-        className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-8 px-4 py-3"
-        style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 4 }}
-      >
-        <div className="flex flex-wrap items-center gap-3 text-label" style={{ color: "var(--fg-subtle)" }}>
-          <span>#-- LEADERBOARD</span>
-          <span>·</span>
-          <span>0 LIKES</span>
-          <span>·</span>
-          <span>0 REPLIES</span>
-          <span>·</span>
-          <span>0 FRIENDS</span>
-        </div>
-        <Link href="/watchlist" className="btn-ghost shrink-0" style={{ minHeight: 32, padding: "5px 12px", fontSize: 9 }}>
-          YOUR LISTS →
-        </Link>
-      </div>
-
-      {/* ── Three-column section ─────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-        {/* Col 1: Top genres */}
-        <div>
-          <p className="text-label mb-3" style={{ color: "var(--fg-subtle)" }}>TOP GENRES</p>
-          <div className="flex flex-wrap gap-2">
-            {topGenres.length > 0
-              ? topGenres.map((g) => (
-                  <Link key={g} href={`/search?genre=${encodeURIComponent(g)}`} className="genre-chip">{g}</Link>
-                ))
-              : <p className="text-label" style={{ color: "var(--fg-subtle)" }}>NO DATA YET</p>
-            }
-          </div>
-        </div>
-
-        {/* Col 2: Score breakdown (static bars) */}
-        <div>
-          <p className="text-label mb-3" style={{ color: "var(--fg-subtle)" }}>SCORE</p>
-          <div className="flex flex-col gap-3">
-            {[
-              { label: "CLASSICS", pct: Math.min(100, completedCount * 3) },
-              { label: "SEASONAL", pct: Math.min(100, watchingCount * 8) },
-              { label: "OVERALL",  pct: progressPct },
-            ].map(({ label, pct }) => (
-              <div key={label}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-label" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>{label}</span>
-                  <span className="text-label" style={{ color: "var(--fg-muted)", fontSize: 9 }}>{pct}%</span>
-                </div>
-                <div className="w-full overflow-hidden" style={{ height: 2, background: "var(--bg-elevated)", borderRadius: 1 }}>
-                  <div className="h-full" style={{ width: `${pct}%`, background: "var(--primary)", borderRadius: 1 }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Col 3: Watched time */}
-        <div>
-          <p className="text-label mb-3" style={{ color: "var(--fg-subtle)" }}>WATCHED TIME</p>
-          <p
-            className="font-display mb-1"
-            style={{ fontFamily: "var(--font-anybody)", fontSize: 40, fontWeight: 800, lineHeight: 1, color: "var(--fg)" }}
-          >
-            {totalMinutes.toLocaleString()}
-          </p>
-          <p className="text-label" style={{ color: "var(--fg-subtle)" }}>TOTAL MINUTES RECORDED</p>
-        </div>
-      </div>
-
-      {/* ── Two-column: XP History + Characters ─────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-
-        {/* XP History */}
-        <div>
-          <div className="section-header">
-            <div className="section-header-row">
-              <h2 className="text-headline-md font-display flex items-center gap-2 uppercase">
-                <Clock className="w-4 h-4" style={{ color: "var(--primary)" }} />
-                XP HISTORY
-              </h2>
-            </div>
-            <div className="section-underline" />
-          </div>
-
+      {/* XP history + Your characters */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 md:items-stretch">
+        <div className="flex flex-col min-w-0">
+          <SectionHeader title="XP HISTORY" href="/profile/xp" />
           {xpEvents.length === 0 ? (
             <p className="text-label" style={{ color: "var(--fg-subtle)" }}>NO ACTIVITY YET</p>
           ) : (
-            <div className="flex flex-col">
-              {xpEvents.map((event: XpEvent) => (
+            <div className="flex flex-1 flex-col gap-2 min-h-0">
+              {xpEvents.slice(0, 6).map((event: XpEvent) => (
                 <div
                   key={event.id}
-                  className="flex items-center gap-3 py-2.5"
-                  style={{ borderBottom: "1px solid var(--border)" }}
+                  className="flex items-center gap-3 px-4 py-3"
+                  style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 4 }}
                 >
                   <span style={{ color: "var(--fg-subtle)" }}>{xpIcon(event.reason)}</span>
                   <span className="flex-1 text-sm truncate" style={{ color: "var(--fg-muted)" }}>
@@ -348,125 +329,33 @@ export default async function ProfilePage() {
           )}
         </div>
 
-        {/* Ledger Status (decorative) */}
-        <div>
-          <div className="section-header">
-            <div className="section-header-row">
-              <h2 className="text-headline-md font-display uppercase">TOP 3</h2>
-              <Link href="/profile#characters" className="text-label" style={{ color: "var(--fg-subtle)" }}>
-                VIEW ALL →
-              </Link>
-            </div>
-            <div className="section-underline" />
-          </div>
-
-          {/* Top 3 characters */}
-          <div className="flex gap-3 mb-5">
-            {CHARACTER_ROSTER.slice(0, 3).map((char) => {
-              const isUnlocked = user.xp >= char.xpRequired;
+        <div className="flex flex-col min-w-0">
+          <SectionHeader title="YOUR CHARACTERS" href="/profile/characters" />
+          <div className="grid flex-1 min-h-0 grid-cols-3 grid-rows-2 gap-1.5">
+            {previewCharacters.map((char, i) => {
+              const isUnlocked = char ? user.xp >= char.xpRequired : false;
               return (
-                <div
-                  key={char.id}
-                  className="flex-1 flex flex-col items-center gap-2 p-3"
+                <Link
+                  key={char?.id ?? `locked-${i}`}
+                  href={isUnlocked ? "/chat" : "/profile/characters"}
+                  className="flex items-center justify-center overflow-hidden min-h-0"
                   style={{
-                    background: isUnlocked ? `${char.accentColor}11` : "var(--bg-card)",
-                    border: `1px solid ${isUnlocked ? char.accentColor + "55" : "var(--border)"}`,
+                    background: isUnlocked ? "var(--bg-elevated)" : "var(--bg-card)",
+                    border: `1px solid ${isUnlocked ? "var(--border-bright)" : "var(--border)"}`,
                     borderRadius: 4,
-                    opacity: isUnlocked ? 1 : 0.5,
+                    opacity: isUnlocked ? 1 : 0.45,
                   }}
+                  aria-label={isUnlocked ? char!.name : "Locked character"}
                 >
-                  <span style={{ fontSize: 32 }}>{isUnlocked ? char.avatarEmoji : "🔒"}</span>
-                  <p className="text-[10px] text-center" style={{ fontFamily: "var(--font-anybody)", color: isUnlocked ? "var(--fg)" : "var(--fg-subtle)" }}>
-                    {isUnlocked ? char.name : "LOCKED"}
-                  </p>
-                </div>
+                  {isUnlocked && char ? (
+                    <span style={{ fontSize: 28, filter: "grayscale(1)" }}>{char.avatarEmoji}</span>
+                  ) : (
+                    <Lock className="w-4 h-4" style={{ color: "var(--fg-subtle)" }} />
+                  )}
+                </Link>
               );
             })}
           </div>
-
-          {/* Ledger status — decorative */}
-          <div
-            className="p-4"
-            style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 4 }}
-          >
-            <p className="text-label mb-3" style={{ color: "var(--fg-subtle)" }}>LEDGER STATUS</p>
-            {[
-              { label: "Integrity", value: "99.8%" },
-              { label: "Uptime",    value: "428h" },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex items-center justify-between py-1.5"
-                style={{ borderBottom: "1px solid var(--border)" }}>
-                <span className="text-sm" style={{ color: "var(--fg-muted)" }}>{label}</span>
-                <span className="text-label" style={{ color: "var(--score-high)" }}>{value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Character roster ─────────────────────────────────────────── */}
-      <div id="characters">
-        <div className="section-header">
-          <div className="section-header-row">
-            <h2 className="text-headline-md font-display uppercase">YOUR CHARACTERS</h2>
-          </div>
-          <div className="section-underline" />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {CHARACTER_ROSTER.map((char) => {
-            const isUnlocked = user.xp >= char.xpRequired;
-            const unlockPct = Math.min(100, Math.round((user.xp / char.xpRequired) * 100));
-
-            return (
-              <div
-                key={char.id}
-                className="flex flex-col items-center gap-2 p-4 text-center"
-                style={{
-                  background: isUnlocked ? `${char.accentColor}11` : "var(--bg-card)",
-                  border: `1px solid ${isUnlocked ? char.accentColor + "55" : "var(--border)"}`,
-                  borderRadius: 4,
-                }}
-              >
-                <span style={{ fontSize: 40, opacity: isUnlocked ? 1 : 0.3 }}>
-                  {isUnlocked ? char.avatarEmoji : "🔒"}
-                </span>
-
-                <div>
-                  <p
-                    className="text-sm font-medium"
-                    style={{
-                      fontFamily: "var(--font-anybody)",
-                      color: isUnlocked ? "var(--fg)" : "var(--fg-subtle)",
-                    }}
-                  >
-                    {char.name}
-                  </p>
-                  <p className="text-label mt-0.5" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>
-                    {char.anime}
-                  </p>
-                </div>
-
-                {isUnlocked ? (
-                  <span
-                    className="text-label px-2 py-0.5"
-                    style={{ background: char.accentColor, color: "#fff", borderRadius: 2, fontSize: 9 }}
-                  >
-                    UNLOCKED
-                  </span>
-                ) : (
-                  <>
-                    <p className="text-label" style={{ color: "var(--primary)", fontSize: 9 }}>
-                      UNLOCK AT {char.xpRequired} XP
-                    </p>
-                    <div className="w-full overflow-hidden" style={{ height: 2, background: "var(--bg-elevated)", borderRadius: 1 }}>
-                      <div className="h-full" style={{ width: `${unlockPct}%`, background: char.accentColor, borderRadius: 1 }} />
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>

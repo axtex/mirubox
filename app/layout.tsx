@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Footer } from "@/components/layout/Footer";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { ChatbotLoader } from "@/components/chat/ChatbotLoader";
 import { auth } from "@/auth";
 
@@ -57,7 +58,7 @@ export default async function RootLayout({
         <Navbar />
         <MobileNav />
         <main className="flex-1 pt-14 md:pt-0">
-          {children}
+          <PageContainer>{children}</PageContainer>
         </main>
         <Footer />
         {session?.user && <ChatbotLoader />}

@@ -20,7 +20,7 @@ export function ForYouSection({
   isLoggedIn = false,
 }: ForYouSectionProps) {
   return (
-    <section className="px-4 md:px-8">
+    <section>
       <div className="section-header">
         <div className="section-header-row">
           <h2 className="text-headline-md font-display uppercase">FOR YOU</h2>

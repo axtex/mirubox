@@ -15,7 +15,7 @@ export function Footer() {
         borderTop: "1px solid var(--border)",
       }}
     >
-      <div className="flex items-center justify-between gap-6 px-8 py-4">
+      <div className="page-container flex items-center justify-between gap-6 py-4">
         <div className="flex items-center min-w-0">
           <p
             className="text-data normal-case"

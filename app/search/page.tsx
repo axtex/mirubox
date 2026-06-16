@@ -12,7 +12,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
   return (
     <div
-      className="px-4 md:px-8 py-8 min-h-screen"
+      className="py-8 min-h-screen"
       style={{ background: "var(--bg)" }}
     >
       <Suspense fallback={null}>

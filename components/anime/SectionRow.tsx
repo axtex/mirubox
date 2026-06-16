@@ -17,7 +17,7 @@ export function SectionRow({ title, seeAllHref, items, size = "md", loading }: S
   const rowItems = items.slice(0, ROW_LIMIT);
 
   return (
-    <section className="px-4 md:px-8">
+    <section>
       <div className="section-header">
         <div className="section-header-row">
           <h2 className="text-headline-md font-display uppercase">{title}</h2>

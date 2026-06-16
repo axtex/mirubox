@@ -8,12 +8,13 @@ export async function Navbar() {
 
   return (
     <nav
-      className="hidden md:flex items-center justify-between px-8 h-[60px] sticky top-0 z-50 backdrop-blur-[20px]"
+      className="hidden md:block sticky top-0 z-50 backdrop-blur-[20px]"
       style={{
         background: "rgba(15,15,18,0.95)",
         borderBottom: "1px solid var(--border)",
       }}
     >
+      <div className="page-container flex items-center justify-between h-[60px]">
       {/* Wordmark */}
       <Link
         href="/"
@@ -28,7 +29,7 @@ export async function Navbar() {
       <div className="flex items-center gap-7 mx-8">
         <NavLink href="/">ANIME</NavLink>
         <NavLink href="/manga">MANGA</NavLink>
-        <ComingSoon label="STUDIOS" />
+        <ComingSoon label="LISTS" />
         <ComingSoon label="COMMUNITY" />
       </div>
 
@@ -37,6 +38,7 @@ export async function Navbar() {
 
       {/* Auth */}
       <NavbarClient session={session} />
+      </div>
     </nav>
   );
 }

@@ -106,19 +106,19 @@ export function AnimeCard({
               "linear-gradient(to top, rgba(15,15,18,0.97) 0%, rgba(15,15,18,0.65) 55%, transparent 100%)",
           }}
         >
-          <div className="p-2">
-            <Link
-              href={detailHref}
-              className="block mb-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-              style={{ outlineColor: "var(--accent-bright)" }}
+          <Link
+            href={detailHref}
+            className="absolute inset-0"
+            aria-label={`View ${title}`}
+            tabIndex={-1}
+          />
+          <div className="relative p-2 pointer-events-none">
+            <p
+              className="text-[13px] font-medium leading-snug line-clamp-2 mb-1"
+              style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}
             >
-              <p
-                className="text-[13px] font-medium leading-snug line-clamp-2"
-                style={{ fontFamily: "var(--font-anybody)", color: "var(--fg)" }}
-              >
-                {title}
-              </p>
-            </Link>
+              {title}
+            </p>
 
             {(anime.format || anime.seasonYear) && (
               <p
@@ -135,13 +135,15 @@ export function AnimeCard({
               </p>
             )}
 
-            <AnimeCardActions
-              mediaId={anime.id}
-              mediaType={anime.type}
-              initialStatus={status}
-              initialRating={userRating}
-              onStatusChange={setStatus}
-            />
+            <div className="pointer-events-auto relative z-10">
+              <AnimeCardActions
+                mediaId={anime.id}
+                mediaType={anime.type}
+                initialStatus={status}
+                initialRating={userRating}
+                onStatusChange={setStatus}
+              />
+            </div>
           </div>
         </div>
       </div>

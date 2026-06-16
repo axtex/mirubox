@@ -91,7 +91,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
               alt={title}
               fill
               priority
-              sizes="100vw"
+              sizes="(max-width: 1200px) 100vw, 1200px"
               className="object-cover object-top"
             />
           ) : (
@@ -107,7 +107,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
       </div>
 
       {/* ── Main content ─────────────────────────────────────────────── */}
-      <div className="px-4 md:px-10 -mt-12 relative z-10">
+      <div className="-mt-12 relative z-10">
 
         {/* Desktop: two-column */}
         <div className="hidden md:flex gap-10 items-start">

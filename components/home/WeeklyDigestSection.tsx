@@ -1,6 +1,6 @@
 export function WeeklyDigestSection() {
   return (
-    <section className="px-4 md:px-8">
+    <section>
       <div
         className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-8 md:p-12"
         style={{

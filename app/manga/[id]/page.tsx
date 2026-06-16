@@ -78,7 +78,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
             alt={title}
             fill
             priority
-            sizes="100vw"
+            sizes="(max-width: 1200px) 100vw, 1200px"
             className="object-cover object-top"
           />
         ) : (
@@ -90,7 +90,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
         />
       </div>
 
-      <div className="px-4 md:px-10 -mt-16 relative z-10">
+      <div className="-mt-16 relative z-10">
         {/* Mobile layout */}
         <div className="md:hidden">
           <div className="flex gap-4 mb-6">

@@ -26,7 +26,7 @@ const CURATED_LISTS = [
 
 export function CuratedListsSection() {
   return (
-    <section className="px-4 md:px-8">
+    <section>
       <div className="section-header">
         <div className="section-header-row">
           <h2 className="text-headline-md font-display uppercase">CURATED LISTS</h2>

@@ -56,7 +56,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
                   alt=""
                   fill
                   priority={i === 0}
-                  sizes="100vw"
+                  sizes="(max-width: 1200px) 100vw, 1200px"
                   className="object-cover object-top"
                 />
               ) : (
@@ -73,23 +73,21 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
 
               <Link
                 href={`/anime/${slide.id}`}
-                className="absolute bottom-0 left-0 right-0 px-5 pb-8 md:px-10 md:pb-9 block"
+                className="absolute bottom-0 left-0 right-0 px-5 pb-8 md:px-4 md:pb-9 block"
               >
-                <p className="text-label mb-1.5" style={{ color: "var(--primary)" }}>
-                  TRENDING NOW
-                </p>
+                <p className="hero-eyebrow">TRENDING NOW</p>
+
+                <h1 className="hero-title line-clamp-2 max-w-xl">{slide.title}</h1>
 
                 {slide.genres.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                  <div className="hero-genres">
                     {slide.genres.slice(0, 3).map((g) => (
-                      <span key={g} className="genre-chip">
+                      <span key={g} className="hero-genre-chip">
                         {g}
                       </span>
                     ))}
                   </div>
                 )}
-
-                <h1 className="text-headline-lg line-clamp-2 max-w-xl">{slide.title}</h1>
               </Link>
             </div>
           );

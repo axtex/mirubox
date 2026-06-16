@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function VerifyPage() {
   return (
     <div
-      className="min-h-dvh flex items-center justify-center px-4"
+      className="min-h-dvh flex items-center justify-center"
       style={{ background: "var(--bg)" }}
     >
       <div
