@@ -264,6 +264,35 @@ export async function getMediaById(id: number): Promise<AnimeDetail | null> {
   }
 }
 
+export async function getTopRated(
+  type: "ANIME" | "MANGA" = "ANIME",
+  page = 1,
+  perPage = 20
+): Promise<MediaPage> {
+  const query = gql`
+    ${ANIME_CARD_FRAGMENT}
+    query GetTopRated($type: MediaType, $page: Int, $perPage: Int) {
+      Page(page: $page, perPage: $perPage) {
+        pageInfo {
+          total
+          currentPage
+          lastPage
+          hasNextPage
+        }
+        media(sort: SCORE_DESC, type: $type, isAdult: false, popularity_greater: 10000) {
+          ...AnimeCard
+        }
+      }
+    }
+  `;
+  const data = await client.request<{ Page: MediaPage }>(query, {
+    type,
+    page,
+    perPage,
+  });
+  return data.Page;
+}
+
 export function getCurrentSeason(): { season: string; year: number } {
   const now = new Date();
   const month = now.getMonth() + 1;

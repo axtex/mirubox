@@ -7,12 +7,10 @@ import {
   Share2,
   ShieldCheck,
   List,
-  Lock,
 } from "lucide-react";
 import type { XpEvent } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { CHARACTER_ROSTER } from "@/lib/characters";
 import { timeAgo, xpIcon } from "@/lib/profile";
 import { getArchiveCounts } from "@/lib/archive";
 import { ArchiveFolderCard } from "@/components/profile/ArchiveFolderCard";
@@ -111,8 +109,6 @@ export default async function ProfilePage() {
   const completedCount = watchlistWithGenres.filter((e) => e.status === "COMPLETED").length;
   const classicsPct = Math.min(100, completedCount * 22 || 0);
   const seasonalPct = Math.min(100, watchingCount * 14 || 0);
-
-  const previewCharacters = Array.from({ length: 6 }, (_, i) => CHARACTER_ROSTER[i] ?? null);
 
   return (
     <div className="py-8" style={{ background: "var(--bg)", minHeight: "100vh" }}>
@@ -299,64 +295,33 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      {/* XP history + Your characters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 md:items-stretch">
-        <div className="flex flex-col min-w-0">
-          <SectionHeader title="XP HISTORY" href="/profile/xp" />
-          {xpEvents.length === 0 ? (
-            <p className="text-label" style={{ color: "var(--fg-subtle)" }}>NO ACTIVITY YET</p>
-          ) : (
-            <div className="flex flex-1 flex-col gap-2 min-h-0">
-              {xpEvents.slice(0, 6).map((event: XpEvent) => (
-                <div
-                  key={event.id}
-                  className="flex items-center gap-3 px-4 py-3"
-                  style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 4 }}
-                >
-                  <span style={{ color: "var(--fg-subtle)" }}>{xpIcon(event.reason)}</span>
-                  <span className="flex-1 text-sm truncate" style={{ color: "var(--fg-muted)" }}>
-                    {event.reason}
-                  </span>
-                  <span className="text-label shrink-0" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>
-                    {timeAgo(event.createdAt)}
-                  </span>
-                  <span className="text-label shrink-0" style={{ color: "var(--primary)" }}>
-                    +{event.amount} XP
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col min-w-0">
-          <SectionHeader title="YOUR CHARACTERS" href="/profile/characters" />
-          <div className="grid flex-1 min-h-0 grid-cols-3 grid-rows-2 gap-1.5">
-            {previewCharacters.map((char, i) => {
-              const isUnlocked = char ? user.xp >= char.xpRequired : false;
-              return (
-                <Link
-                  key={char?.id ?? `locked-${i}`}
-                  href={isUnlocked ? "/chat" : "/profile/characters"}
-                  className="flex items-center justify-center overflow-hidden min-h-0"
-                  style={{
-                    background: isUnlocked ? "var(--bg-elevated)" : "var(--bg-card)",
-                    border: `1px solid ${isUnlocked ? "var(--border-bright)" : "var(--border)"}`,
-                    borderRadius: 4,
-                    opacity: isUnlocked ? 1 : 0.45,
-                  }}
-                  aria-label={isUnlocked ? char!.name : "Locked character"}
-                >
-                  {isUnlocked && char ? (
-                    <span style={{ fontSize: 28, filter: "grayscale(1)" }}>{char.avatarEmoji}</span>
-                  ) : (
-                    <Lock className="w-4 h-4" style={{ color: "var(--fg-subtle)" }} />
-                  )}
-                </Link>
-              );
-            })}
+      {/* XP history */}
+      <div>
+        <SectionHeader title="XP HISTORY" href="/profile/xp" />
+        {xpEvents.length === 0 ? (
+          <p className="text-label" style={{ color: "var(--fg-subtle)" }}>NO ACTIVITY YET</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {xpEvents.slice(0, 6).map((event: XpEvent) => (
+              <div
+                key={event.id}
+                className="flex items-center gap-3 px-4 py-3"
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 4 }}
+              >
+                <span style={{ color: "var(--fg-subtle)" }}>{xpIcon(event.reason)}</span>
+                <span className="flex-1 text-sm truncate" style={{ color: "var(--fg-muted)" }}>
+                  {event.reason}
+                </span>
+                <span className="text-label shrink-0" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>
+                  {timeAgo(event.createdAt)}
+                </span>
+                <span className="text-label shrink-0" style={{ color: "var(--primary)" }}>
+                  +{event.amount} XP
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -10,16 +10,16 @@
   --fg: #e4e1e6;
   --fg-muted: #9e9ea8;
   --fg-subtle: #5a5a65;
-  --primary: #e61e2a;
-  --primary-dim: #ffb3ad;
-  --primary-glow: rgba(230,30,42,0.2);
+  --primary: #e8173f;
+  --primary-dim: rgba(232, 23, 63, 0.15);
+  --primary-glow: rgba(232, 23, 63, 0.25);
   --secondary: #00dbe9;
   --tertiary: #bb10fd;
   --border: rgba(255,255,255,0.06);
   --border-bright: rgba(255,255,255,0.15);
-  --accent: #e61e2a;
-  --accent-bright: #ff3040;
-  --accent-muted: rgba(230,30,42,0.15);
+  --accent: #e8173f;
+  --accent-bright: #ff2d55;
+  --accent-muted: rgba(232, 23, 63, 0.15);
   --score-high: #4ade80;
   --score-mid: #fbbf24;
   --score-low: #f87171;
@@ -249,7 +249,7 @@ h1, h2, h3 {
 }
 
 .btn-primary:hover {
-  background: #cc1824;
+  background: #c91237;
   box-shadow: 0 0 20px var(--primary-glow);
 }
 
@@ -370,6 +370,27 @@ h1, h2, h3 {
     gap: 12px;
     overflow: visible;
     padding-bottom: 0;
+  }
+}
+
+/* ── Vibe pick cells (label + card, used inside section-cards) ───────────── */
+
+.discover-ai-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .discover-ai-cell {
+    flex-shrink: unset;
+    width: 100%;
+  }
+
+  .discover-ai-cell > .anime-card {
+    width: 100%;
+    max-width: none;
   }
 }
 

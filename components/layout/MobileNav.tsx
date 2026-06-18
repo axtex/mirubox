@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, BookMarked, BookOpen, User } from "lucide-react";
+import { Home, Play, Search, BookMarked, User } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/",         icon: Home,      label: "Home" },
-  { href: "/search",   icon: Search,    label: "Search" },
-  { href: "/watchlist", icon: BookMarked, label: "Watchlist" },
-  { href: "/manga",    icon: BookOpen,  label: "Manga" },
-  { href: "/profile",  icon: User,      label: "Profile" },
+  { href: "/",          icon: Home,       label: "HOME",    active: (p: string) => p === "/" },
+  { href: "/anime",     icon: Play,       label: "ANIME",   active: (p: string) => p.startsWith("/anime") },
+  { href: "/search",    icon: Search,     label: "SEARCH",  active: (p: string) => p.startsWith("/search") },
+  { href: "/watchlist", icon: BookMarked, label: "TRACKER", active: (p: string) => p.startsWith("/watchlist") },
+  { href: "/profile",   icon: User,       label: "PROFILE", active: (p: string) => p.startsWith("/profile") },
 ];
 
 export function MobileNav() {
@@ -17,27 +17,30 @@ export function MobileNav() {
 
   return (
     <nav
-      className="md:hidden fixed top-0 left-0 right-0 z-50 flex"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex"
       style={{
         background: "var(--bg-surface)",
-        borderBottom: "1px solid var(--border)",
+        borderTop: "1px solid var(--border)",
         height: 56,
-        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+      {NAV_ITEMS.map(({ href, icon: Icon, label, active }) => {
+        const isActive = active(pathname);
         return (
           <Link
-            key={href}
+            key={label}
             href={href}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors"
-            style={{ color: active ? "var(--primary)" : "var(--fg-subtle)" }}
+            style={{ color: isActive ? "var(--primary)" : "var(--fg-subtle)" }}
           >
             <Icon className="w-5 h-5" />
-            {active && (
-              <span className="text-label" style={{ fontSize: 9, color: "var(--primary)" }}>
-                {label.toUpperCase()}
+            {isActive && (
+              <span
+                className="text-label"
+                style={{ fontSize: 9, color: "var(--primary)", fontFamily: "var(--font-space-mono)" }}
+              >
+                {label}
               </span>
             )}
           </Link>

@@ -44,8 +44,10 @@ export async function SearchResults({ params }: SearchResultsProps) {
   const sort = str(params.sort) || undefined;
   const page = Number(str(params.page)) || 1;
 
+  const isBrowseMode = str(params.tab) === "browse";
+
   /* ── Hybrid semantic search ──────────────────────────────────────── */
-  if (query.length >= 2 && type === "ANIME") {
+  if (query.length >= 2 && type === "ANIME" && !isBrowseMode) {
     let results: HybridResult[] = [];
     try {
       results = await hybridSearch(query, 28);

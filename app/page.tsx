@@ -9,6 +9,7 @@ import {
 } from "@/lib/anilist";
 import { SectionRow } from "@/components/anime/SectionRow";
 import { ForYouSection, recommendationToForYouItem } from "@/components/home/ForYouSection";
+import { DiscoverSection } from "@/components/home/DiscoverSection";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
 import { WeeklyDigestSection } from "@/components/home/WeeklyDigestSection";
@@ -70,11 +71,15 @@ export default async function HomePage() {
       {heroSlides.length > 0 && <HeroCarousel slides={heroSlides} />}
 
       <div className="flex flex-col" style={{ gap: 72, paddingTop: 56, paddingBottom: 56 }}>
-        <ForYouSection
-          items={forYouItems}
-          needsMoreData={forYouNeedsMoreData}
-          isLoggedIn={!!session}
-        />
+        {session ? (
+          <ForYouSection
+            items={forYouItems}
+            needsMoreData={forYouNeedsMoreData}
+            isLoggedIn={true}
+          />
+        ) : (
+          <DiscoverSection />
+        )}
 
         {trendingRow.length > 0 && (
           <SectionRow
@@ -100,8 +105,6 @@ export default async function HomePage() {
           />
         )}
 
-        <CuratedListsSection />
-
         {manga.media.length > 0 && (
           <SectionRow
             title="MANGA SPOTLIGHT"
@@ -109,6 +112,8 @@ export default async function HomePage() {
             items={manga.media}
           />
         )}
+
+        <CuratedListsSection />
 
         <WeeklyDigestSection />
       </div>

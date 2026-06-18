@@ -3,15 +3,21 @@
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import Image from "next/image";
 import type { Session } from "next-auth";
 
 interface NavbarClientProps {
   session: Session | null;
 }
 
+const ITEM_STYLE: React.CSSProperties = {
+  fontFamily: "var(--font-space-mono)",
+  fontSize: 10,
+  letterSpacing: "0.06em",
+};
+
 export function NavbarClient({ session }: NavbarClientProps) {
   const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,103 +30,148 @@ export function NavbarClient({ session }: NavbarClientProps) {
 
   if (!session?.user) {
     return (
-      <div className="flex items-center gap-2 shrink-0">
-        <Link
-          href="/auth/signin"
-          className="btn-ghost"
-          style={{ padding: "7px 14px", minHeight: 36, fontSize: 10 }}
-        >
-          SIGN IN
-        </Link>
-        <Link
-          href="/auth/signin"
-          className="btn-primary"
-          style={{ padding: "7px 14px", minHeight: 36, fontSize: 10 }}
-        >
-          JOIN
-        </Link>
-      </div>
+      <Link
+        href="/auth/signin"
+        className="btn-ghost"
+        style={{ height: 32, minHeight: 32, padding: "0 14px", fontSize: 10 }}
+      >
+        SIGN IN
+      </Link>
     );
   }
 
+  const initial = (session.user.name ?? session.user.email ?? "U")[0].toUpperCase();
+
   return (
-    <div className="relative shrink-0" ref={ref}>
+    <div className="relative" ref={ref}>
+      {/* Avatar trigger */}
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 p-0.5 transition-all rounded-full"
-        style={{ border: "2px solid var(--border-bright)" }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        aria-label="Open account menu"
+        aria-expanded={open}
+        className="flex items-center justify-center transition-colors"
+        style={{
+          width: 32,
+          height: 32,
+          background: "transparent",
+          border: `1px solid ${hovered || open ? "var(--primary)" : "var(--bg-card-high)"}`,
+          borderRadius: 2,
+          fontFamily: "var(--font-space-mono)",
+          fontSize: 11,
+          fontWeight: 700,
+          color: "var(--primary)",
+          cursor: "pointer",
+        }}
       >
-        {session.user.image ? (
-          <Image
-            src={session.user.image}
-            alt={session.user.name ?? "User"}
-            width={32}
-            height={32}
-            className="rounded-full"
-          />
-        ) : (
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-            style={{ background: "var(--primary)", color: "#fff", fontFamily: "var(--font-anybody)" }}
-          >
-            {(session.user.name ?? session.user.email ?? "U")[0].toUpperCase()}
-          </div>
-        )}
+        {initial}
       </button>
 
+      {/* Dropdown */}
       {open && (
         <div
-          className="absolute right-0 top-12 w-48 overflow-hidden z-50"
+          className="absolute right-0 top-full z-50 overflow-hidden"
           style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-bright)",
-            borderRadius: 4,
+            marginTop: 8,
+            minWidth: 180,
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--bg-card-high)",
+            borderRadius: 2,
             boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           }}
         >
-          <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
-            <p className="text-sm font-medium truncate" style={{ color: "var(--fg)", fontFamily: "var(--font-anybody)" }}>
+          {/* User header */}
+          <div
+            className="px-4 py-3"
+            style={{ borderBottom: `1px solid var(--bg-card)` }}
+          >
+            <p style={{ ...ITEM_STYLE, fontSize: 11, fontWeight: 700, color: "var(--fg)" }}>
               {session.user.name ?? "User"}
             </p>
-            <p className="text-[11px] truncate mt-0.5" style={{ color: "var(--fg-subtle)", fontFamily: "var(--font-space-mono)" }}>
+            <p style={{ ...ITEM_STYLE, fontSize: 10, color: "var(--fg-subtle)", marginTop: 2 }}>
               {session.user.email}
             </p>
           </div>
 
+          {/* Section label */}
+          <div className="px-4 pt-3 pb-1">
+            <span style={{ ...ITEM_STYLE, fontSize: 9, letterSpacing: "0.1em", color: "var(--fg-subtle)" }}>
+              ACCOUNT
+            </span>
+          </div>
+
+          {/* Nav items */}
           {[
-            { href: "/profile", label: "PROFILE" },
-            { href: "/watchlist", label: "MY WATCHLIST" },
+            { href: "/profile",   label: "PROFILE" },
+            { href: "/watchlist", label: "TRACKER" },
+            { href: "/settings",  label: "SETTINGS" },
           ].map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setOpen(false)}
-              className="block px-4 py-2.5 transition-colors text-label"
-              style={{ color: "var(--fg-muted)" }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)";
-                (e.currentTarget as HTMLElement).style.color = "var(--fg)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "";
-                (e.currentTarget as HTMLElement).style.color = "var(--fg-muted)";
-              }}
-            >
+            <DropdownLink key={href} href={href} onNavigate={() => setOpen(false)}>
               {label}
-            </Link>
+            </DropdownLink>
           ))}
 
-          <button
-            onClick={() => signOut()}
-            className="block w-full text-left px-4 py-2.5 text-label transition-colors"
-            style={{ color: "var(--score-low)", borderTop: "1px solid var(--border)" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-elevated)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
-          >
-            SIGN OUT
-          </button>
+          {/* Divider */}
+          <div style={{ height: 1, background: "var(--bg-card)" }} />
+
+          {/* Sign out */}
+          <SignOutButton />
         </div>
       )}
     </div>
+  );
+}
+
+function DropdownLink({
+  href,
+  onNavigate,
+  children,
+}: {
+  href: string;
+  onNavigate: () => void;
+  children: React.ReactNode;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className="block px-4 py-2.5"
+      style={{
+        ...ITEM_STYLE,
+        color: "var(--fg-muted)",
+        background: hovered ? "var(--bg-card)" : "transparent",
+        transition: "background 0.15s, color 0.15s",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function SignOutButton() {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={() => signOut()}
+      className="block w-full text-left px-4 py-2.5"
+      style={{
+        ...ITEM_STYLE,
+        color: hovered ? "var(--primary)" : "var(--fg-subtle)",
+        background: hovered ? "rgba(232, 23, 63, 0.05)" : "transparent",
+        transition: "background 0.15s, color 0.15s",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      SIGN OUT
+    </button>
   );
 }

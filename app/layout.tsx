@@ -5,9 +5,6 @@ import { Navbar } from "@/components/layout/Navbar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Footer } from "@/components/layout/Footer";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { ChatbotLoader } from "@/components/chat/ChatbotLoader";
-import { auth } from "@/auth";
-
 const anybody = Anybody({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
@@ -33,13 +30,11 @@ export const metadata: Metadata = {
   description: "Intelligent anime & manga discovery platform",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
-
   return (
     <html lang="en">
       <body
@@ -57,11 +52,10 @@ export default async function RootLayout({
       >
         <Navbar />
         <MobileNav />
-        <main className="flex-1 pt-14 md:pt-0">
+        <main className="flex-1 pb-[56px] md:pb-0">
           <PageContainer>{children}</PageContainer>
         </main>
         <Footer />
-        {session?.user && <ChatbotLoader />}
       </body>
     </html>
   );

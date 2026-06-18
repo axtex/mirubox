@@ -173,7 +173,7 @@ Flat-by-default obsidian surfaces. Depth comes from tonal steps (`bg` → `bg-ca
 ### Shadow Vocabulary
 - **Primary glow** (`0 0 20px var(--primary-glow)`): Button hover only.
 - **Poster glow** (`0 0 24px var(--primary-glow)`): Anime card hover.
-- **Dropdown** (`0 8px 32px rgba(0,0,0,0.5)`): Menus and chat panel.
+- **Dropdown** (`0 8px 32px rgba(0,0,0,0.5)`): Menus and overlay panels.
 
 No default drop shadows on static cards.
 
@@ -213,7 +213,7 @@ Horizontal gradient animation on card-shaped placeholders; respect reduced motio
 - Deduplicate anime across homepage sections
 
 **Don't**
-- Use indigo, violet, or purple as global accents (character-specific only)
+- Use indigo, violet, or purple as global accents
 - Rely on hover-only UI for titles or actions
 - Add glassmorphism to nav, chips, or cards by default
 - Use display font on buttons, inputs, or dense data tables

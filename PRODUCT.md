@@ -10,7 +10,7 @@ Anime and manga fans who treat what they watch as a personal canon, not a dispos
 
 ## Product Purpose
 
-Mirubox is a discovery and tracking companion for anime and manga. Users search by mood and semantic vibe, maintain a watchlist with status and ratings, and receive recommendations powered by a personal taste vector. A character assistant (Gojo, Frieren, more to unlock) answers questions in voice, not as a generic chatbot.
+Mirubox is a discovery and tracking companion for anime and manga. Users search by mood and semantic vibe, maintain a watchlist with status and ratings, and receive recommendations powered by a personal taste vector that improves over time.
 
 Success looks like: a user finds their next show in under a minute, tracks progress without friction, and trusts recommendations more over time as their profile grows.
 
@@ -18,7 +18,7 @@ Success looks like: a user finds their next show in under a minute, tracks progr
 
 **Cinematic · Obsessive · Personal**
 
-Voice is confident and editorial, not cute or corporate. The product should feel like a private screening room and archive: yours, curated, serious about taste. Character chat adds personality, but the core app UI stays task-focused (Letterboxd energy, not mascot-driven fandom UI).
+Voice is confident and editorial, not cute or corporate. The product should feel like a private screening room and archive: yours, curated, serious about taste. UI stays task-focused (Letterboxd energy, not mascot-driven fandom UI).
 
 ## Anti-references
 
@@ -32,8 +32,7 @@ Voice is confident and editorial, not cute or corporate. The product should feel
 1. **Taste is the product.** Every screen should reinforce that mirubox knows what *you* like, not what's popular. Recommendations, watchlist state, and ratings are first-class, not decorative.
 2. **Archive, not feed.** Discovery rows are curated shelves, not infinite scroll noise. Prefer one strong row over many repetitive grids.
 3. **Cinematic moments, tool UI.** Hero and section headers can be bold and editorial; forms, filters, and tracking controls stay restrained and familiar.
-4. **Characters earn their place.** The assistant is a delight layer on top of a competent tracker, not the whole identity of the app.
-5. **Show the work.** Scores, status, match %, XP: surface meaningful data in monospace labels. Avoid empty marketing copy on task screens.
+4. **Show the work.** Scores, status, match %, XP: surface meaningful data in monospace labels. Avoid empty marketing copy on task screens.
 
 ## Accessibility & Inclusion
 
