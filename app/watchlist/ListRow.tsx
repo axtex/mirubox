@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { ReviewBadge } from "@/components/tracker/ReviewBadge";
 import { RatingBadge } from "@/components/tracker/RatingBadge";
+import { MediaTypeBadge } from "@/components/tracker/MediaTypeBadge";
 import { STATUS_COLORS, STATUS_LABELS, formatEntryMetadata } from "./types";
 import type { EntryData } from "./types";
 import { trackerStatusDropdownTriggerStyle, TRACKER_BADGE } from "@/components/tracker/badgeStyles";
@@ -150,23 +151,7 @@ export function ListRow({ entry, showTypeBadge = false, onUpdate, onRemove }: Pr
           <p className="truncate" style={{ fontSize: 13, color: "#e4e1e6", fontWeight: 500 }}>
             {title}
           </p>
-          {showTypeBadge && (
-            <span
-              className="shrink-0"
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 8,
-                color: isManga ? "#a78bfa" : "#60a5fa",
-                background: isManga ? "rgba(167,139,250,0.1)" : "rgba(96,165,250,0.1)",
-                border: `1px solid ${isManga ? "rgba(167,139,250,0.2)" : "rgba(96,165,250,0.2)"}`,
-                borderRadius: 2,
-                padding: "1px 4px",
-                letterSpacing: "0.04em",
-              }}
-            >
-              {isManga ? "MANGA" : "ANIME"}
-            </span>
-          )}
+          {showTypeBadge && <MediaTypeBadge mediaType={mediaType} />}
         </Link>
         <div className="flex items-center gap-2 mt-0.5">
           <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-muted)" }}>
@@ -190,7 +175,6 @@ export function ListRow({ entry, showTypeBadge = false, onUpdate, onRemove }: Pr
             style={{ height: TRACKER_BADGE.minHeight }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button type="button" onClick={() => adjustProgress(-1)} className="shrink-0" style={btnStyle} aria-label="Decrease progress">−</button>
             <span
               className="shrink-0 whitespace-nowrap"
               style={{
@@ -210,6 +194,7 @@ export function ListRow({ entry, showTypeBadge = false, onUpdate, onRemove }: Pr
             >
               <div style={{ height: "100%", width: `${progressPct}%`, background: "var(--primary)", borderRadius: 2 }} />
             </div>
+            <button type="button" onClick={() => adjustProgress(-1)} className="shrink-0" style={btnStyle} aria-label="Decrease progress">−</button>
           </div>
         )}
 
@@ -359,23 +344,22 @@ export function ListRow({ entry, showTypeBadge = false, onUpdate, onRemove }: Pr
 }
 
 const btnStyle: React.CSSProperties = {
-  width: TRACKER_BADGE.minHeight,
-  height: TRACKER_BADGE.minHeight,
   flexShrink: 0,
-  borderRadius: 2,
-  border: "1px solid var(--border-bright)",
-  background: "var(--bg-card)",
-  color: "var(--fg)",
+  border: "none",
+  background: "transparent",
+  color: "var(--fg-muted)",
   fontFamily: "var(--font-space-mono)",
-  fontSize: 11,
+  fontSize: 12,
   fontWeight: 700,
   lineHeight: 1,
   cursor: "pointer",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: 0,
+  padding: "0 2px",
   margin: 0,
+  appearance: "none",
+  WebkitAppearance: "none",
 };
 
 const menuItemStyle: React.CSSProperties = {

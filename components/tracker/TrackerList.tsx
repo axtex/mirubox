@@ -247,6 +247,8 @@ export function TrackerList({
               key={entry.animeId}
               entry={entry}
               showTypeChip={mediaType === "ALL"}
+              onUpdate={handleEntryUpdate}
+              onRemove={handleEntryRemove}
             />
           ))}
         </div>
