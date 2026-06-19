@@ -4,11 +4,11 @@ import { useState } from "react";
 import { ChevronDown, Check } from "lucide-react";
 
 const STATUSES = [
-  { value: "PLAN_TO_WATCH", label: "PLAN TO WATCH",  dot: "#e4e1e6" },
-  { value: "WATCHING",      label: "WATCHING",       dot: "#3b82f6" },
-  { value: "COMPLETED",     label: "COMPLETED",      dot: "#4ade80" },
-  { value: "ON_HOLD",       label: "ON HOLD",        dot: "#fbbf24" },
-  { value: "DROPPED",       label: "DROPPED",        dot: "#e61e2a" },
+  { value: "PLANNED",     label: "PLANNED",     dot: "#e4e1e6" },
+  { value: "IN_PROGRESS", label: "IN PROGRESS", dot: "#3b82f6" },
+  { value: "COMPLETED",   label: "COMPLETED",   dot: "#4ade80" },
+  { value: "ON_HOLD",     label: "ON HOLD",     dot: "#fbbf24" },
+  { value: "DROPPED",     label: "DROPPED",     dot: "#e61e2a" },
 ] as const;
 
 interface WatchlistButtonProps {
@@ -37,7 +37,7 @@ export function WatchlistButton({ animeId, initialStatus, isLoggedIn }: Watchlis
       await fetch("/api/watchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ animeId, status: value }),
+        body: JSON.stringify({ animeId, status: value, mediaType: "ANIME" }),
       });
       setStatus(value);
     } finally {

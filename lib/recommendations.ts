@@ -38,7 +38,7 @@ export async function getUserTasteVector(userId: string): Promise<number[] | nul
     WHERE we."userId" = ${userId}
       AND a.embedding IS NOT NULL
       AND vector_dims(a.embedding) = ${EMBEDDING_DIMS}
-      AND we.status IN ('COMPLETED', 'WATCHING')
+      AND we.status IN ('COMPLETED', 'IN_PROGRESS')
   `;
 
   const validRated = ratedAnime

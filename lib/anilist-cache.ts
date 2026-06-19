@@ -59,7 +59,12 @@ export async function checkAndGetAnime(id: number): Promise<AnimeDetail | null> 
 export async function cacheAnimeCard(media: AnimeCard): Promise<void> {
   try {
     const existing = await prisma.anime.findUnique({ where: { id: media.id } });
-    if (existing && isFresh(existing.cachedAt)) return;
+    const missingCounts =
+      existing &&
+      ((media.type === "MANGA" && existing.chapters == null && media.chapters != null) ||
+        (media.type !== "MANGA" && existing.episodes == null && media.episodes != null));
+
+    if (existing && isFresh(existing.cachedAt) && !missingCounts) return;
 
     await prisma.anime.upsert({
       where: { id: media.id },

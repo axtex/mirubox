@@ -49,7 +49,12 @@ export async function POST(req: Request) {
 
   // Only award XP on first rating
   if (!existing) {
-    await awardXP(session.user.id, 10, "Rated an anime");
+    const media = await prisma.anime.findUnique({
+      where: { id: animeId },
+      select: { type: true },
+    });
+    const reason = media?.type === "MANGA" ? "Rated manga" : "Rated anime";
+    await awardXP(session.user.id, 10, reason, animeId);
   }
 
   return NextResponse.json({ rating });

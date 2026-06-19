@@ -3,9 +3,12 @@ import { prisma } from "@/lib/prisma";
 export async function awardXP(
   userId: string,
   amount: number,
-  reason: string
+  reason: string,
+  animeId?: number
 ): Promise<{ xp: number; level: number }> {
-  await prisma.xpEvent.create({ data: { userId, amount, reason } });
+  await prisma.xpEvent.create({
+    data: { userId, amount, reason, ...(animeId != null ? { animeId } : {}) },
+  });
 
   const user = await prisma.user.update({
     where: { id: userId },

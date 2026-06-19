@@ -22,11 +22,11 @@ const IMAGE_SIZES = {
 };
 
 const STATUS_DOT: Record<string, string> = {
-  WATCHING: "#3b82f6",
-  COMPLETED: "#4ade80",
-  PLAN_TO_WATCH: "#e4e1e6",
-  DROPPED: "#e61e2a",
-  ON_HOLD: "#fbbf24",
+  IN_PROGRESS: "#3b82f6",
+  COMPLETED:   "#4ade80",
+  PLANNED:     "#e4e1e6",
+  DROPPED:     "#e61e2a",
+  ON_HOLD:     "#fbbf24",
 };
 
 export function AnimeCard({

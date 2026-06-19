@@ -3,20 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 
-const ANIME_STATUSES = [
-  { value: "PLAN_TO_WATCH", label: "PLAN TO WATCH", dot: "#e4e1e6" },
-  { value: "WATCHING",      label: "WATCHING",       dot: "#3b82f6" },
-  { value: "COMPLETED",     label: "COMPLETED",      dot: "#4ade80" },
-  { value: "ON_HOLD",       label: "ON HOLD",        dot: "#fbbf24" },
-  { value: "DROPPED",       label: "DROPPED",        dot: "#e61e2a" },
-];
-
-const MANGA_STATUSES = [
-  { value: "PLAN_TO_READ", label: "PLAN TO READ", dot: "#e4e1e6" },
-  { value: "READING",      label: "READING",      dot: "#3b82f6" },
-  { value: "COMPLETED",    label: "COMPLETED",    dot: "#4ade80" },
-  { value: "ON_HOLD",      label: "ON HOLD",      dot: "#fbbf24" },
-  { value: "DROPPED",      label: "DROPPED",      dot: "#e61e2a" },
+const UNIFIED_STATUSES = [
+  { value: "PLANNED",     label: "PLANNED",     dot: "#e4e1e6" },
+  { value: "IN_PROGRESS", label: "IN PROGRESS", dot: "#3b82f6" },
+  { value: "COMPLETED",   label: "COMPLETED",   dot: "#4ade80" },
+  { value: "ON_HOLD",     label: "ON HOLD",     dot: "#fbbf24" },
+  { value: "DROPPED",     label: "DROPPED",     dot: "#e61e2a" },
 ];
 
 interface TrackerStatusBarProps {
@@ -38,8 +30,7 @@ export function TrackerStatusBar({
   const [saving, setSaving] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const statuses = mediaType === "MANGA" ? MANGA_STATUSES : ANIME_STATUSES;
-  const current = statuses.find((s) => s.value === status);
+  const current = UNIFIED_STATUSES.find((s) => s.value === status);
 
   useEffect(() => {
     if (!expanded) return;
@@ -58,7 +49,7 @@ export function TrackerStatusBar({
       await fetch("/api/watchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ animeId, status: newStatus }),
+        body: JSON.stringify({ animeId, status: newStatus, mediaType }),
       });
       setStatus(newStatus);
     } finally {
@@ -107,10 +98,7 @@ export function TrackerStatusBar({
       >
         <div className="flex items-center gap-3">
           {current && (
-            <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ background: current.dot }}
-            />
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: current.dot }} />
           )}
           <span className="text-label" style={{ color: "var(--fg-muted)" }}>
             {saving ? "SAVING…" : barText}
@@ -118,7 +106,11 @@ export function TrackerStatusBar({
         </div>
         <ChevronDown
           className="w-3.5 h-3.5 shrink-0"
-          style={{ color: "var(--fg-subtle)", transition: "transform 0.15s ease", transform: expanded ? "rotate(180deg)" : "none" }}
+          style={{
+            color: "var(--fg-subtle)",
+            transition: "transform 0.15s ease",
+            transform: expanded ? "rotate(180deg)" : "none",
+          }}
         />
       </button>
 
@@ -133,18 +125,15 @@ export function TrackerStatusBar({
           }}
         >
           <div>
-            <p className="text-label mb-2.5" style={{ color: "var(--fg-subtle)" }}>
-              STATUS
-            </p>
+            <p className="text-label mb-2.5" style={{ color: "var(--fg-subtle)" }}>STATUS</p>
             <div className="flex flex-wrap gap-2">
-              {statuses.map(({ value, label, dot }) => (
+              {UNIFIED_STATUSES.map(({ value, label, dot }) => (
                 <button
                   key={value}
                   onClick={() => handleStatusChange(value)}
                   className="flex items-center gap-2 px-3 py-1.5 transition-colors"
                   style={{
-                    background:
-                      status === value ? "var(--primary-dim)" : "var(--bg-elevated)",
+                    background: status === value ? "var(--primary-dim)" : "var(--bg-elevated)",
                     border: `1px solid ${status === value ? "var(--primary)" : "var(--border)"}`,
                     borderRadius: 2,
                     color: status === value ? "var(--fg)" : "var(--fg-muted)",
@@ -154,10 +143,7 @@ export function TrackerStatusBar({
                     cursor: "pointer",
                   }}
                 >
-                  <span
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ background: dot }}
-                  />
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot }} />
                   {label}
                 </button>
               ))}
@@ -165,9 +151,7 @@ export function TrackerStatusBar({
           </div>
 
           <div>
-            <p className="text-label mb-2.5" style={{ color: "var(--fg-subtle)" }}>
-              YOUR RATING
-            </p>
+            <p className="text-label mb-2.5" style={{ color: "var(--fg-subtle)" }}>YOUR RATING</p>
             <div className="flex gap-1 flex-wrap">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <button
@@ -182,12 +166,8 @@ export function TrackerStatusBar({
                     fontWeight: 700,
                     borderRadius: 2,
                     border: `1px solid ${rating !== null && n <= rating ? "var(--primary)" : "var(--border)"}`,
-                    background:
-                      rating !== null && n <= rating
-                        ? "var(--primary)"
-                        : "var(--bg-elevated)",
-                    color:
-                      rating !== null && n <= rating ? "#fff" : "var(--fg-subtle)",
+                    background: rating !== null && n <= rating ? "var(--primary)" : "var(--bg-elevated)",
+                    color: rating !== null && n <= rating ? "#fff" : "var(--fg-subtle)",
                     cursor: "pointer",
                   }}
                 >

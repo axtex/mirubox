@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { ChevronDown, Check } from "lucide-react";
 
-const MANGA_STATUSES = [
-  { value: "PLAN_TO_READ", label: "Plan to Read" },
-  { value: "READING", label: "Reading" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "ON_HOLD", label: "On Hold" },
-  { value: "DROPPED", label: "Dropped" },
+const STATUSES = [
+  { value: "PLANNED",     label: "PLANNED" },
+  { value: "IN_PROGRESS", label: "IN PROGRESS" },
+  { value: "COMPLETED",   label: "COMPLETED" },
+  { value: "ON_HOLD",     label: "ON HOLD" },
+  { value: "DROPPED",     label: "DROPPED" },
 ] as const;
 
 interface MangaWatchlistButtonProps {
@@ -37,7 +37,7 @@ export function MangaWatchlistButton({ animeId, initialStatus, isLoggedIn }: Man
       await fetch("/api/watchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ animeId, status: value }),
+        body: JSON.stringify({ animeId, status: value, mediaType: "MANGA" }),
       });
       setStatus(value);
     } finally {
@@ -61,7 +61,7 @@ export function MangaWatchlistButton({ animeId, initialStatus, isLoggedIn }: Man
   }
 
   const currentLabel =
-    MANGA_STATUSES.find((s) => s.value === status)?.label ?? "+ ADD TO TRACKER";
+    STATUSES.find((s) => s.value === status)?.label ?? "+ ADD TO TRACKER";
 
   return (
     <div className="relative">
@@ -85,7 +85,7 @@ export function MangaWatchlistButton({ animeId, initialStatus, isLoggedIn }: Man
             boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
           }}
         >
-          {MANGA_STATUSES.map(({ value, label }) => (
+          {STATUSES.map(({ value, label }) => (
             <button
               key={value}
               onClick={() => void handleSelect(value)}

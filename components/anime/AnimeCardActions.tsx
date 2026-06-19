@@ -86,15 +86,15 @@ export function AnimeCardActions({
       const res = await fetch("/api/watchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ animeId: mediaId, status: "PLAN_TO_WATCH" }),
+        body: JSON.stringify({ animeId: mediaId, status: "PLANNED" }),
       });
       if (res.status === 401) {
         router.push("/auth/signin");
         return;
       }
       if (res.ok) {
-        setStatus("PLAN_TO_WATCH");
-        onStatusChange?.("PLAN_TO_WATCH");
+        setStatus("PLANNED");
+        onStatusChange?.("PLANNED");
       }
     } finally {
       setLoading(null);

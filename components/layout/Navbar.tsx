@@ -31,7 +31,7 @@ export async function Navbar() {
         </div>
 
         {/* Search + auth */}
-        <div className="flex items-center shrink-0 gap-6">
+        <div className="flex items-center shrink-0 gap-2">
           <NavbarSearch />
           <NavbarClient session={session} />
         </div>

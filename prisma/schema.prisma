@@ -86,14 +86,17 @@ model Anime {
   watchlistEntries WatchlistEntry[]
   ratings          Rating[]
   reviews          Review[]
+  xpEvents         XpEvent[]
 }
 
 model WatchlistEntry {
   id        String   @id @default(cuid())
   userId    String
   animeId   Int
-  status    String   @default("PLAN_TO_WATCH")
+  status    String   @default("PLANNED")
+  mediaType String   @default("ANIME")
   progress  Int      @default(0)
+  total     Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -128,14 +131,18 @@ model Review {
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   anime Anime @relation(fields: [animeId], references: [id])
+
+  @@unique([userId, animeId])
 }
 
 model XpEvent {
   id        String   @id @default(cuid())
   userId    String
+  animeId   Int?
   amount    Int
   reason    String
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime Anime? @relation(fields: [animeId], references: [id])
 }

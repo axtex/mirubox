@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { WatchlistButton } from "@/components/anime/detail/WatchlistButton";
 import { DescriptionToggle } from "@/components/anime/detail/DescriptionToggle";
 import { TrackerStatusBar } from "@/components/anime/detail/TrackerStatusBar";
+import { ReviewInput } from "@/components/anime/detail/ReviewInput";
 import { AnimeCard } from "@/components/anime/AnimeCard";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 
@@ -64,9 +65,10 @@ export default async function AnimeDetailPage({ params }: PageProps) {
 
   let userWatchlistStatus: string | null = null;
   let userRating: number | null = null;
+  let userReview: { content: string; containsSpoilers: boolean } | null = null;
 
   if (session?.user?.id) {
-    const [entry, rating] = await Promise.all([
+    const [entry, rating, review] = await Promise.all([
       prisma.watchlistEntry
         .findUnique({
           where: { userId_animeId: { userId: session.user.id, animeId: numId } },
@@ -79,9 +81,16 @@ export default async function AnimeDetailPage({ params }: PageProps) {
           select: { score: true },
         })
         .catch(() => null),
+      prisma.review
+        .findUnique({
+          where: { userId_animeId: { userId: session.user.id, animeId: numId } },
+          select: { content: true, containsSpoilers: true },
+        })
+        .catch(() => null),
     ]);
     userWatchlistStatus = entry?.status ?? null;
     userRating = rating?.score ?? null;
+    userReview = review;
   }
 
   const studio = media.studios?.nodes[0]?.name ?? null;
@@ -448,6 +457,14 @@ export default async function AnimeDetailPage({ params }: PageProps) {
               initialStatus={userWatchlistStatus}
               initialRating={userRating}
               mediaType="ANIME"
+            />
+          )}
+
+          {session?.user && (
+            <ReviewInput
+              animeId={numId}
+              initialReview={userReview}
+              isLoggedIn
             />
           )}
 

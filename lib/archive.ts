@@ -56,10 +56,10 @@ export async function getArchiveCounts(userId: string): Promise<ArchiveCounts> {
     prisma.watchlistEntry.findMany({ where: { userId }, select: { animeId: true } }),
     prisma.rating.findMany({ where: { userId }, select: { animeId: true } }),
     prisma.watchlistEntry.count({
-      where: { userId, status: "WATCHING", anime: { type: "ANIME" } },
+      where: { userId, status: "IN_PROGRESS", mediaType: "ANIME" },
     }),
     prisma.watchlistEntry.count({
-      where: { userId, status: "READING", anime: { type: "MANGA" } },
+      where: { userId, status: "IN_PROGRESS", mediaType: "MANGA" },
     }),
     prisma.rating.aggregate({ where: { userId }, _avg: { score: true }, _count: true }),
   ]);
@@ -93,7 +93,7 @@ export type ArchiveItem =
 export async function getArchiveItems(userId: string, folder: ArchiveFolder): Promise<ArchiveItem[]> {
   if (folder === "watching") {
     const entries = await prisma.watchlistEntry.findMany({
-      where: { userId, status: "WATCHING", anime: { type: "ANIME" } },
+      where: { userId, status: "IN_PROGRESS", mediaType: "ANIME" },
       include: { anime: true },
       orderBy: { updatedAt: "desc" },
     });
@@ -113,7 +113,7 @@ export async function getArchiveItems(userId: string, folder: ArchiveFolder): Pr
 
   if (folder === "reading") {
     const entries = await prisma.watchlistEntry.findMany({
-      where: { userId, status: "READING", anime: { type: "MANGA" } },
+      where: { userId, status: "IN_PROGRESS", mediaType: "MANGA" },
       include: { anime: true },
       orderBy: { updatedAt: "desc" },
     });

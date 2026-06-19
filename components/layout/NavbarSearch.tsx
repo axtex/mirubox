@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 
 export function NavbarSearch(): React.JSX.Element {
   const router = useRouter();
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -22,42 +23,21 @@ export function NavbarSearch(): React.JSX.Element {
     <button
       type="button"
       onClick={() => router.push("/search?focus=true")}
-      className="flex items-center gap-2.5 transition-colors"
+      aria-label="Search"
+      className="flex items-center justify-center transition-colors"
       style={{
-        background: "var(--bg-elevated)",
-        border: "1px solid var(--bg-card-high)",
-        borderRadius: 2,
+        width: 32,
         height: 32,
-        padding: "0 12px",
-        minWidth: 190,
+        background: hovered ? "rgba(232, 23, 63, 0.05)" : "transparent",
+        border: `1px solid ${hovered ? "var(--primary)" : "var(--bg-card-high)"}`,
+        borderRadius: 2,
+        color: hovered ? "var(--primary)" : "var(--fg-muted)",
+        cursor: "pointer",
       }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <Search className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--fg-subtle)" }} />
-      <span
-        className="flex-1 text-left"
-        style={{
-          fontFamily: "var(--font-space-mono)",
-          fontSize: 10,
-          letterSpacing: "0.04em",
-          color: "var(--fg-subtle)",
-        }}
-      >
-        Search or ask anything...
-      </span>
-      <kbd
-        style={{
-          fontFamily: "var(--font-space-mono)",
-          fontSize: 10,
-          color: "var(--fg-subtle)",
-          background: "var(--bg-card)",
-          border: "1px solid var(--bg-card-high)",
-          borderRadius: 2,
-          padding: "1px 5px",
-          lineHeight: 1.6,
-        }}
-      >
-        ⌘K
-      </kbd>
+      <Search className="w-3.5 h-3.5" />
     </button>
   );
 }

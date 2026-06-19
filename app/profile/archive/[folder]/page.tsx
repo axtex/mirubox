@@ -141,7 +141,7 @@ function ArchiveMediaCard({
           )}
         </div>
 
-        {item.kind === "watchlist" && anime.episodes !== null && status === "WATCHING" && (
+        {item.kind === "watchlist" && anime.episodes !== null && status === "IN_PROGRESS" && (
           <div className="w-full overflow-hidden mt-1.5" style={{ height: 2, background: "var(--bg-elevated)", borderRadius: 1 }}>
             <div className="h-full" style={{ width: `${progressPct}%`, background: "var(--secondary)", borderRadius: 1 }} />
           </div>

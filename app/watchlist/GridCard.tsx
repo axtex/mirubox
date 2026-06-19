@@ -5,13 +5,17 @@ import type { EntryData } from "./types";
 
 interface Props {
   entry: EntryData;
+  showTypeChip?: boolean;
 }
 
-export function GridCard({ entry }: Props) {
-  const { animeId, anime, status, progress } = entry;
+export function GridCard({ entry, showTypeChip = false }: Props) {
+  const { animeId, anime, status, mediaType, progress } = entry;
   const title = anime.titleEnglish ?? anime.title;
   const dotColor = STATUS_COLORS[status] ?? "var(--fg-muted)";
-  const progressPct = anime.episodes ? Math.round((progress / anime.episodes) * 100) : 0;
+  const isManga = mediaType === "MANGA";
+  const href = isManga ? `/manga/${animeId}` : `/anime/${animeId}`;
+  const total = entry.total ?? (isManga ? anime.chapters : anime.episodes);
+  const progressPct = total ? Math.round((progress / total) * 100) : 0;
 
   return (
     <div
@@ -24,24 +28,20 @@ export function GridCard({ entry }: Props) {
             src={anime.coverImage}
             alt={title}
             fill
-            sizes="(max-width: 768px) 25vw, 15vw"
+            sizes="(min-width: 768px) 15vw, 25vw"
             className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
           <div className="w-full h-full" style={{ background: "var(--bg-elevated)" }} />
         )}
 
-        <Link
-          href={`/anime/${animeId}`}
-          className="absolute inset-0 z-[1]"
-          aria-label={`View ${title}`}
-        />
+        <Link href={href} className="absolute inset-0 z-[1]" aria-label={`View ${title}`} />
 
         <div
           className="absolute bottom-2 left-2 z-[2] pointer-events-none"
           style={{
             background: dotColor,
-            color: status === "PLAN_TO_WATCH" ? "#000" : "#fff",
+            color: status === "PLANNED" ? "#000" : "#fff",
             padding: "2px 6px",
             borderRadius: 2,
             fontFamily: "var(--font-space-mono)",
@@ -53,32 +53,39 @@ export function GridCard({ entry }: Props) {
           {status.replace(/_/g, " ")}
         </div>
 
-        {status === "WATCHING" && anime.episodes !== null && (
+        {status === "IN_PROGRESS" && total !== null && (
           <div
             className="absolute bottom-0 left-0 right-0 z-[2] pointer-events-none"
             style={{ height: 3, background: "rgba(0,0,0,0.45)" }}
           >
-            <div
-              style={{
-                height: "100%",
-                width: `${progressPct}%`,
-                background: "var(--primary)",
-              }}
-            />
+            <div style={{ height: "100%", width: `${progressPct}%`, background: "var(--primary)" }} />
           </div>
         )}
       </div>
 
       <p
-        className="tracker-card-title py-1.5 pr-1.5 pl-2.5"
-        style={{
-          fontFamily: "var(--font-anybody)",
-          fontSize: 12,
-          lineHeight: 1.35,
-          color: "var(--fg)",
-        }}
+        className="tracker-card-title flex items-center gap-1.5 py-1.5 pr-1.5 pl-2.5 min-w-0"
+        style={{ fontFamily: "var(--font-anybody)", fontSize: 12, lineHeight: 1.35, color: "var(--fg)" }}
       >
-        {title}
+        <span className="truncate">{title}</span>
+        {showTypeChip && (
+          <span
+            className="shrink-0"
+            style={{
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 7,
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+              color: isManga ? "#a78bfa" : "#60a5fa",
+              background: isManga ? "rgba(167,139,250,0.1)" : "rgba(96,165,250,0.1)",
+              border: `1px solid ${isManga ? "rgba(167,139,250,0.2)" : "rgba(96,165,250,0.2)"}`,
+              borderRadius: 2,
+              padding: "1px 4px",
+            }}
+          >
+            {isManga ? "MANGA" : "ANIME"}
+          </span>
+        )}
       </p>
     </div>
   );
