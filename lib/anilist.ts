@@ -138,6 +138,7 @@ export interface SearchFilters {
   status?: string;
   format?: string;
   year?: number;
+  season?: string;
   sort?: string;
 }
 
@@ -157,6 +158,7 @@ export async function searchMedia(
       $status: MediaStatus
       $format: MediaFormat
       $year: Int
+      $season: MediaSeason
       $sort: [MediaSort]
       $page: Int
       $perPage: Int
@@ -175,6 +177,7 @@ export async function searchMedia(
           status: $status
           format: $format
           seasonYear: $year
+          season: $season
           sort: $sort
           isAdult: false
         ) {
@@ -190,6 +193,7 @@ export async function searchMedia(
     status: filters.status || undefined,
     format: filters.format || undefined,
     year: filters.year || undefined,
+    season: filters.season || undefined,
     sort: filters.sort ? [filters.sort] : query ? ["SEARCH_MATCH"] : ["POPULARITY_DESC"],
     page,
     perPage,
@@ -205,7 +209,7 @@ export async function getMediaById(id: number): Promise<AnimeDetail | null> {
         ...AnimeCard
         description(asHtml: false)
         volumes
-        characters(sort: ROLE, perPage: 6) {
+        characters(sort: ROLE, perPage: 8) {
           edges {
             node {
               id
@@ -250,6 +254,25 @@ export async function getMediaById(id: number): Promise<AnimeDetail | null> {
           thumbnail
           url
           site
+        }
+        externalLinks {
+          id
+          url
+          site
+          type
+          icon
+          color
+        }
+        nextAiringEpisode {
+          episode
+          airingAt
+        }
+        recommendations(perPage: 6, sort: RATING_DESC) {
+          nodes {
+            mediaRecommendation {
+              ...AnimeCard
+            }
+          }
         }
       }
     }

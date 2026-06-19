@@ -61,7 +61,7 @@ export function WatchlistButton({ animeId, initialStatus, isLoggedIn }: Watchlis
   }
 
   const current = STATUSES.find((s) => s.value === status);
-  const label = current?.label ?? "+ ADD TO WATCHLIST";
+  const label = current?.label ?? "+ ADD TO TRACKER";
 
   return (
     <div className="relative w-full">

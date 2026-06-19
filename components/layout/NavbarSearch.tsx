@@ -11,7 +11,7 @@ export function NavbarSearch(): React.JSX.Element {
     function handler(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        router.push("/search");
+        router.push("/search?focus=true");
       }
     }
     document.addEventListener("keydown", handler);
@@ -21,7 +21,7 @@ export function NavbarSearch(): React.JSX.Element {
   return (
     <button
       type="button"
-      onClick={() => router.push("/search")}
+      onClick={() => router.push("/search?focus=true")}
       className="flex items-center gap-2.5 transition-colors"
       style={{
         background: "var(--bg-elevated)",

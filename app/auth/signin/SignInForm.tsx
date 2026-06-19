@@ -69,7 +69,8 @@ export function SignInForm() {
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="btn-primary w-full justify-center gap-3"
+            className="btn-ghost w-full justify-center gap-3"
+            style={{ background: "var(--bg-elevated)" }}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
               <path

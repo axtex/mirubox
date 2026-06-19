@@ -15,6 +15,8 @@ const ITEM_STYLE: React.CSSProperties = {
   letterSpacing: "0.06em",
 };
 
+const MENU_ITEM_CLASS = "block px-4 py-2.5 font-mono text-[10px] tracking-[0.06em]";
+
 export function NavbarClient({ session }: NavbarClientProps) {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -95,13 +97,6 @@ export function NavbarClient({ session }: NavbarClientProps) {
             </p>
           </div>
 
-          {/* Section label */}
-          <div className="px-4 pt-3 pb-1">
-            <span style={{ ...ITEM_STYLE, fontSize: 9, letterSpacing: "0.1em", color: "var(--fg-subtle)" }}>
-              ACCOUNT
-            </span>
-          </div>
-
           {/* Nav items */}
           {[
             { href: "/profile",   label: "PROFILE" },
@@ -139,9 +134,8 @@ function DropdownLink({
     <Link
       href={href}
       onClick={onNavigate}
-      className="block px-4 py-2.5"
+      className={MENU_ITEM_CLASS}
       style={{
-        ...ITEM_STYLE,
         color: "var(--fg-muted)",
         background: hovered ? "var(--bg-card)" : "transparent",
         transition: "background 0.15s, color 0.15s",
@@ -161,9 +155,8 @@ function SignOutButton() {
     <button
       type="button"
       onClick={() => signOut()}
-      className="block w-full text-left px-4 py-2.5"
+      className={`${MENU_ITEM_CLASS} w-full text-left border-0`}
       style={{
-        ...ITEM_STYLE,
         color: hovered ? "var(--primary)" : "var(--fg-subtle)",
         background: hovered ? "rgba(232, 23, 63, 0.05)" : "transparent",
         transition: "background 0.15s, color 0.15s",

@@ -63,6 +63,20 @@ export interface StreamingEpisode {
   site: string | null;
 }
 
+export interface ExternalLink {
+  id: number;
+  url: string;
+  site: string;
+  type: string | null;
+  icon: string | null;
+  color: string | null;
+}
+
+export interface NextAiringEpisode {
+  episode: number;
+  airingAt: number;
+}
+
 export interface AnimeDetail extends AnimeCard {
   description: string | null;
   volumes: number | null;
@@ -76,6 +90,13 @@ export interface AnimeDetail extends AnimeCard {
     nodes: Studio[];
   };
   streamingEpisodes: StreamingEpisode[];
+  externalLinks: ExternalLink[];
+  nextAiringEpisode: NextAiringEpisode | null;
+  recommendations: {
+    nodes: Array<{
+      mediaRecommendation: AnimeCard | null;
+    }>;
+  };
 }
 
 export interface PageInfo {

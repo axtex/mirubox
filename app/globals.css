@@ -335,6 +335,21 @@ h1, h2, h3 {
   max-width: none;
 }
 
+.tracker-card-title {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.tracker-card-title {
+  -webkit-box-orient: vertical;
+}
+
 @media (min-width: 768px) {
   .section-cards > .anime-card {
     width: 100%;
@@ -607,5 +622,43 @@ h1, h2, h3 {
 @media (prefers-reduced-motion: reduce) {
   .hero-carousel-track {
     transition: none;
+  }
+}
+
+/* ── Detail page: external link chips ───────────────────────────────────── */
+
+.ext-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.ext-chip:hover {
+  border-color: var(--border-bright);
+  background: var(--bg-elevated);
+  color: var(--fg);
+}
+
+/* ── Detail page: banner height ─────────────────────────────────────────── */
+
+.detail-banner-h {
+  height: 200px;
+}
+
+@media (min-width: 768px) {
+  .detail-banner-h {
+    height: 320px;
   }
 }

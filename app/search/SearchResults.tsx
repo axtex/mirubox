@@ -41,6 +41,7 @@ export async function SearchResults({ params }: SearchResultsProps) {
   const status = str(params.status);
   const format = str(params.format);
   const year = Number(str(params.year)) || undefined;
+  const season = str(params.season) || undefined;
   const sort = str(params.sort) || undefined;
   const page = Number(str(params.page)) || 1;
 
@@ -84,6 +85,7 @@ export async function SearchResults({ params }: SearchResultsProps) {
     status: status || undefined,
     format: format || undefined,
     year,
+    season,
     sort,
   };
 

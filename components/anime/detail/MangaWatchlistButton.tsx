@@ -24,8 +24,8 @@ export function MangaWatchlistButton({ animeId, initialStatus, isLoggedIn }: Man
 
   if (!isLoggedIn) {
     return (
-      <a href="/auth/signin" className="btn-ghost" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
-        Sign in to track
+      <a href="/auth/signin" className="btn-primary w-full justify-center">
+        SIGN IN TO TRACK
       </a>
     );
   }
@@ -61,7 +61,7 @@ export function MangaWatchlistButton({ animeId, initialStatus, isLoggedIn }: Man
   }
 
   const currentLabel =
-    MANGA_STATUSES.find((s) => s.value === status)?.label ?? "Add to Library";
+    MANGA_STATUSES.find((s) => s.value === status)?.label ?? "+ ADD TO TRACKER";
 
   return (
     <div className="relative">
