@@ -43,7 +43,8 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
         anime: {
           select: {
             id: true, title: true, titleEnglish: true, coverImage: true,
-            format: true, episodes: true, chapters: true, averageScore: true, seasonYear: true,
+            format: true, episodes: true, chapters: true, volumes: true,
+            averageScore: true, seasonYear: true,
           },
         },
       },

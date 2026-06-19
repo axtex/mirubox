@@ -28,7 +28,7 @@ export function ReviewBadge({
   className,
   style,
   ...props
-}: ReviewBadgeProps): JSX.Element {
+}: ReviewBadgeProps): React.JSX.Element {
   return (
     <span
       className={className}

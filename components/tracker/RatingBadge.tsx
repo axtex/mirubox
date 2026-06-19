@@ -57,7 +57,7 @@ function RatingBadgeContent({ score }: { score: number | null }) {
   );
 }
 
-export function RatingBadge(props: RatingBadgeProps): JSX.Element {
+export function RatingBadge(props: RatingBadgeProps): React.JSX.Element {
   const { score, active, className, style, as = "span", ...rest } = props;
   const isActive = active ?? score != null;
   const badgeStyle = { ...getRatingBadgeStyle(isActive), ...style };

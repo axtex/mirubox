@@ -9,7 +9,7 @@ export function ReviewIcon({
   className,
   size = 12,
   "aria-label": ariaLabel,
-}: ReviewIconProps): JSX.Element {
+}: ReviewIconProps): React.JSX.Element {
   return (
     <svg
       width={size}
