@@ -138,7 +138,7 @@ export default async function ProfilePage({ searchParams }: PageProps) {
   // Always-needed data
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, image: true, xp: true, level: true },
+    select: { id: true, name: true, image: true, xp: true, level: true, tasteSummary: true },
   });
   if (!user) redirect("/auth/signin");
 
@@ -404,10 +404,25 @@ export default async function ProfilePage({ searchParams }: PageProps) {
                 {rank}
               </span>
               <h1 className="text-headline-md font-display">{user.name ?? "Anime Fan"}</h1>
-              {/* TODO: Replace with AI-generated taste summary once taste profile analysis is built */}
-              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)", fontStyle: "italic" }}>
-                Your taste profile is building...
-              </p>
+              {user.tasteSummary ? (
+                <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)", fontStyle: "italic" }}>
+                  {user.tasteSummary}
+                </p>
+              ) : (
+                // TODO: replace empty state with AI-generated taste summary (Haiku)
+                // when XP system and taste vector are built. Trigger generation after
+                // user reaches 5+ archive entries.
+                <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)", fontStyle: "italic" }}>
+                  Every title you add shapes your taste.{" "}
+                  <Link
+                    href="/"
+                    style={{ color: "var(--fg-muted)", textDecoration: "none" }}
+                    className="taste-summary-link"
+                  >
+                    Start exploring.
+                  </Link>
+                </p>
+              )}
             </div>
           </div>
 

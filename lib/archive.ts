@@ -53,7 +53,10 @@ export interface ArchiveCounts {
 
 export async function getArchiveCounts(userId: string): Promise<ArchiveCounts> {
   const [watchlistEntries, ratings, watchingCount, readingCount, avgRating] = await Promise.all([
-    prisma.watchlistEntry.findMany({ where: { userId }, select: { animeId: true } }),
+    prisma.watchlistEntry.findMany({
+      where: { userId, status: { not: "FAVOURITE" } },
+      select: { animeId: true },
+    }),
     prisma.rating.findMany({ where: { userId }, select: { animeId: true } }),
     prisma.watchlistEntry.count({
       where: { userId, status: "IN_PROGRESS", mediaType: "ANIME" },
@@ -146,7 +149,7 @@ export async function getArchiveItems(userId: string, folder: ArchiveFolder): Pr
 
   const [entries, ratings] = await Promise.all([
     prisma.watchlistEntry.findMany({
-      where: { userId },
+      where: { userId, status: { not: "FAVOURITE" } },
       include: { anime: true },
       orderBy: { updatedAt: "desc" },
     }),

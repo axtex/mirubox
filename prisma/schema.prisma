@@ -16,6 +16,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   xp            Int       @default(0)
   level         Int       @default(1)
+  tasteSummary  String?   @db.Text
 
   accounts       Account[]
   sessions       Session[]
@@ -97,6 +98,7 @@ model WatchlistEntry {
   mediaType String   @default("ANIME")
   progress  Int      @default(0)
   total     Int?
+  favourite Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

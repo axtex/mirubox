@@ -37,15 +37,29 @@ export async function POST(req: Request) {
     mediaType?: unknown;
     progress?: unknown;
     total?: unknown;
+    favourite?: unknown;
   };
-  const animeId = Number(body.animeId);
-  const status = typeof body.status === "string" ? body.status : "PLANNED";
-  const progress = typeof body.progress === "number" ? body.progress : 0;
-  const total = typeof body.total === "number" ? body.total : undefined;
 
+  const animeId = Number(body.animeId);
   if (isNaN(animeId)) {
     return NextResponse.json({ error: "Invalid animeId" }, { status: 400 });
   }
+
+  const status = typeof body.status === "string" ? body.status : null;
+  const progress = typeof body.progress === "number" ? body.progress : null;
+  const total = typeof body.total === "number" ? body.total : undefined;
+  const favourite = typeof body.favourite === "boolean" ? body.favourite : undefined;
+
+  // favourite-only update — don't touch status or progress
+  if (status === null && favourite !== undefined) {
+    await prisma.watchlistEntry.updateMany({
+      where: { userId: session.user.id, animeId },
+      data: { favourite },
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  const statusStr = status ?? "PLANNED";
 
   // Ensure anime exists in DB cache (refresh if manga is missing chapter counts)
   let cached = await prisma.anime.findUnique({ where: { id: animeId } });
@@ -58,7 +72,6 @@ export async function POST(req: Request) {
     }
   }
 
-  // Derive mediaType from Anime record if caller doesn't specify
   const mediaType =
     typeof body.mediaType === "string" && (body.mediaType === "ANIME" || body.mediaType === "MANGA")
       ? body.mediaType
@@ -69,22 +82,26 @@ export async function POST(req: Request) {
     create: {
       userId: session.user.id,
       animeId,
-      status,
+      status: statusStr,
       mediaType,
-      progress,
+      progress: progress ?? 0,
       ...(total !== undefined ? { total } : {}),
+      ...(favourite !== undefined ? { favourite } : {}),
     },
     update: {
-      status,
+      status: statusStr,
       mediaType,
-      progress,
+      ...(progress !== null ? { progress } : {}),
       ...(total !== undefined ? { total } : {}),
+      ...(favourite !== undefined ? { favourite } : {}),
     },
   });
 
-  const xpAmount = status === "COMPLETED" ? 10 : 5;
-  const reason = status === "COMPLETED" ? "Marked as completed" : "Added to tracker";
-  await awardXP(session.user.id, xpAmount, reason, animeId);
+  const xpAmount = statusStr === "COMPLETED" ? 10 : 5;
+  const reason = statusStr === "COMPLETED" ? "Marked as completed" : "Added to tracker";
+  if (statusStr !== "FAVOURITE") {
+    await awardXP(session.user.id, xpAmount, reason, animeId);
+  }
 
   void embedAnimeIfNeeded(animeId);
 

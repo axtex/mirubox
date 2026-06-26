@@ -84,7 +84,7 @@ export default async function HomePage() {
         {trendingRow.length > 0 && (
           <SectionRow
             title="TRENDING THIS WEEK"
-            seeAllHref="/search?sort=TRENDING_DESC"
+            seeAllHref="/search?type=anime&sort=TRENDING_DESC&mode=browse"
             items={trendingRow}
           />
         )}
@@ -92,7 +92,7 @@ export default async function HomePage() {
         {seasonalRow.length > 0 && (
           <SectionRow
             title={currentSeasonLabel}
-            seeAllHref={`/search?year=${year}&sort=POPULARITY_DESC`}
+            seeAllHref={`/search?type=anime&season=${season.toLowerCase()}&year=${year}&status=CURRENT_SEASON&mode=browse`}
             items={seasonalRow}
           />
         )}
@@ -100,7 +100,7 @@ export default async function HomePage() {
         {upcomingRow.length > 0 && (
           <SectionRow
             title={`UPCOMING · ${upcomingSeasonLabel}`}
-            seeAllHref={`/search?year=${nextYear}&sort=POPULARITY_DESC`}
+            seeAllHref={`/search?type=anime&season=${nextSeason.toLowerCase()}&year=${nextYear}&status=NOT_YET_RELEASED&mode=browse`}
             items={upcomingRow}
           />
         )}

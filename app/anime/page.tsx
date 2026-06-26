@@ -88,7 +88,7 @@ export default async function AnimeBrowsePage() {
         {trending.media.length > 0 && (
           <SectionRow
             title="TRENDING NOW"
-            seeAllHref="/search?sort=TRENDING_DESC"
+            seeAllHref="/search?type=anime&sort=TRENDING_DESC&mode=browse"
             items={trending.media}
           />
         )}
@@ -97,7 +97,7 @@ export default async function AnimeBrowsePage() {
         {seasonal.media.length > 0 && (
           <SectionRow
             title={currentSeasonLabel}
-            seeAllHref={`/search?year=${year}&sort=POPULARITY_DESC`}
+            seeAllHref={`/search?type=anime&season=${season.toLowerCase()}&year=${year}&mode=browse`}
             items={seasonal.media}
           />
         )}
@@ -106,7 +106,7 @@ export default async function AnimeBrowsePage() {
         {upcoming.media.length > 0 && (
           <SectionRow
             title={upcomingSeasonLabel}
-            seeAllHref={`/search?year=${nextYear}&sort=POPULARITY_DESC`}
+            seeAllHref={`/search?type=anime&season=${nextSeason.toLowerCase()}&year=${nextYear}&status=NOT_YET_RELEASED&mode=browse`}
             items={upcoming.media}
           />
         )}
@@ -115,7 +115,7 @@ export default async function AnimeBrowsePage() {
         {topRated.media.length > 0 && (
           <SectionRow
             title="ALL TIME"
-            seeAllHref="/search?sort=SCORE_DESC"
+            seeAllHref="/search?type=anime&sort=SCORE_DESC&mode=browse"
             items={topRated.media}
           />
         )}

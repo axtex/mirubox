@@ -6,19 +6,17 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { ReviewBadge } from "@/components/tracker/ReviewBadge";
 import { RatingBadge } from "@/components/tracker/RatingBadge";
-import { MediaTypeBadge } from "@/components/tracker/MediaTypeBadge";
 import { STATUS_COLORS, STATUS_LABELS, formatEntryMetadata } from "./types";
 import type { EntryData } from "./types";
 import { trackerStatusDropdownTriggerStyle, TRACKER_BADGE } from "@/components/tracker/badgeStyles";
 
 interface Props {
   entry: EntryData;
-  showTypeBadge?: boolean;
   onUpdate: (animeId: number, updates: Partial<EntryData>) => void;
   onRemove: (animeId: number) => void;
 }
 
-export function ListRow({ entry, showTypeBadge = false, onUpdate, onRemove }: Props) {
+export function ListRow({ entry, onUpdate, onRemove }: Props) {
   const { animeId, anime, status, mediaType, progress, userScore, hasReview } = entry;
   const title = anime.titleEnglish ?? anime.title;
   const dotColor = STATUS_COLORS[status] ?? "var(--fg-subtle)";
@@ -151,7 +149,6 @@ export function ListRow({ entry, showTypeBadge = false, onUpdate, onRemove }: Pr
           <p className="truncate" style={{ fontSize: 13, color: "#e4e1e6", fontWeight: 500 }}>
             {title}
           </p>
-          {showTypeBadge && <MediaTypeBadge mediaType={mediaType} />}
         </Link>
         <div className="flex items-center gap-2 mt-0.5">
           <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-muted)" }}>

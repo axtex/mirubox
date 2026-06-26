@@ -662,3 +662,9 @@ h1, h2, h3 {
     height: 320px;
   }
 }
+
+/* ── Taste summary link ─────────────────────────────────────────────────── */
+
+.taste-summary-link:hover {
+  text-decoration: underline;
+}

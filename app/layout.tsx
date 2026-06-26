@@ -5,6 +5,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Footer } from "@/components/layout/Footer";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { ArchiveProvider } from "@/lib/archive-context";
+import { auth } from "@/auth";
 const anybody = Anybody({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
@@ -30,11 +32,13 @@ export const metadata: Metadata = {
   description: "Intelligent anime & manga discovery platform",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="en">
       <body
@@ -50,12 +54,14 @@ export default function RootLayout({
           flex-col
         `}
       >
-        <Navbar />
-        <MobileNav />
-        <main className="flex-1 pb-[56px] md:pb-0">
-          <PageContainer>{children}</PageContainer>
-        </main>
-        <Footer />
+        <ArchiveProvider isLoggedIn={!!session?.user}>
+          <Navbar />
+          <MobileNav />
+          <main className="flex-1 pb-[56px] md:pb-0">
+            <PageContainer>{children}</PageContainer>
+          </main>
+          <Footer />
+        </ArchiveProvider>
       </body>
     </html>
   );

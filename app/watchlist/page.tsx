@@ -36,6 +36,7 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
     prisma.watchlistEntry.findMany({
       where: {
         userId: session.user.id,
+        status: { not: "FAVOURITE" },
         ...(activeStatus !== "ALL" ? { status: activeStatus } : {}),
         ...typeFilter,
       },
@@ -51,7 +52,7 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
       orderBy: { updatedAt: "desc" },
     }),
     prisma.watchlistEntry.findMany({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id, status: { not: "FAVOURITE" } },
       select: { status: true, mediaType: true },
     }),
     prisma.rating.findMany({

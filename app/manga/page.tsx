@@ -75,21 +75,21 @@ export default async function MangaPage() {
         {/* 3. TRENDING NOW */}
         <SectionRow
           title="TRENDING NOW"
-          seeAllHref="/search?type=manga&sort=trending"
+          seeAllHref="/search?type=manga&sort=TRENDING_DESC&mode=browse"
           items={trending.media}
         />
 
         {/* 4. CURRENTLY PUBLISHING */}
         <SectionRow
           title="CURRENTLY PUBLISHING"
-          seeAllHref="/search?type=manga&status=releasing"
+          seeAllHref="/search?type=manga&status=RELEASING&mode=browse"
           items={publishing.media}
         />
 
         {/* 5. ALL TIME */}
         <SectionRow
           title="ALL TIME"
-          seeAllHref="/search?type=manga&sort=score"
+          seeAllHref="/search?type=manga&sort=SCORE_DESC&mode=browse"
           items={allTime.media}
         />
 

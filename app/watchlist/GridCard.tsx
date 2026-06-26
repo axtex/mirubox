@@ -6,17 +6,15 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { STATUS_COLORS, STATUS_LABELS } from "./types";
 import type { EntryData } from "./types";
-import { MediaTypeBadge } from "@/components/tracker/MediaTypeBadge";
 import { trackerStatusDropdownTriggerStyle, TRACKER_BADGE } from "@/components/tracker/badgeStyles";
 
 interface Props {
   entry: EntryData;
-  showTypeChip?: boolean;
   onUpdate: (animeId: number, updates: Partial<EntryData>) => void;
   onRemove: (animeId: number) => void;
 }
 
-export function GridCard({ entry, showTypeChip = false, onUpdate, onRemove }: Props) {
+export function GridCard({ entry, onUpdate, onRemove }: Props) {
   const { animeId, anime, status, mediaType, progress } = entry;
   const title = anime.titleEnglish ?? anime.title;
   const dotColor = STATUS_COLORS[status] ?? "var(--fg-subtle)";
@@ -86,9 +84,6 @@ export function GridCard({ entry, showTypeChip = false, onUpdate, onRemove }: Pr
           style={{ gap: TRACKER_BADGE.gap }}
           onClick={(e) => e.stopPropagation()}
         >
-          {showTypeChip && (
-            <MediaTypeBadge mediaType={mediaType} className="shrink-0 pointer-events-none" />
-          )}
           <button
             type="button"
             aria-label={`Status: ${STATUS_LABELS[status] ?? status}. Change status or remove`}
@@ -173,12 +168,38 @@ export function GridCard({ entry, showTypeChip = false, onUpdate, onRemove }: Pr
         )}
       </div>
 
-      <p
-        className="tracker-card-title py-1.5 pr-1.5 pl-2.5 min-w-0 truncate"
-        style={{ fontFamily: "var(--font-anybody)", fontSize: 12, lineHeight: 1.35, color: "var(--fg)" }}
-      >
-        {title}
-      </p>
+      <div style={{ padding: "6px 8px 8px" }}>
+        <p
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: "var(--fg)",
+            lineHeight: 1.3,
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {title}
+        </p>
+        {(anime.format || anime.seasonYear) && (
+          <p
+            style={{
+              fontSize: 10,
+              color: "var(--fg-subtle)",
+              fontFamily: "var(--font-space-mono)",
+              marginTop: 3,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {[anime.format?.replace(/_/g, " "), anime.seasonYear].filter(Boolean).join(" · ")}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

@@ -18,6 +18,7 @@ const SORT_MAP: Record<string, string> = {
 
 const STATUS_MAP: Record<string, string> = {
   releasing: "RELEASING",
+  current_season: "RELEASING",
   finished: "FINISHED",
   not_yet_released: "NOT_YET_RELEASED",
   cancelled: "CANCELLED",

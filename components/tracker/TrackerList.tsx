@@ -231,7 +231,6 @@ export function TrackerList({
             <ListRow
               key={entry.animeId}
               entry={entry}
-              showTypeBadge={mediaType === "ALL"}
               onUpdate={handleEntryUpdate}
               onRemove={handleEntryRemove}
             />
@@ -246,7 +245,6 @@ export function TrackerList({
             <GridCard
               key={entry.animeId}
               entry={entry}
-              showTypeChip={mediaType === "ALL"}
               onUpdate={handleEntryUpdate}
               onRemove={handleEntryRemove}
             />
