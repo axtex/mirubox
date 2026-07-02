@@ -31,6 +31,8 @@ export interface EntryData {
   hasReview: boolean;
   updatedAt: string;
   anime: AnimeData;
+  /** True when this entry is favourited but not in the tracker/archive. */
+  isFavouriteOnly?: boolean;
 }
 
 export const STATUS_TABS: { value: WatchlistStatus; label: string }[] = [

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { List, Lock } from "lucide-react";
+import { Lock, Heart } from "lucide-react";
 import { RatingBadge } from "@/components/tracker/RatingBadge";
 import { ReviewBadge } from "@/components/tracker/ReviewBadge";
 import { auth } from "@/auth";
@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { getArchiveCounts } from "@/lib/archive";
 import { formatActivityLabel, getRecentActivity, timeAgo, xpIcon, type ActivityEvent } from "@/lib/profile";
 import { ProfileHeaderActions } from "@/components/profile/ProfileHeaderActions";
+import { ListCard, CreateListCard } from "@/components/lists/ListCard";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,12 @@ interface OverviewData {
   xpEvents: ActivityEvent[];
   topGenres: GenreEntry[];
   avgRating: number | null;
+  recentFavourites: Array<{
+    mediaId: number;
+    mediaType: string;
+    anime: { id: number; title: string; titleEnglish: string | null; coverImage: string | null };
+  }>;
+  totalFavouriteCount: number;
 }
 
 interface WatchlistTabData {
@@ -69,16 +76,21 @@ interface StatsData {
   avgRating: string | null;
 }
 
-interface ProfileListSummary {
+interface ProfileListCard {
   id: string;
+  slug: string;
   title: string;
-  subtitle: string;
-  href: string;
+  description: string | null;
+  isOfficial: boolean;
+  username: string | null;
+  entryCount: number;
+  likeCount: number;
+  coverPosters: (string | null)[];
 }
 
 interface ListsTabData {
-  yourLists: ProfileListSummary[];
-  likedLists: ProfileListSummary[];
+  yourLists: ProfileListCard[];
+  likedLists: ProfileListCard[];
 }
 
 interface ReviewsTabData {
@@ -162,7 +174,7 @@ export default async function ProfilePage({ searchParams }: PageProps) {
   let reviewsTabData: ReviewsTabData | null = null;
 
   if (activeTab === "overview") {
-    const [watchingEntries, xpEvents, watchlistForGenres, avgRatingAgg] = await Promise.all([
+    const [watchingEntries, xpEvents, watchlistForGenres, avgRatingAgg, recentFavourites, totalFavouriteCount] = await Promise.all([
       prisma.watchlistEntry.findMany({
         where: { userId, status: "IN_PROGRESS" },
         include: { anime: { select: { id: true, title: true, titleEnglish: true, coverImage: true, episodes: true } } },
@@ -172,6 +184,13 @@ export default async function ProfilePage({ searchParams }: PageProps) {
       getRecentActivity(userId, 6),
       prisma.watchlistEntry.findMany({ where: { userId }, include: { anime: { select: { genres: true } } } }),
       prisma.rating.aggregate({ where: { userId }, _avg: { score: true } }),
+      prisma.favourite.findMany({
+        where: { userId },
+        include: { anime: { select: { id: true, title: true, titleEnglish: true, coverImage: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 7,
+      }),
+      prisma.favourite.count({ where: { userId } }),
     ]);
 
     const genreCounts: Record<string, number> = {};
@@ -193,6 +212,12 @@ export default async function ProfilePage({ searchParams }: PageProps) {
       xpEvents,
       topGenres,
       avgRating: avgRatingAgg._avg.score,
+      recentFavourites: recentFavourites.slice(0, 6).map(f => ({
+        mediaId: f.mediaId,
+        mediaType: f.mediaType,
+        anime: f.anime,
+      })),
+      totalFavouriteCount,
     };
   } else if (activeTab === "archive") {
     const [allEntries, recentRatings, allRatingScores, userReviews] = await Promise.all([
@@ -321,8 +346,64 @@ export default async function ProfilePage({ searchParams }: PageProps) {
       avgRating,
     };
   } else if (activeTab === "lists") {
-    // TODO: load user-created and liked lists once lists feature ships
-    listsTabData = { yourLists: [], likedLists: [] };
+    const [userLists, likedLists] = await Promise.all([
+      prisma.list.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: { select: { name: true } },
+          _count: { select: { entries: true, likes: true } },
+          entries: { take: 4, orderBy: { order: "asc" }, select: { mediaId: true } },
+        },
+      }),
+      prisma.listLike.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        include: {
+          list: {
+            include: {
+              user: { select: { name: true } },
+              _count: { select: { entries: true, likes: true } },
+              entries: { take: 4, orderBy: { order: "asc" }, select: { mediaId: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const allMediaIds = [
+      ...new Set([
+        ...userLists.flatMap((l) => l.entries.map((e) => e.mediaId)),
+        ...likedLists.flatMap((l) => l.list.entries.map((e) => e.mediaId)),
+      ]),
+    ];
+    const mediaMap = new Map<number, string | null>();
+    if (allMediaIds.length > 0) {
+      const cached = await prisma.anime.findMany({
+        where: { id: { in: allMediaIds } },
+        select: { id: true, coverImage: true },
+      });
+      for (const m of cached) mediaMap.set(m.id, m.coverImage);
+    }
+
+    function toCard(l: typeof userLists[number]): ProfileListCard {
+      return {
+        id: l.id,
+        slug: l.slug,
+        title: l.title,
+        description: l.description,
+        isOfficial: l.isOfficial,
+        username: l.user?.name ?? null,
+        entryCount: l._count.entries,
+        likeCount: l._count.likes,
+        coverPosters: l.entries.map((e) => mediaMap.get(e.mediaId) ?? null),
+      };
+    }
+
+    listsTabData = {
+      yourLists: userLists.map(toCard),
+      likedLists: likedLists.map((ll) => toCard(ll.list)),
+    };
   } else if (activeTab === "reviews") {
     const [userReviews, userRatings] = await Promise.all([
       prisma.review.findMany({
@@ -506,7 +587,7 @@ export default async function ProfilePage({ searchParams }: PageProps) {
 // ─── OVERVIEW TAB ────────────────────────────────────────────────────────────
 
 function OverviewTab({ data }: { data: OverviewData }) {
-  const { watchingEntries, xpEvents, topGenres, avgRating } = data;
+  const { watchingEntries, xpEvents, topGenres, avgRating, recentFavourites, totalFavouriteCount } = data;
   const maxGenreCount = topGenres[0]?.count ?? 1;
 
   return (
@@ -619,6 +700,60 @@ function OverviewTab({ data }: { data: OverviewData }) {
           </div>
         )}
       </section>
+
+      {/* Section D: Favourites Strip */}
+      {recentFavourites.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-subtle)", letterSpacing: "0.1em" }}>
+                FAVOURITES
+              </p>
+              <div style={{ width: 24, height: 1.5, background: "var(--primary)", marginTop: 4 }} />
+            </div>
+            {totalFavouriteCount > 6 && (
+              <Link
+                href="/watchlist?favourites=true"
+                style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--primary)", textDecoration: "none", letterSpacing: "0.06em" }}
+              >
+                View all →
+              </Link>
+            )}
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {recentFavourites.map(fav => {
+              const title = fav.anime.titleEnglish ?? fav.anime.title;
+              const href = fav.mediaType === "MANGA" ? `/manga/${fav.mediaId}` : `/anime/${fav.mediaId}`;
+              return (
+                <Link
+                  key={fav.mediaId}
+                  href={href}
+                  className="shrink-0 flex flex-col gap-1.5"
+                  style={{ width: 56, textDecoration: "none" }}
+                >
+                  <div className="relative overflow-hidden shrink-0" style={{ width: 56, height: 80, borderRadius: 2 }}>
+                    {fav.anime.coverImage && (
+                      <Image src={fav.anime.coverImage} alt={title} fill sizes="56px" className="object-cover" />
+                    )}
+                    <div
+                      className="absolute bottom-1 right-1 flex items-center justify-center"
+                      style={{ width: 16, height: 16, borderRadius: "50%", background: "rgba(0,0,0,0.55)" }}
+                    >
+                      <Heart size={9} fill="#e8173f" stroke="none" />
+                    </div>
+                  </div>
+                  <p
+                    className="truncate"
+                    style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "var(--fg-muted)", lineHeight: 1.3 }}
+                  >
+                    {title}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
@@ -1013,64 +1148,44 @@ function ReviewsTab({ data }: { data: ReviewsTabData }) {
 function ListsTab({ data }: { data: ListsTabData }) {
   return (
     <div className="flex flex-col gap-10">
-      <ListSection
-        title="YOUR LISTS"
-        lists={data.yourLists}
-        emptyMessage="No lists yet. Create lists to organise and share your picks."
-      />
-      <ListSection
-        title="LIKED LISTS"
-        lists={data.likedLists}
-        emptyMessage="Lists you like from other members will appear here."
-      />
+
+      {/* YOUR LISTS */}
+      <section>
+        <SectionLabel>YOUR LISTS</SectionLabel>
+        {data.yourLists.length === 0 ? (
+          <Link
+            href="/lists/new"
+            className="btn-ghost"
+            style={{ fontSize: 10, letterSpacing: "0.06em" }}
+          >
+            + CREATE YOUR FIRST LIST
+          </Link>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+            {data.yourLists.map((list) => (
+              <ListCard key={list.id} list={list} />
+            ))}
+            <CreateListCard />
+          </div>
+        )}
+      </section>
+
+      {/* LIKED LISTS */}
+      <section>
+        <SectionLabel>LIKED LISTS</SectionLabel>
+        {data.likedLists.length === 0 ? (
+          <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)" }}>
+            Lists you like from other members will appear here.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+            {data.likedLists.map((list) => (
+              <ListCard key={list.id} list={list} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
-  );
-}
-
-function ListSection({
-  title,
-  lists,
-  emptyMessage,
-}: {
-  title: string;
-  lists: ProfileListSummary[];
-  emptyMessage: string;
-}) {
-  return (
-    <section>
-      <SectionLabel>{title}</SectionLabel>
-      {lists.length === 0 ? (
-        <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)" }}>
-          {emptyMessage}
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {lists.map((list) => (
-            <ProfileListCard key={list.id} list={list} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function ProfileListCard({ list }: { list: ProfileListSummary }) {
-  return (
-    <Link
-      href={list.href}
-      className="card-base card-hover flex flex-col gap-3 p-5 min-h-[100px]"
-      style={{ textDecoration: "none" }}
-    >
-      <List className="w-4 h-4 shrink-0" style={{ color: "var(--primary)" }} />
-      <div>
-        <p className="text-label leading-snug" style={{ color: "var(--fg)", fontSize: 10 }}>
-          {list.title}
-        </p>
-        <p className="mt-1.5 text-label" style={{ color: "var(--fg-subtle)", fontSize: 9 }}>
-          {list.subtitle}
-        </p>
-      </div>
-    </Link>
   );
 }
 

@@ -668,3 +668,29 @@ h1, h2, h3 {
 .taste-summary-link:hover {
   text-decoration: underline;
 }
+
+/* ── List cards ─────────────────────────────────────────────────────────── */
+
+.list-card:hover {
+  border-color: #2a2a2d;
+}
+
+.create-list-card:hover {
+  border-color: #3a3a3d;
+}
+
+.create-list-card:hover span,
+.create-list-card:hover svg {
+  color: #9e9ea8;
+}
+
+/* ── Character/VA pair card hover ────────────────────────────────────────── */
+
+.char-va-pair {
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.char-va-pair:hover {
+  border-color: #2a2a2d;
+  background: #1f1f22;
+}

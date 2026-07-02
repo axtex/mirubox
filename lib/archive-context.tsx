@@ -25,6 +25,7 @@ export function isTrackedEntry(entry: ArchiveEntry | null | undefined): boolean 
 interface ArchiveContextValue {
   isLoggedIn: boolean;
   archiveMap: Map<number, ArchiveEntry>;
+  favouriteIds: Set<number>;
   addToArchive: (mediaId: number, mediaType: string, status?: string) => Promise<void>;
   updateStatus: (mediaId: number, status: string) => Promise<void>;
   removeFromArchive: (mediaId: number) => Promise<void>;
@@ -34,6 +35,7 @@ interface ArchiveContextValue {
 const ArchiveContext = createContext<ArchiveContextValue>({
   isLoggedIn: false,
   archiveMap: new Map(),
+  favouriteIds: new Set(),
   addToArchive: async () => {},
   updateStatus: async () => {},
   removeFromArchive: async () => {},
@@ -48,18 +50,25 @@ export function ArchiveProvider({
   children: ReactNode;
 }) {
   const [archiveMap, setArchiveMap] = useState<Map<number, ArchiveEntry>>(new Map());
-  // Ref always holds latest map — lets callbacks avoid stale closures
+  const [favouriteIds, setFavouriteIds] = useState<Set<number>>(new Set());
+
+  // Refs always hold latest values — lets callbacks avoid stale closures
   const mapRef = useRef(archiveMap);
   useEffect(() => { mapRef.current = archiveMap; }, [archiveMap]);
+  const favRef = useRef(favouriteIds);
+  useEffect(() => { favRef.current = favouriteIds; }, [favouriteIds]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
-    fetch("/api/archive/ids")
-      .then((r) => r.json() as Promise<{ entries: { id: number; status: string; favourite: boolean }[] }>)
-      .then((data) => {
+    Promise.all([
+      fetch("/api/archive/ids").then((r) => r.json() as Promise<{ entries: { id: number; status: string; favourite: boolean }[] }>),
+      fetch("/api/favourites/ids").then((r) => r.json() as Promise<{ ids: number[] }>),
+    ])
+      .then(([archiveData, favData]) => {
         setArchiveMap(
-          new Map(data.entries.map((e) => [e.id, { status: e.status, favourite: e.favourite }]))
+          new Map(archiveData.entries.map((e) => [e.id, { status: e.status, favourite: e.favourite }]))
         );
+        setFavouriteIds(new Set(favData.ids));
       })
       .catch(() => {});
   }, [isLoggedIn]);
@@ -133,61 +142,43 @@ export function ArchiveProvider({
   }, []);
 
   const toggleFavourite = useCallback(async (mediaId: number, mediaType: string) => {
-    const prev = mapRef.current.get(mediaId);
-    const newFav = !(prev?.favourite ?? false);
+    const isFav = favRef.current.has(mediaId);
+    const newFav = !isFav;
 
-    // Unfavourite a favourites-only row → remove it entirely
-    if (!newFav && prev?.status === FAVOURITE_ONLY_STATUS) {
-      await removeFromArchive(mediaId);
-      return;
-    }
+    // Optimistic update
+    setFavouriteIds((prev) => {
+      const next = new Set(prev);
+      if (newFav) next.add(mediaId);
+      else next.delete(mediaId);
+      return next;
+    });
 
-    // New favourite with no tracker status → favourites-only row
-    if (newFav && prev === undefined) {
-      setArchiveMap((m) =>
-        new Map(m).set(mediaId, { status: FAVOURITE_ONLY_STATUS, favourite: true })
-      );
-      try {
-        const res = await fetch("/api/watchlist", {
+    try {
+      if (newFav) {
+        const res = await fetch("/api/favourites", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            animeId: mediaId,
-            status: FAVOURITE_ONLY_STATUS,
-            favourite: true,
-            mediaType,
-          }),
+          body: JSON.stringify({ mediaId, mediaType }),
         });
         if (!res.ok) throw new Error("api error");
-      } catch {
-        setArchiveMap((m) => {
-          const next = new Map(m);
-          next.delete(mediaId);
-          return next;
-        });
+      } else {
+        const res = await fetch(`/api/favourites/${mediaId}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("api error");
       }
-      return;
-    }
-
-    // Toggle favourite on an existing tracked entry
-    setArchiveMap((m) =>
-      new Map(m).set(mediaId, { status: prev!.status, favourite: newFav })
-    );
-    try {
-      const res = await fetch("/api/watchlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ animeId: mediaId, favourite: newFav }),
-      });
-      if (!res.ok) throw new Error("api error");
     } catch {
-      setArchiveMap((m) => new Map(m).set(mediaId, prev!));
+      // Rollback
+      setFavouriteIds((prev) => {
+        const next = new Set(prev);
+        if (isFav) next.add(mediaId);
+        else next.delete(mediaId);
+        return next;
+      });
     }
-  }, [removeFromArchive]);
+  }, []);
 
   return (
     <ArchiveContext.Provider
-      value={{ isLoggedIn, archiveMap, addToArchive, updateStatus, removeFromArchive, toggleFavourite }}
+      value={{ isLoggedIn, archiveMap, favouriteIds, addToArchive, updateStatus, removeFromArchive, toggleFavourite }}
     >
       {children}
     </ArchiveContext.Provider>

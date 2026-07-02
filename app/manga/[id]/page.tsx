@@ -1,17 +1,18 @@
-import { Fragment } from "react";
+import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import { getMediaById, getDisplayTitle } from "@/lib/anilist";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { MangaWatchlistButton } from "@/components/anime/detail/MangaWatchlistButton";
 import { DescriptionToggle } from "@/components/anime/detail/DescriptionToggle";
-import { TrackerStatusBar } from "@/components/anime/detail/TrackerStatusBar";
-import { ReviewInput } from "@/components/anime/detail/ReviewInput";
 import { AnimeCard } from "@/components/anime/AnimeCard";
+import { AddToListButton } from "@/components/lists/AddToListModal";
+import { HeroArchiveButton } from "@/components/detail/HeroArchiveButton";
+import { DetailTrackerBar } from "@/components/detail/DetailTrackerBar";
+import { DetailSidebar } from "@/components/detail/DetailSidebar";
+import { MangaCharacterSection } from "@/components/detail/MangaCharacterSection";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 
 interface PageProps {
@@ -44,11 +45,12 @@ function scoreClass(score: number | null): string {
 }
 
 const VALID_RELATION_TYPES = new Set([
-  "SEQUEL",
-  "PREQUEL",
-  "ALTERNATIVE_VERSION",
-  "ADAPTATION",
-  "PARENT",
+  "SEQUEL", "PREQUEL", "ALTERNATIVE_VERSION", "ADAPTATION", "PARENT",
+]);
+
+const MANGA_READING_SITES = new Set([
+  "MangaPlus", "Viz", "Comikey", "Tapas", "ComicWalker",
+  "K Manga", "Official Site",
 ]);
 
 export default async function MangaDetailPage({ params }: PageProps) {
@@ -64,15 +66,15 @@ export default async function MangaDetailPage({ params }: PageProps) {
     media.title.native && media.title.native !== title ? media.title.native : null;
 
   let userWatchlistStatus: string | null = null;
+  let userProgress = 0;
   let userRating: number | null = null;
-  let userReview: { content: string; containsSpoilers: boolean } | null = null;
 
   if (session?.user?.id) {
-    const [entry, rating, review] = await Promise.all([
+    const [entry, rating] = await Promise.all([
       prisma.watchlistEntry
         .findUnique({
           where: { userId_animeId: { userId: session.user.id, animeId: numId } },
-          select: { status: true },
+          select: { status: true, progress: true },
         })
         .catch(() => null),
       prisma.rating
@@ -81,20 +83,14 @@ export default async function MangaDetailPage({ params }: PageProps) {
           select: { score: true },
         })
         .catch(() => null),
-      prisma.review
-        .findUnique({
-          where: { userId_animeId: { userId: session.user.id, animeId: numId } },
-          select: { content: true, containsSpoilers: true },
-        })
-        .catch(() => null),
     ]);
     userWatchlistStatus = entry?.status ?? null;
+    userProgress = entry?.progress ?? 0;
     userRating = rating?.score ?? null;
-    userReview = review;
   }
 
-  const studios = media.studios?.nodes ?? [];
-  const author = studios[0]?.name ?? null;
+  // For manga, author comes from studios (AniList uses staff for this, but studios is what we have)
+  const author = media.studios?.nodes[0]?.name ?? null;
 
   const metaChips = [
     media.format?.replace(/_/g, " "),
@@ -108,16 +104,55 @@ export default async function MangaDetailPage({ params }: PageProps) {
     VALID_RELATION_TYPES.has(e.relationType)
   );
 
-  const readingLinks = media.externalLinks.filter(
-    (l) => l.type === "MANGA" || l.type === "STREAMING"
-  );
+  const readingLinks = media.externalLinks.filter((l) => MANGA_READING_SITES.has(l.site));
 
   const recs = media.recommendations.nodes
     .map((n) => n.mediaRecommendation)
     .filter((m): m is AnimeCardType => m !== null)
     .slice(0, 6);
 
-  const anilistUrl = `https://anilist.co/manga/${numId}`;
+  // Characters — MAIN first
+  const sortedChars = [...media.characters.edges].sort((a, b) => {
+    if (a.role === "MAIN" && b.role !== "MAIN") return -1;
+    if (a.role !== "MAIN" && b.role === "MAIN") return 1;
+    return 0;
+  });
+
+  const sidebarDetails = [
+    { label: "FORMAT",   value: media.format?.replace(/_/g, " ") },
+    { label: "CHAPTERS", value: media.chapters ? String(media.chapters) : null },
+    { label: "VOLUMES",  value: media.volumes ? String(media.volumes) : null },
+    { label: "STATUS",   value: media.status?.replace(/_/g, " ") },
+    { label: "AUTHOR",   value: author },
+    { label: "SOURCE",   value: media.source?.replace(/_/g, " ") },
+    { label: "SCORE",    value: media.meanScore ? String(media.meanScore) : null },
+  ];
+
+  const showGenresInSidebar = media.genres.length > 5;
+  const heroGenres = showGenresInSidebar ? media.genres.slice(0, 4) : media.genres;
+
+  const SECTION_TITLE: CSSProperties = {
+    fontFamily: "var(--font-space-mono)",
+    fontSize: 9,
+    fontWeight: 500,
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    color: "#5a5a65",
+    marginBottom: 6,
+  };
+
+  const SIDEBAR = (
+    <DetailSidebar
+      mediaId={numId}
+      mediaType="MANGA"
+      details={sidebarDetails}
+      genres={media.genres}
+      genreSearchPrefix="/search?type=MANGA&genre="
+      initialProgress={userProgress}
+      initialTotal={media.chapters ?? null}
+      initialRating={userRating}
+    />
+  );
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
@@ -137,64 +172,39 @@ export default async function MangaDetailPage({ params }: PageProps) {
               className="object-cover object-top"
             />
           ) : (
-            <div className="absolute inset-0" style={{ background: "var(--bg-card)" }} />
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(135deg, #1a1a2e, #131316)" }}
+            />
           )}
-          {/* bottom-60% fade to bg */}
           <div
             className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(to bottom, rgba(15,15,18,0) 0%, rgba(15,15,18,0.65) 50%, rgba(15,15,18,1) 100%)",
-            }}
+            style={{ background: "linear-gradient(to top, #0f0f12 0%, transparent 60%)" }}
           />
-          {/* left-40% text legibility gradient */}
           <div
             className="absolute inset-0 hidden md:block"
-            style={{
-              background:
-                "linear-gradient(to right, rgba(15,15,18,0.65) 0%, transparent 42%)",
-            }}
+            style={{ background: "linear-gradient(to right, rgba(15,15,18,0.75) 0%, transparent 55%)" }}
           />
         </div>
 
-        {/* POSTER — desktop: absolute overlapping right of banner */}
+        {/* POSTER — desktop: absolute, overlapping right of banner */}
         <div
           className="hidden md:block absolute overflow-hidden"
           style={{
-            width: 160,
-            height: 240,
-            top: 160,
-            right:
-              "max(calc((100vw - var(--page-max-width)) / 2 + var(--page-padding-x)), var(--page-padding-x))",
+            width: 160, height: 240,
+            top: 128,
+            right: "max(calc((100vw - var(--page-max-width)) / 2 + var(--page-padding-x)), var(--page-padding-x))",
             borderRadius: 2,
-            border: "2px solid var(--border)",
+            border: "2px solid #2a2a2d",
             boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
             zIndex: 20,
           }}
         >
           {media.coverImage.extraLarge ? (
-            <Image
-              src={media.coverImage.extraLarge}
-              alt={title}
-              fill
-              sizes="160px"
-              className="object-cover"
-            />
+            <Image src={media.coverImage.extraLarge} alt={title} fill sizes="160px" className="object-cover" />
           ) : (
-            <div
-              className="w-full h-full flex items-center justify-center"
-              style={{ background: "var(--bg-card)" }}
-            >
-              <span
-                style={{
-                  fontSize: 48,
-                  color: "var(--fg-subtle)",
-                  fontFamily: "var(--font-anybody)",
-                  fontWeight: 700,
-                }}
-              >
-                {title[0]}
-              </span>
+            <div className="w-full h-full flex items-center justify-center" style={{ background: "#1b1b1e" }}>
+              <span style={{ fontSize: 24, color: "#5a5a65", fontFamily: "var(--font-space-mono)" }}>{title[0]}</span>
             </div>
           )}
         </div>
@@ -204,468 +214,226 @@ export default async function MangaDetailPage({ params }: PageProps) {
 
           {/* ── Mobile ───────────────────────────────────────────────── */}
           <div className="md:hidden flex flex-col items-center text-center">
-            {/* Poster — centered, pulled up over banner */}
             <div
               className="relative overflow-hidden mx-auto"
               style={{
-                width: 100,
-                height: 150,
-                marginTop: -60,
-                marginBottom: 20,
-                borderRadius: 2,
-                border: "2px solid var(--border)",
+                width: 100, height: 150,
+                marginTop: -50, marginBottom: 12,
+                borderRadius: 2, border: "2px solid #2a2a2d",
                 boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
               }}
             >
               {media.coverImage.extraLarge ? (
-                <Image
-                  src={media.coverImage.extraLarge}
-                  alt={title}
-                  fill
-                  sizes="100px"
-                  className="object-cover"
-                />
+                <Image src={media.coverImage.extraLarge} alt={title} fill sizes="100px" className="object-cover" />
               ) : (
-                <div
-                  className="w-full h-full flex items-center justify-center"
-                  style={{ background: "var(--bg-card)" }}
-                >
-                  <span
-                    style={{
-                      fontSize: 28,
-                      color: "var(--fg-subtle)",
-                      fontFamily: "var(--font-anybody)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {title[0]}
-                  </span>
+                <div className="w-full h-full flex items-center justify-center" style={{ background: "#1b1b1e" }}>
+                  <span style={{ fontSize: 20, color: "#5a5a65", fontFamily: "var(--font-space-mono)" }}>{title[0]}</span>
                 </div>
               )}
             </div>
 
-            <h1 className="text-headline-lg font-display mb-1">{title}</h1>
+            <h1 style={{ fontFamily: "var(--font-anybody)", fontWeight: 600, fontSize: 18, lineHeight: 1.2, color: "#e4e1e6", marginBottom: 4 }}>
+              {title}
+            </h1>
             {nativeTitle && (
-              <p
-                className="mb-3"
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 11,
-                  color: "var(--fg-subtle)",
-                  letterSpacing: "0.05em",
-                }}
-              >
+              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65", marginBottom: 8 }}>
                 {nativeTitle}
               </p>
             )}
 
-            {/* Meta chips */}
-            <div className="flex flex-wrap justify-center items-center gap-x-2 gap-y-1 mb-3">
-              {metaChips.map((chip, i) => (
-                <Fragment key={chip + i}>
-                  {i > 0 && (
-                    <span style={{ color: "var(--fg-subtle)", lineHeight: 1 }}>·</span>
-                  )}
-                  <span className="text-label" style={{ color: "var(--fg-subtle)" }}>
-                    {chip}
-                  </span>
-                </Fragment>
+            <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+              {metaChips.map((chip) => (
+                <span key={chip} style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "#9e9ea8", background: "#1b1b1e", border: "1px solid #2a2a2d", borderRadius: 2, padding: "2px 7px", whiteSpace: "nowrap" }}>
+                  {chip}
+                </span>
               ))}
             </div>
 
-            {/* Genre chips */}
-            {media.genres.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 mb-5">
-                {media.genres.map((g) => (
-                  <Link
-                    key={g}
-                    href={`/search?type=MANGA&genre=${encodeURIComponent(g)}`}
-                    className="genre-chip"
-                  >
-                    {g}
-                  </Link>
+            {heroGenres.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 mb-4">
+                {heroGenres.map((g) => (
+                  <Link key={g} href={`/search?type=MANGA&genre=${encodeURIComponent(g)}`} className="genre-chip">{g}</Link>
                 ))}
+                {showGenresInSidebar && (
+                  <a href="#sidebar-genres" className="genre-chip">+{media.genres.length - 4} MORE →</a>
+                )}
               </div>
             )}
 
-            {/* Score */}
             {media.averageScore !== null && (
               <div className="flex flex-col items-center mb-4">
-                <span
-                  className={`score-badge ${scoreClass(media.averageScore)}`}
-                  style={{ fontSize: "1.1rem", padding: "4px 12px" }}
-                >
+                <span className={`score-badge ${scoreClass(media.averageScore)}`} style={{ fontSize: "1.1rem", padding: "4px 12px" }}>
                   ★ {media.averageScore}
                 </span>
-                <span
-                  className="mt-1.5"
-                  style={{
-                    fontFamily: "var(--font-space-mono)",
-                    fontSize: 9,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: "var(--fg-muted)",
-                  }}
-                >
+                <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5a5a65", marginTop: 4 }}>
                   MEAN SCORE
                 </span>
               </div>
             )}
 
-            {/* CTA buttons */}
             <div className="w-full flex flex-col gap-2 mb-6">
-              <MangaWatchlistButton
-                animeId={numId}
-                initialStatus={userWatchlistStatus}
-                isLoggedIn={!!session}
-              />
-              <a
-                href={anilistUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-ghost w-full justify-center gap-1.5"
-              >
-                <ExternalLink size={12} />
-                ANILIST
-              </a>
+              <HeroArchiveButton mediaId={numId} mediaType="MANGA" />
+              <AddToListButton mediaId={numId} mediaType="MANGA" isLoggedIn={!!session} />
             </div>
           </div>
 
           {/* ── Desktop ──────────────────────────────────────────────── */}
-          <div
-            className="hidden md:block"
-            style={{ paddingTop: 32, paddingRight: "calc(160px + 2.5rem)", minHeight: 80 }}
-          >
-            <h1 className="text-headline-lg font-display mb-1">{title}</h1>
+          <div className="hidden md:block" style={{ paddingTop: 32, paddingRight: "calc(160px + 2.5rem)", minHeight: 80 }}>
+            <h1 style={{ fontFamily: "var(--font-anybody)", fontWeight: 600, fontSize: 22, lineHeight: 1.2, color: "#e4e1e6", marginBottom: 4 }}>
+              {title}
+            </h1>
             {nativeTitle && (
-              <p
-                className="mb-4"
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 11,
-                  color: "var(--fg-subtle)",
-                  letterSpacing: "0.05em",
-                }}
-              >
+              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65", marginBottom: 8 }}>
                 {nativeTitle}
               </p>
             )}
 
-            {/* Meta chips */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-4">
-              {metaChips.map((chip, i) => (
-                <Fragment key={chip + i}>
-                  {i > 0 && (
-                    <span style={{ color: "var(--fg-subtle)" }}>·</span>
-                  )}
-                  <span className="text-label" style={{ color: "var(--fg-subtle)" }}>
-                    {chip}
-                  </span>
-                </Fragment>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              {metaChips.map((chip) => (
+                <span key={chip} style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "#9e9ea8", background: "#1b1b1e", border: "1px solid #2a2a2d", borderRadius: 2, padding: "2px 7px", whiteSpace: "nowrap" }}>
+                  {chip}
+                </span>
               ))}
             </div>
 
-            {/* Genre chips */}
-            {media.genres.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {media.genres.map((g) => (
-                  <Link
-                    key={g}
-                    href={`/search?type=MANGA&genre=${encodeURIComponent(g)}`}
-                    className="genre-chip"
-                  >
-                    {g}
-                  </Link>
+            {heroGenres.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {heroGenres.map((g) => (
+                  <Link key={g} href={`/search?type=MANGA&genre=${encodeURIComponent(g)}`} className="genre-chip">{g}</Link>
                 ))}
+                {showGenresInSidebar && (
+                  <a href="#sidebar-genres" className="genre-chip">+{media.genres.length - 4} MORE →</a>
+                )}
               </div>
             )}
 
-            {/* Score + Actions */}
-            <div className="flex items-end gap-6 flex-wrap mb-8">
+            <div className="flex items-center gap-4 flex-wrap mb-8">
               {media.averageScore !== null && (
                 <div className="flex flex-col">
-                  <span
-                    className={`score-badge ${scoreClass(media.averageScore)}`}
-                    style={{ fontSize: "1.5rem", padding: "6px 14px", alignSelf: "flex-start" }}
-                  >
+                  <span className={`score-badge ${scoreClass(media.averageScore)}`} style={{ fontSize: "1.5rem", padding: "6px 14px", alignSelf: "flex-start" }}>
                     ★ {media.averageScore}
                   </span>
-                  <span
-                    className="mt-1.5"
-                    style={{
-                      fontFamily: "var(--font-space-mono)",
-                      fontSize: 9,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      color: "var(--fg-muted)",
-                    }}
-                  >
+                  <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5a5a65", marginTop: 4 }}>
                     MEAN SCORE
                   </span>
                 </div>
               )}
-              <MangaWatchlistButton
-                animeId={numId}
-                initialStatus={userWatchlistStatus}
-                isLoggedIn={!!session}
-              />
-              <a
-                href={anilistUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 self-center"
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "var(--fg-subtle)",
-                  textDecoration: "none",
-                  transition: "color 0.15s ease",
-                }}
-              >
-                <ExternalLink size={12} />
-                ANILIST
-              </a>
+              <HeroArchiveButton mediaId={numId} mediaType="MANGA" />
+              <AddToListButton mediaId={numId} mediaType="MANGA" isLoggedIn={!!session} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* ═══ SECTIONS ═══════════════════════════════════════════════════════ */}
+      {/* ═══ MAIN LAYOUT ═════════════════════════════════════════════════════ */}
       <div className="page-container">
-        <div className="flex flex-col gap-8 py-8">
+        <div className="flex gap-7 py-8" style={{ alignItems: "flex-start" }}>
 
-          {/* TRACKER STATUS — shown only when user is tracking */}
-          {userWatchlistStatus && (
-            <TrackerStatusBar
-              animeId={numId}
-              initialStatus={userWatchlistStatus}
-              initialRating={userRating}
-              mediaType="MANGA"
-            />
-          )}
+          {/* MAIN COLUMN */}
+          <div className="flex flex-col gap-5 min-w-0" style={{ flex: 1 }}>
 
-          {session?.user && (
-            <ReviewInput
-              animeId={numId}
-              initialReview={userReview}
-              isLoggedIn
-            />
-          )}
-
-          {/* SYNOPSIS */}
-          {media.description && (
-            <section>
-              <p className="text-label mb-3" style={{ color: "var(--fg-muted)" }}>
-                SYNOPSIS
-              </p>
-              <DescriptionToggle description={media.description} />
-            </section>
-          )}
-
-          {/* WHERE TO READ */}
-          <section>
-            <p className="text-label mb-3" style={{ color: "var(--fg-muted)" }}>
-              WHERE TO READ
-            </p>
-            {readingLinks.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {readingLinks.map((link) => (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ext-chip"
-                  >
-                    {link.site}
-                    <ExternalLink size={10} />
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <p
-                className="text-label"
-                style={{ color: "var(--fg-subtle)" }}
-              >
-                No official reading links available
-              </p>
+            {/* 1. TRACKER STATUS BAR */}
+            {session?.user && userWatchlistStatus && (
+              <DetailTrackerBar
+                mediaId={numId}
+                mediaType="MANGA"
+                initialStatus={userWatchlistStatus}
+                initialProgress={userProgress}
+                initialTotal={media.chapters ?? null}
+                initialRating={userRating}
+              />
             )}
-          </section>
 
-          {/* CHARACTERS */}
-          {media.characters.edges.length > 0 && (
+            {/* 2. SYNOPSIS */}
+            {media.description && (
+              <section>
+                <p style={SECTION_TITLE}>SYNOPSIS</p>
+                <DescriptionToggle description={media.description} />
+              </section>
+            )}
+
+            {/* 3. WHERE TO READ */}
             <section>
-              <p className="text-label mb-4" style={{ color: "var(--fg-muted)" }}>
-                CHARACTERS
-              </p>
-              {/* Mobile: 4 */}
-              <div className="md:hidden flex scroll-row">
-                {media.characters.edges.slice(0, 4).map(({ node, role }) => (
-                  <div
-                    key={node.id}
-                    className="flex flex-col items-center gap-1.5 shrink-0"
-                    style={{ width: 72 }}
-                  >
-                    <div
-                      className="relative overflow-hidden w-full"
-                      style={{
-                        aspectRatio: "1/1",
-                        borderRadius: 2,
-                        border: "1px solid var(--border)",
-                      }}
+              <p style={SECTION_TITLE}>WHERE TO READ</p>
+              {readingLinks.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {readingLinks.map((link) => (
+                    <a
+                      key={link.id}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ext-chip"
                     >
-                      {node.image.medium ? (
-                        <Image
-                          src={node.image.medium}
-                          alt={node.name.full ?? ""}
-                          fill
-                          sizes="72px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="w-full h-full"
-                          style={{ background: "var(--bg-card)" }}
-                        />
-                      )}
-                    </div>
-                    <p
-                      className="text-[10px] text-center leading-tight line-clamp-2"
-                      style={{
-                        color: "var(--fg-muted)",
-                        fontFamily: "var(--font-space-mono)",
-                      }}
-                    >
-                      {node.name.full}
-                    </p>
-                    <span
-                      className="text-[9px]"
-                      style={{
-                        color: "var(--fg-subtle)",
-                        fontFamily: "var(--font-space-mono)",
-                      }}
-                    >
-                      {role}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              {/* Desktop: 8 */}
-              <div className="hidden md:flex scroll-row">
-                {media.characters.edges.slice(0, 8).map(({ node, role }) => (
-                  <div
-                    key={node.id}
-                    className="flex flex-col items-center gap-1.5 shrink-0"
-                    style={{ width: 80 }}
-                  >
-                    <div
-                      className="relative overflow-hidden w-full"
-                      style={{
-                        aspectRatio: "1/1",
-                        borderRadius: 2,
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      {node.image.medium ? (
-                        <Image
-                          src={node.image.medium}
-                          alt={node.name.full ?? ""}
-                          fill
-                          sizes="80px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="w-full h-full"
-                          style={{ background: "var(--bg-card)" }}
-                        />
-                      )}
-                    </div>
-                    <p
-                      className="text-[10px] text-center leading-tight line-clamp-2"
-                      style={{
-                        color: "var(--fg-muted)",
-                        fontFamily: "var(--font-space-mono)",
-                      }}
-                    >
-                      {node.name.full}
-                    </p>
-                    <span
-                      className="text-[9px]"
-                      style={{
-                        color: "var(--fg-subtle)",
-                        fontFamily: "var(--font-space-mono)",
-                      }}
-                    >
-                      {role}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                      {link.site} ↗
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "#5a5a65" }}>
+                  No official reading links found.
+                </p>
+              )}
             </section>
-          )}
 
-          {/* RELATIONS */}
-          {filteredRelations.length > 0 && (
-            <section>
-              <p className="text-label mb-4" style={{ color: "var(--fg-muted)" }}>
-                RELATED
-              </p>
-              <div className="flex scroll-row">
-                {filteredRelations.slice(0, 8).map(({ node, relationType }) => (
-                  <div
-                    key={node.id}
-                    className="flex flex-col gap-1.5 shrink-0"
-                    style={{ width: 100 }}
-                  >
-                    <AnimeCard
-                      anime={{
-                        ...node,
-                        bannerImage: null,
-                        genres: [],
-                        episodes: null,
-                        chapters: null,
-                        season: null,
-                        seasonYear: null,
-                        averageScore: null,
-                        popularity: null,
-                      }}
-                      size="sm"
-                    />
-                    <span
-                      className="text-center"
-                      style={{
-                        fontFamily: "var(--font-space-mono)",
-                        fontSize: 9,
-                        color: "var(--fg-subtle)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                      }}
+            {/* 4. CHARACTERS (manga — no VAs) */}
+            {sortedChars.length > 0 && (
+              <MangaCharacterSection chars={sortedChars} />
+            )}
+
+            {/* 5. RELATIONS */}
+            {filteredRelations.length > 0 && (
+              <section>
+                <p style={SECTION_TITLE}>RELATIONS</p>
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {filteredRelations.map(({ node, relationType }) => (
+                    <Link
+                      key={node.id}
+                      href={`/${node.type === "MANGA" ? "manga" : "anime"}/${node.id}`}
+                      className="flex flex-col gap-1 shrink-0 no-underline"
+                      style={{ width: 80 }}
                     >
-                      {relationType.replace(/_/g, " ")}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+                      <div className="relative overflow-hidden" style={{ height: 112, borderRadius: 2, border: "1px solid #1f1f22" }}>
+                        {node.coverImage.large ? (
+                          <Image src={node.coverImage.large} alt={getDisplayTitle(node.title)} fill sizes="80px" className="object-cover" />
+                        ) : (
+                          <div className="w-full h-full" style={{ background: "#1b1b1e" }} />
+                        )}
+                      </div>
+                      <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 7, color: "#5a5a65", textTransform: "uppercase" }}>
+                        {relationType.replace(/_/g, " ")}
+                      </span>
+                      <span className="truncate" style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "#9e9ea8" }}>
+                        {getDisplayTitle(node.title)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
 
-          {/* RECOMMENDATIONS */}
-          {recs.length > 0 && (
-            <section>
-              <p className="text-label mb-4" style={{ color: "var(--fg-muted)" }}>
-                YOU MIGHT ALSO LIKE
-              </p>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                {recs.map((rec) => (
-                  <AnimeCard key={rec.id} anime={rec} size="md" />
-                ))}
-              </div>
-            </section>
-          )}
+            {/* 6. RECOMMENDATIONS */}
+            {recs.length > 0 && (
+              <section>
+                <p style={SECTION_TITLE}>YOU MIGHT ALSO LIKE</p>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {recs.map((rec) => (
+                    <AnimeCard key={rec.id} anime={rec} size="md" />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
 
+          {/* SIDEBAR — desktop only (sticky) */}
+          <div className="hidden md:block" style={{ width: 220, flexShrink: 0, position: "sticky", top: 80 }}>
+            {SIDEBAR}
+          </div>
+        </div>
+
+        {/* SIDEBAR — mobile (below all sections) */}
+        <div className="md:hidden mb-8">
+          {SIDEBAR}
         </div>
       </div>
     </div>

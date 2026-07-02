@@ -32,13 +32,13 @@ export function AnimeCardActions({
   iconSize = "md",
 }: AnimeCardActionsProps) {
   const router = useRouter();
-  const { isLoggedIn, archiveMap, addToArchive, updateStatus, removeFromArchive, toggleFavourite } =
+  const { isLoggedIn, archiveMap, favouriteIds, addToArchive, updateStatus, removeFromArchive, toggleFavourite } =
     useArchive();
 
   const entry = archiveMap.get(mediaId) ?? null;
   const isTracked = isTrackedEntry(entry);
   const status = isTracked ? entry!.status : null;
-  const isFavourite = entry?.favourite ?? false;
+  const isFavourite = favouriteIds.has(mediaId);
 
   const [loading, setLoading] = useState(false);
   const [showPicker, setShowPicker] = useState(false);

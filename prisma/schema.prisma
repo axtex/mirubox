@@ -24,6 +24,48 @@ model User {
   ratings        Rating[]
   reviews        Review[]
   xpEvents       XpEvent[]
+  favourites     Favourite[]
+  lists          List[]
+  listLikes      ListLike[]
+}
+
+model List {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  title       String
+  description String?
+  isOfficial  Boolean     @default(false)
+  isPublic    Boolean     @default(true)
+  userId      String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  user        User?       @relation(fields: [userId], references: [id])
+  entries     ListEntry[]
+  likes       ListLike[]
+}
+
+model ListEntry {
+  id        String   @id @default(cuid())
+  listId    String
+  mediaId   Int
+  mediaType String
+  order     Int      @default(0)
+  note      String?
+  addedAt   DateTime @default(now())
+  list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, mediaId])
+  @@index([listId, order])
+}
+
+model ListLike {
+  userId    String
+  listId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@id([userId, listId])
 }
 
 model Account {
@@ -88,6 +130,7 @@ model Anime {
   ratings          Rating[]
   reviews          Review[]
   xpEvents         XpEvent[]
+  favourites       Favourite[]
 }
 
 model WatchlistEntry {
@@ -135,6 +178,19 @@ model Review {
   anime Anime @relation(fields: [animeId], references: [id])
 
   @@unique([userId, animeId])
+}
+
+model Favourite {
+  id        String   @id @default(cuid())
+  userId    String
+  mediaId   Int
+  mediaType String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime Anime @relation(fields: [mediaId], references: [id])
+
+  @@unique([userId, mediaId])
 }
 
 model XpEvent {

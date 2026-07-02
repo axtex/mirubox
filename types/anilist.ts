@@ -26,15 +26,22 @@ export interface AnimeCard {
   type: string;
 }
 
+export interface VoiceActor {
+  id: number;
+  name: { full: string | null };
+  image: { large: string | null };
+}
+
 export interface Character {
   id: number;
   name: { full: string | null };
-  image: { medium: string | null };
+  image: { medium: string | null; large: string | null };
 }
 
 export interface CharacterEdge {
   node: Character;
   role: string;
+  voiceActors: VoiceActor[];
 }
 
 export interface Studio {
@@ -80,6 +87,9 @@ export interface NextAiringEpisode {
 export interface AnimeDetail extends AnimeCard {
   description: string | null;
   volumes: number | null;
+  meanScore: number | null;
+  source: string | null;
+  duration: number | null;
   characters: {
     edges: CharacterEdge[];
   };

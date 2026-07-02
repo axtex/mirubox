@@ -5,32 +5,75 @@ export const metadata: Metadata = {
   title: "Community — mirubox",
 };
 
+const COMMUNITY_LINKS = [
+  { href: "/lists", label: "LISTS" },
+] as const;
+
 export default function CommunityPage() {
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center gap-6 text-center"
-      style={{ background: "var(--bg)" }}
-    >
-      <div className="flex flex-col items-center gap-3">
+    <div className="page-container py-8">
+      <div style={{ marginBottom: 24 }}>
         <h1
-          className="font-display uppercase"
-          style={{
-            fontFamily: "var(--font-anybody)",
-            fontSize: "clamp(20px, 4vw, 32px)",
-            fontWeight: 800,
-            letterSpacing: "0.05em",
-            color: "var(--fg)",
-          }}
+          className="text-headline-lg font-display uppercase"
+          style={{ marginBottom: 4 }}
         >
           COMMUNITY
         </h1>
-        <p className="text-label" style={{ color: "var(--fg-subtle)", maxWidth: 360 }}>
-          COMMUNITY FEATURES ARE COMING SOON — LISTS, FRIENDS, AND SHARED TASTE PROFILES.
+        <p
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 11,
+            color: "var(--fg-muted)",
+          }}
+        >
+          Lists, shared taste, and more
         </p>
       </div>
-      <Link href="/" className="btn-ghost" style={{ fontSize: 10 }}>
-        ← BACK TO ARCHIVE
-      </Link>
+
+      <nav
+        style={{
+          display: "flex",
+          gap: 6,
+          marginBottom: 32,
+          borderBottom: "1px solid var(--border)",
+          paddingBottom: 0,
+        }}
+      >
+        {COMMUNITY_LINKS.map(({ href, label }) => (
+          <Link
+            key={href}
+            href={href}
+            style={{
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 10,
+              letterSpacing: "0.08em",
+              padding: "10px 14px",
+              color: "var(--fg-muted)",
+              borderBottom: "1.5px solid transparent",
+              marginBottom: -1,
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+              transition: "color 0.15s ease",
+            }}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+
+      <div>
+        <p
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 11,
+            color: "var(--fg-subtle)",
+            maxWidth: 420,
+            lineHeight: 1.6,
+          }}
+        >
+          Browse curated lists from mirubox and the community. Friends and shared taste profiles are coming soon.
+        </p>
+      </div>
     </div>
   );
 }

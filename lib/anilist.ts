@@ -209,7 +209,10 @@ export async function getMediaById(id: number): Promise<AnimeDetail | null> {
         ...AnimeCard
         description(asHtml: false)
         volumes
-        characters(sort: ROLE, perPage: 8) {
+        meanScore
+        source
+        duration
+        characters(sort: ROLE, perPage: 25) {
           edges {
             node {
               id
@@ -218,9 +221,19 @@ export async function getMediaById(id: number): Promise<AnimeDetail | null> {
               }
               image {
                 medium
+                large
               }
             }
             role
+            voiceActors(language: JAPANESE) {
+              id
+              name {
+                full
+              }
+              image {
+                large
+              }
+            }
           }
         }
         relations {

@@ -8,23 +8,92 @@ import { STATUS_TABS, slugToStatus } from "./types";
 import type { WatchlistStatus, MediaType, SortKey, EntryData, MediaCounts } from "./types";
 
 interface PageProps {
-  searchParams: Promise<{ status?: string; sort?: string; type?: string }>;
+  searchParams: Promise<{ status?: string; sort?: string; type?: string; favourites?: string }>;
 }
 
 const SORT_KEYS: SortKey[] = ["recent", "rating", "title", "release"];
+
+const ANIME_SELECT = {
+  id: true, title: true, titleEnglish: true, coverImage: true,
+  format: true, episodes: true, chapters: true, volumes: true,
+  averageScore: true, seasonYear: true,
+} as const;
 
 export default async function WatchlistPage({ searchParams }: PageProps) {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/watchlist");
 
-  const { status: statusParam, sort: sortParam, type: typeParam } = await searchParams;
+  const { status: statusParam, sort: sortParam, type: typeParam, favourites: favParam } = await searchParams;
 
+  const sort: SortKey = SORT_KEYS.includes(sortParam as SortKey) ? (sortParam as SortKey) : "recent";
+  const showFavourites = favParam === "true";
+
+  // ── Favourites view ──────────────────────────────────────────────────────────
+  if (showFavourites) {
+    const [allFavourites, ratingRows, reviewRows] = await Promise.all([
+      prisma.favourite.findMany({
+        where: { userId: session.user.id },
+        include: { anime: { select: ANIME_SELECT } },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.rating.findMany({ where: { userId: session.user.id }, select: { animeId: true, score: true } }),
+      prisma.review.findMany({ where: { userId: session.user.id }, select: { animeId: true } }),
+    ]);
+
+    const favIds = allFavourites.map((f) => f.mediaId);
+    const archiveEntriesForFavs = favIds.length > 0
+      ? await prisma.watchlistEntry.findMany({
+          where: { userId: session.user.id, animeId: { in: favIds }, status: { not: "FAVOURITE" } },
+          select: { animeId: true, status: true, mediaType: true, progress: true, total: true, updatedAt: true },
+        })
+      : [];
+
+    const archiveByAnimeId = new Map(archiveEntriesForFavs.map((e) => [e.animeId, e]));
+    const ratingMap = new Map(ratingRows.map((r) => [r.animeId, r.score]));
+    const reviewIds = new Set(reviewRows.map((r) => r.animeId));
+
+    const entries: EntryData[] = allFavourites.map((fav) => {
+      const archive = archiveByAnimeId.get(fav.mediaId);
+      return {
+        animeId: fav.mediaId,
+        status: archive?.status ?? "NOT_ARCHIVED",
+        mediaType: archive?.mediaType ?? fav.mediaType,
+        progress: archive?.progress ?? 0,
+        total: archive?.total ?? null,
+        userScore: ratingMap.get(fav.mediaId) ?? null,
+        hasReview: reviewIds.has(fav.mediaId),
+        updatedAt: (archive?.updatedAt ?? fav.createdAt).toISOString(),
+        anime: fav.anime,
+        isFavouriteOnly: !archive,
+      };
+    });
+
+    const mediaCounts: MediaCounts = {
+      anime: allFavourites.filter((f) => f.mediaType === "ANIME").length,
+      manga: allFavourites.filter((f) => f.mediaType === "MANGA").length,
+      total: allFavourites.length,
+    };
+
+    return (
+      <div className="py-8 min-h-screen" style={{ background: "var(--bg)" }}>
+        <TrackerClient
+          entries={entries}
+          counts={{}}
+          mediaCounts={mediaCounts}
+          mediaType="ALL"
+          activeStatus="ALL"
+          sort={sort}
+          showFavourites
+        />
+      </div>
+    );
+  }
+
+  // ── Normal tracker view ──────────────────────────────────────────────────────
   const slugStatus = statusParam?.toLowerCase().replace(/\s+/g, "-") ?? "";
   const candidateStatus = slugToStatus(slugStatus);
   const activeStatus: WatchlistStatus =
     STATUS_TABS.some(t => t.value === candidateStatus) && slugStatus ? candidateStatus : "ALL";
-
-  const sort: SortKey = SORT_KEYS.includes(sortParam as SortKey) ? (sortParam as SortKey) : "recent";
 
   const mediaType: MediaType = ["anime", "manga"].includes(typeParam?.toLowerCase() ?? "")
     ? (typeParam!.toUpperCase() as MediaType)
@@ -42,11 +111,7 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
       },
       include: {
         anime: {
-          select: {
-            id: true, title: true, titleEnglish: true, coverImage: true,
-            format: true, episodes: true, chapters: true, volumes: true,
-            averageScore: true, seasonYear: true,
-          },
+          select: ANIME_SELECT,
         },
       },
       orderBy: { updatedAt: "desc" },

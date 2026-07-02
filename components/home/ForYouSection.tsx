@@ -24,10 +24,6 @@ export function ForYouSection({
       <div className="section-header">
         <div className="section-header-row">
           <h2 className="text-headline-md font-display uppercase">FOR YOU</h2>
-          <span className="text-label flex items-center gap-1.5" style={{ color: "var(--primary)" }}>
-            <Sparkles className="w-3 h-3" />
-            AI PICKS
-          </span>
         </div>
         <div className="section-underline" />
       </div>
