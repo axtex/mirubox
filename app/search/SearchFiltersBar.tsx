@@ -2,7 +2,8 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useTransition, useRef, useEffect } from "react";
-import { Search, ChevronDown } from "lucide-react";
+import { Search } from "lucide-react";
+import { FilterSelect } from "@/components/FilterSelect";
 
 const EXAMPLE_PROMPTS = [
   "cozy witches",
@@ -371,58 +372,5 @@ function PromptChip({ label, onClick }: { label: string; onClick: () => void }) 
     >
       {label}
     </button>
-  );
-}
-
-function FilterSelect({
-  value,
-  onChange,
-  placeholder,
-  options,
-  active,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  options: { value: string; label: string }[];
-  active: boolean;
-}) {
-  return (
-    <div style={{ position: "relative", flexShrink: 0 }}>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="outline-none cursor-pointer appearance-none"
-        style={{
-          height: 32,
-          paddingLeft: 10,
-          paddingRight: 28,
-          background: active ? "var(--primary)" : "var(--bg-elevated)",
-          color: active ? "#fff" : "var(--fg-muted)",
-          border: `1px solid ${active ? "var(--primary)" : "var(--bg-card-high)"}`,
-          borderRadius: 2,
-          fontFamily: "var(--font-space-mono)",
-          fontSize: 10,
-          letterSpacing: "0.06em",
-        }}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-      <ChevronDown
-        style={{
-          position: "absolute",
-          right: 6,
-          top: "50%",
-          transform: "translateY(-50%)",
-          pointerEvents: "none",
-          width: 10,
-          height: 10,
-          color: active ? "#fff" : "var(--fg-subtle)",
-        }}
-      />
-    </div>
   );
 }

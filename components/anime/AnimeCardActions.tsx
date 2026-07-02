@@ -10,12 +10,21 @@ import {
   STATUS_LABELS,
   isTrackedEntry,
 } from "@/lib/archive-context";
+import { LIST_STATUS_BUTTON_WIDTH } from "@/components/tracker/badgeStyles";
 
 interface AnimeCardActionsProps {
   mediaId: number;
   mediaType: string;
   /** "sm" = 24 px mobile row, "md" = 28 px desktop hover bar */
   iconSize?: "sm" | "md";
+  /** Fired after a successful tracker add, status change, or remove (null = removed). */
+  onArchiveChange?: (status: string | null) => void;
+  /** Fired after a successful favourite toggle. */
+  onFavouriteChange?: (isFavourite: boolean) => void;
+  /** Solid button backgrounds — for tracker poster overlays. */
+  opaque?: boolean;
+  /** Tracker list row: full status label, no truncation. */
+  listLayout?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -30,6 +39,10 @@ export function AnimeCardActions({
   mediaId,
   mediaType,
   iconSize = "md",
+  onArchiveChange,
+  onFavouriteChange,
+  opaque = false,
+  listLayout = false,
 }: AnimeCardActionsProps) {
   const router = useRouter();
   const { isLoggedIn, archiveMap, favouriteIds, addToArchive, updateStatus, removeFromArchive, toggleFavourite } =
@@ -103,6 +116,7 @@ export function AnimeCardActions({
       setShowPicker(false);
       if (value === "__remove__") {
         await removeFromArchive(mediaId);
+        onArchiveChange?.(null);
         return;
       }
       if (!isTracked) {
@@ -110,8 +124,9 @@ export function AnimeCardActions({
       } else {
         await updateStatus(mediaId, value);
       }
+      onArchiveChange?.(value);
     },
-    [isTracked, mediaId, mediaType, addToArchive, updateStatus, removeFromArchive]
+    [isTracked, mediaId, mediaType, addToArchive, updateStatus, removeFromArchive, onArchiveChange]
   );
 
   const handleHeart = useCallback(
@@ -121,11 +136,14 @@ export function AnimeCardActions({
       if (!isLoggedIn) { router.push("/auth/signin"); return; }
       if (loading) return;
       setLoading(true);
-      try { await toggleFavourite(mediaId, mediaType); }
+      try {
+        await toggleFavourite(mediaId, mediaType);
+        onFavouriteChange?.(!isFavourite);
+      }
       finally { setLoading(false); }
       e.currentTarget.blur();
     },
-    [isLoggedIn, loading, mediaId, mediaType, toggleFavourite, router]
+    [isLoggedIn, loading, mediaId, mediaType, toggleFavourite, router, isFavourite, onFavouriteChange]
   );
 
   const statusSc = status ? STATUS_COLORS[status] : null;
@@ -134,32 +152,56 @@ export function AnimeCardActions({
 
   function addBtnStyle(): React.CSSProperties {
     if (isTracked && statusSc) {
-      return {
-        background: statusSc.bg,
-        border: `1px solid ${statusSc.border}`,
-        color: statusSc.color,
-      };
+      return opaque
+        ? {
+            background: "var(--bg-card-high)",
+            border: `1px solid ${statusSc.border}`,
+            color: statusSc.color,
+          }
+        : {
+            background: statusSc.bg,
+            border: `1px solid ${statusSc.border}`,
+            color: statusSc.color,
+          };
     }
-    return {
-      background: "rgba(0,0,0,0.4)",
-      border: "1px solid rgba(255,255,255,0.2)",
-      color: "#e4e1e6",
-    };
+    return opaque
+      ? {
+          background: "var(--bg-card-high)",
+          border: "1px solid var(--border-bright)",
+          color: "var(--fg)",
+        }
+      : {
+          background: "rgba(0,0,0,0.4)",
+          border: "1px solid rgba(255,255,255,0.2)",
+          color: "#e4e1e6",
+        };
   }
 
   function heartStyle(): React.CSSProperties {
     if (isFavourite) {
-      return {
-        background: "rgba(232,23,63,0.15)",
-        border: "1px solid rgba(232,23,63,0.4)",
-        color: "#e8173f",
-      };
+      return opaque
+        ? {
+            background: "rgba(232,23,63,0.45)",
+            border: "1px solid rgba(232,23,63,0.75)",
+            color: "#e8173f",
+          }
+        : {
+            background: "rgba(232,23,63,0.15)",
+            border: "1px solid rgba(232,23,63,0.4)",
+            color: "#e8173f",
+          };
     }
-    return {
-      background: "rgba(0,0,0,0.4)",
-      border: "1px solid rgba(255,255,255,0.12)",
-      color: "#9e9ea8",
-    };
+    return opaque
+      ? {
+          background: "var(--bg-card-high)",
+          border: "1px solid var(--border-bright)",
+          color: "var(--fg-muted)",
+        }
+      : {
+          background: "rgba(0,0,0,0.4)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          color: "#9e9ea8",
+        };
   }
 
   const ICON_BTN: React.CSSProperties = {
@@ -296,7 +338,7 @@ export function AnimeCardActions({
     <>
       {pickerMenu && createPortal(pickerMenu, document.body)}
 
-      <div className="flex gap-1.5 items-center w-full">
+      <div className={`flex gap-1.5 items-center ${listLayout ? "" : "w-full"}`}>
         {/* Status dropdown */}
         <button
           ref={addBtnRef}
@@ -310,11 +352,9 @@ export function AnimeCardActions({
           style={{
             ...ICON_BTN,
             ...addBtnStyle(),
-            flex: 1,
-            minWidth: 0,
-            width: "auto",
+            ...(listLayout ? { width: LIST_STATUS_BUTTON_WIDTH } : { flex: 1, minWidth: 0 }),
             display: "inline-flex",
-            justifyContent: "center",
+            justifyContent: listLayout ? "space-between" : "center",
             padding: iconSize === "sm" ? "0 6px" : "0 8px",
             gap: 4,
             fontFamily: "var(--font-space-mono)",
@@ -330,7 +370,7 @@ export function AnimeCardActions({
               style={{ width: 6, height: 6, background: statusSc.color }}
             />
           )}
-          <span className="truncate">{addLabel}</span>
+          <span className={listLayout ? "flex-1 text-center" : "truncate"}>{addLabel}</span>
           <ChevronDown
             size={iconSize === "sm" ? 8 : 9}
             className="shrink-0"

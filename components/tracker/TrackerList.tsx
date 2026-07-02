@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { List, LayoutGrid, ChevronDown, Heart } from "lucide-react";
-import { STATUS_TABS, TYPE_TABS, statusToSlug, slugToStatus } from "@/app/watchlist/types";
-import { ListRow } from "@/app/watchlist/ListRow";
-import { GridCard } from "@/app/watchlist/GridCard";
-import type { EntryData, WatchlistStatus, MediaType, SortKey, MediaCounts } from "@/app/watchlist/types";
+import { List, LayoutGrid } from "lucide-react";
+import { FilterSelect } from "@/components/FilterSelect";
+import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
+import { STATUS_TABS, TYPE_TABS, statusToSlug, slugToStatus } from "@/app/archive/types";
+import { ListRow } from "@/app/archive/ListRow";
+import { GridCard } from "@/app/archive/GridCard";
+import type { EntryData, WatchlistStatus, MediaType, SortKey, MediaCounts } from "@/app/archive/types";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "recent",  label: "RECENTLY ADDED ↓" },
@@ -27,6 +29,7 @@ interface Props {
   sort: SortKey;
   baseUrl?: string;
   showFavourites?: boolean;
+  favouriteCount?: number;
 }
 
 export function TrackerList({
@@ -36,8 +39,9 @@ export function TrackerList({
   mediaType,
   activeStatus,
   sort,
-  baseUrl = "/watchlist",
+  baseUrl = "/archive",
   showFavourites = false,
+  favouriteCount = 0,
 }: Props) {
   const router = useRouter();
   const [view, setView] = useState<"list" | "grid">("list");
@@ -66,10 +70,10 @@ export function TrackerList({
     return url.pathname + (url.search || "");
   }
 
-  function buildFavouritesHref(on: boolean): string {
+  function buildFavouritesHref(s: SortKey): string {
     const url = new URL(baseUrl, "http://x");
-    if (on) url.searchParams.set("favourites", "true");
-    if (sort !== "recent") url.searchParams.set("sort", sort);
+    url.searchParams.set("favourites", "true");
+    if (s !== "recent") url.searchParams.set("sort", s);
     return url.pathname + (url.search || "");
   }
 
@@ -85,6 +89,14 @@ export function TrackerList({
 
   function handleEntryRemove(animeId: number) {
     setLocalEntries((prev) => prev.filter((e) => e.animeId !== animeId));
+  }
+
+  function handleFavouriteChange(animeId: number, isFavourite: boolean) {
+    if (!isFavourite) handleEntryRemove(animeId);
+  }
+
+  function handleFavouriteOnlyArchive(animeId: number, status: string) {
+    handleEntryUpdate(animeId, { isFavouriteOnly: false, status });
   }
 
   const totalStatus = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -113,35 +125,15 @@ export function TrackerList({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 md:mt-1 ml-auto">
-          <SortSelect value={sort} onChange={(s) => router.push(buildHref(mediaType, activeStatus, s))} />
-          {/* ♥ Favourites toggle */}
-          <Link
-            href={buildFavouritesHref(!showFavourites)}
-            title={showFavourites ? "Show all" : "Show favourites"}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              height: 32,
-              padding: "0 10px",
-              borderRadius: 2,
-              border: showFavourites ? "1px solid #e8173f" : "1px solid #2a2a2d",
-              background: showFavourites ? "rgba(232,23,63,0.1)" : "var(--bg-card)",
-              color: showFavourites ? "#e8173f" : "#9e9ea8",
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 10,
-              letterSpacing: "0.06em",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <Heart
-              size={14}
-              fill={showFavourites ? "#e8173f" : "none"}
-              stroke={showFavourites ? "#e8173f" : "#9e9ea8"}
-            />
-            FAVOURITES
-          </Link>
+          <FilterSelect
+            value={sort}
+            onChange={(s) => router.push(
+              showFavourites ? buildFavouritesHref(s as SortKey) : buildHref(mediaType, activeStatus, s as SortKey)
+            )}
+            options={SORT_OPTIONS}
+            active={sort !== "recent"}
+            variant="control"
+          />
           <button
             onClick={() => toggleView("list")}
             title="List view"
@@ -159,43 +151,61 @@ export function TrackerList({
         </div>
       </div>
 
-      {/* ── Type pills (hidden in favourites view) ─────────────────────── */}
-      {!showFavourites && (
-        <div className="flex gap-1.5 mb-5">
-          {TYPE_TABS.map(({ value, label }) => {
-            const count =
-              value === "ALL"
-                ? mediaCounts.total
-                : value === "ANIME"
-                ? mediaCounts.anime
-                : mediaCounts.manga;
-            const active = mediaType === value;
-            return (
-              <Link
-                key={value}
-                href={buildHref(value, activeStatus, sort)}
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  letterSpacing: "0.06em",
-                  padding: "5px 14px",
-                  borderRadius: 2,
-                  background: active ? "var(--primary)" : "var(--bg-elevated)",
-                  color: active ? "#fff" : "var(--fg-muted)",
-                  border: active ? "none" : "1px solid var(--bg-card-high, #2a2a2d)",
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                }}
-              >
-                {label}
-                <span style={{ fontSize: 9, opacity: 0.6 }}>{count}</span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      {/* ── Type pills ───────────────────────────────────────────────── */}
+      <div className="flex gap-1.5 mb-5">
+        {TYPE_TABS.map(({ value, label }) => {
+          const count =
+            value === "ALL"
+              ? mediaCounts.total
+              : value === "ANIME"
+              ? mediaCounts.anime
+              : mediaCounts.manga;
+          const active = !showFavourites && mediaType === value;
+          return (
+            <Link
+              key={value}
+              href={buildHref(value, activeStatus, sort)}
+              style={{
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 10,
+                letterSpacing: "0.06em",
+                padding: "5px 14px",
+                borderRadius: 2,
+                background: active ? "var(--primary)" : "var(--bg-elevated)",
+                color: active ? "#fff" : "var(--fg-muted)",
+                border: active ? "none" : "1px solid var(--bg-card-high, #2a2a2d)",
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              {label}
+              <span style={{ fontSize: 9, opacity: 0.6 }}>{count}</span>
+            </Link>
+          );
+        })}
+        <Link
+          href={buildFavouritesHref(sort)}
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 10,
+            letterSpacing: "0.06em",
+            padding: "5px 14px",
+            borderRadius: 2,
+            background: showFavourites ? "var(--primary)" : "var(--bg-elevated)",
+            color: showFavourites ? "#fff" : "var(--fg-muted)",
+            border: showFavourites ? "none" : "1px solid var(--bg-card-high, #2a2a2d)",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+          }}
+        >
+          FAVS
+          <span style={{ fontSize: 9, opacity: 0.6 }}>{favouriteCount}</span>
+        </Link>
+      </div>
 
       {/* ── Status sub-tabs (hidden in favourites view) ─────────────────── */}
       {!showFavourites && (
@@ -286,10 +296,21 @@ export function TrackerList({
       {showFavourites && localEntries.length > 0 && view === "list" && (
         <div className="flex flex-col relative" style={{ borderTop: "1px solid var(--border)" }}>
           {archivedEntries.map((entry) => (
-            <ListRow key={entry.animeId} entry={entry} onUpdate={handleEntryUpdate} onRemove={handleEntryRemove} />
+            <ListRow
+              key={entry.animeId}
+              entry={entry}
+              onUpdate={handleEntryUpdate}
+              onRemove={handleEntryRemove}
+              onFavouriteChange={handleFavouriteChange}
+            />
           ))}
           {favouriteOnlyEntries.map((entry) => (
-            <FavouriteOnlyRow key={entry.animeId} entry={entry} />
+            <FavouriteOnlyRow
+              key={entry.animeId}
+              entry={entry}
+              onArchive={handleFavouriteOnlyArchive}
+              onUnfavourite={handleFavouriteChange}
+            />
           ))}
         </div>
       )}
@@ -298,10 +319,21 @@ export function TrackerList({
       {showFavourites && localEntries.length > 0 && view === "grid" && (
         <div className="grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-3">
           {archivedEntries.map((entry) => (
-            <GridCard key={entry.animeId} entry={entry} onUpdate={handleEntryUpdate} onRemove={handleEntryRemove} />
+            <GridCard
+              key={entry.animeId}
+              entry={entry}
+              onUpdate={handleEntryUpdate}
+              onRemove={handleEntryRemove}
+              onFavouriteChange={handleFavouriteChange}
+            />
           ))}
           {favouriteOnlyEntries.map((entry) => (
-            <FavouriteOnlyCard key={entry.animeId} entry={entry} />
+            <FavouriteOnlyCard
+              key={entry.animeId}
+              entry={entry}
+              onArchive={handleFavouriteOnlyArchive}
+              onUnfavourite={handleFavouriteChange}
+            />
           ))}
         </div>
       )}
@@ -315,6 +347,7 @@ export function TrackerList({
               entry={entry}
               onUpdate={handleEntryUpdate}
               onRemove={handleEntryRemove}
+              onFavouriteChange={showFavourites ? handleFavouriteChange : undefined}
             />
           ))}
         </div>
@@ -329,6 +362,7 @@ export function TrackerList({
               entry={entry}
               onUpdate={handleEntryUpdate}
               onRemove={handleEntryRemove}
+              onFavouriteChange={showFavourites ? handleFavouriteChange : undefined}
             />
           ))}
         </div>
@@ -337,13 +371,21 @@ export function TrackerList({
   );
 }
 
-function FavouriteOnlyRow({ entry }: { entry: EntryData }) {
+function FavouriteOnlyRow({
+  entry,
+  onArchive,
+  onUnfavourite,
+}: {
+  entry: EntryData;
+  onArchive: (animeId: number, status: string) => void;
+  onUnfavourite: (animeId: number, isFavourite: boolean) => void;
+}) {
   const title = entry.anime.titleEnglish ?? entry.anime.title;
   const href = entry.mediaType === "MANGA" ? `/manga/${entry.animeId}` : `/anime/${entry.animeId}`;
 
   return (
     <div
-      className="flex items-center gap-3 py-2 pr-5"
+      className="group flex items-center gap-3 py-2 pr-5"
       style={{ borderBottom: "1px solid var(--border)" }}
     >
       <Link href={href} className="shrink-0">
@@ -365,18 +407,35 @@ function FavouriteOnlyRow({ entry }: { entry: EntryData }) {
           NOT ARCHIVED
         </p>
       </div>
-      <Heart size={12} fill="#e8173f" stroke="none" style={{ flexShrink: 0, opacity: 0.7 }} />
+      <div className="shrink-0" style={{ width: 92 }}>
+        <AnimeCardActions
+          mediaId={entry.animeId}
+          mediaType={entry.mediaType}
+          iconSize="sm"
+          opaque
+          onArchiveChange={(status) => { if (status) onArchive(entry.animeId, status); }}
+          onFavouriteChange={(isFavourite) => onUnfavourite(entry.animeId, isFavourite)}
+        />
+      </div>
     </div>
   );
 }
 
-function FavouriteOnlyCard({ entry }: { entry: EntryData }) {
+function FavouriteOnlyCard({
+  entry,
+  onArchive,
+  onUnfavourite,
+}: {
+  entry: EntryData;
+  onArchive: (animeId: number, status: string) => void;
+  onUnfavourite: (animeId: number, isFavourite: boolean) => void;
+}) {
   const title = entry.anime.titleEnglish ?? entry.anime.title;
   const href = entry.mediaType === "MANGA" ? `/manga/${entry.animeId}` : `/anime/${entry.animeId}`;
 
   return (
     <div
-      className="relative min-w-0"
+      className="anime-card group relative min-w-0"
       style={{ borderRadius: 4, border: "1px solid var(--border)", background: "var(--bg-card)" }}
     >
       <div className="relative aspect-[2/3] overflow-hidden">
@@ -386,17 +445,28 @@ function FavouriteOnlyCard({ entry }: { entry: EntryData }) {
             alt={title}
             fill
             sizes="(min-width: 768px) 15vw, 25vw"
-            className="object-cover"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
           <div className="w-full h-full" style={{ background: "var(--bg-elevated)" }} />
         )}
         <Link href={href} className="absolute inset-0 z-[1]" aria-label={`View ${title}`} />
         <div
-          className="absolute bottom-1.5 right-1.5 z-[2] flex items-center justify-center"
-          style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.55)" }}
+          className="absolute bottom-0 left-0 right-0 z-[3]"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)",
+            padding: "20px 7px 7px",
+          }}
         >
-          <Heart size={9} fill="#e8173f" stroke="none" />
+          <AnimeCardActions
+            mediaId={entry.animeId}
+            mediaType={entry.mediaType}
+            iconSize="sm"
+            opaque
+            onArchiveChange={(status) => { if (status) onArchive(entry.animeId, status); }}
+            onFavouriteChange={(isFavourite) => onUnfavourite(entry.animeId, isFavourite)}
+          />
         </div>
       </div>
       <div style={{ padding: "6px 8px 8px" }}>
@@ -436,44 +506,4 @@ function viewBtnStyle(active: boolean): React.CSSProperties {
     color: active ? "#fff" : "var(--fg-subtle)",
     cursor: "pointer",
   };
-}
-
-function SortSelect({ value, onChange }: { value: SortKey; onChange: (v: SortKey) => void }) {
-  return (
-    <div style={{ position: "relative", flexShrink: 0 }}>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as SortKey)}
-        className="outline-none cursor-pointer appearance-none"
-        style={{
-          height: 32,
-          paddingLeft: 10,
-          paddingRight: 28,
-          background: "var(--bg-elevated)",
-          color: "var(--fg-muted)",
-          border: "1px solid var(--bg-card-high, #2a2a2d)",
-          borderRadius: 2,
-          fontFamily: "var(--font-space-mono)",
-          fontSize: 10,
-          letterSpacing: "0.06em",
-        }}
-      >
-        {SORT_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-      <ChevronDown
-        style={{
-          position: "absolute",
-          right: 6,
-          top: "50%",
-          transform: "translateY(-50%)",
-          pointerEvents: "none",
-          width: 10,
-          height: 10,
-          color: "var(--fg-subtle)",
-        }}
-      />
-    </div>
-  );
 }

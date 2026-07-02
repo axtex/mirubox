@@ -21,16 +21,21 @@ const ANIME_SELECT = {
 
 export default async function WatchlistPage({ searchParams }: PageProps) {
   const session = await auth();
-  if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/watchlist");
+  if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/archive");
 
   const { status: statusParam, sort: sortParam, type: typeParam, favourites: favParam } = await searchParams;
 
   const sort: SortKey = SORT_KEYS.includes(sortParam as SortKey) ? (sortParam as SortKey) : "recent";
   const showFavourites = favParam === "true";
+  const mediaType: MediaType = ["anime", "manga"].includes(typeParam?.toLowerCase() ?? "")
+    ? (typeParam!.toUpperCase() as MediaType)
+    : "ALL";
+
+  const favouriteCountPromise = prisma.favourite.count({ where: { userId: session.user.id } });
 
   // ── Favourites view ──────────────────────────────────────────────────────────
   if (showFavourites) {
-    const [allFavourites, ratingRows, reviewRows] = await Promise.all([
+    const [allFavourites, ratingRows, reviewRows, favouriteCount] = await Promise.all([
       prisma.favourite.findMany({
         where: { userId: session.user.id },
         include: { anime: { select: ANIME_SELECT } },
@@ -38,6 +43,7 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
       }),
       prisma.rating.findMany({ where: { userId: session.user.id }, select: { animeId: true, score: true } }),
       prisma.review.findMany({ where: { userId: session.user.id }, select: { animeId: true } }),
+      favouriteCountPromise,
     ]);
 
     const favIds = allFavourites.map((f) => f.mediaId);
@@ -52,7 +58,7 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
     const ratingMap = new Map(ratingRows.map((r) => [r.animeId, r.score]));
     const reviewIds = new Set(reviewRows.map((r) => r.animeId));
 
-    const entries: EntryData[] = allFavourites.map((fav) => {
+    const allEntries: EntryData[] = allFavourites.map((fav) => {
       const archive = archiveByAnimeId.get(fav.mediaId);
       return {
         animeId: fav.mediaId,
@@ -67,6 +73,8 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
         isFavouriteOnly: !archive,
       };
     });
+
+    const entries = allEntries;
 
     const mediaCounts: MediaCounts = {
       anime: allFavourites.filter((f) => f.mediaType === "ANIME").length,
@@ -84,6 +92,7 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
           activeStatus="ALL"
           sort={sort}
           showFavourites
+          favouriteCount={favouriteCount}
         />
       </div>
     );
@@ -95,13 +104,9 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
   const activeStatus: WatchlistStatus =
     STATUS_TABS.some(t => t.value === candidateStatus) && slugStatus ? candidateStatus : "ALL";
 
-  const mediaType: MediaType = ["anime", "manga"].includes(typeParam?.toLowerCase() ?? "")
-    ? (typeParam!.toUpperCase() as MediaType)
-    : "ALL";
-
   const typeFilter = mediaType !== "ALL" ? { mediaType } : {};
 
-  const [rawEntries, allEntryMeta, ratings, reviews] = await Promise.all([
+  const [rawEntries, allEntryMeta, ratings, reviews, favouriteCount] = await Promise.all([
     prisma.watchlistEntry.findMany({
       where: {
         userId: session.user.id,
@@ -128,6 +133,7 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
       where: { userId: session.user.id },
       select: { animeId: true },
     }),
+    favouriteCountPromise,
   ]);
 
   // Backfill chapter counts for cached manga missing them
@@ -186,6 +192,7 @@ export default async function WatchlistPage({ searchParams }: PageProps) {
         mediaType={mediaType}
         activeStatus={activeStatus}
         sort={sort}
+        favouriteCount={favouriteCount}
       />
     </div>
   );

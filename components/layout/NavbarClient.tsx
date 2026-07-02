@@ -100,7 +100,7 @@ export function NavbarClient({ session }: NavbarClientProps) {
           {/* Nav items */}
           {[
             { href: "/profile",   label: "PROFILE" },
-            { href: "/watchlist", label: "TRACKER" },
+            { href: "/archive",   label: "TRACKER" },
             { href: "/settings",  label: "SETTINGS" },
           ].map(({ href, label }) => (
             <DropdownLink key={href} href={href} onNavigate={() => setOpen(false)}>

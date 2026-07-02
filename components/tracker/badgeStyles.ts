@@ -9,13 +9,16 @@ export const TRACKER_BADGE = {
   /** Fits "10" in space mono at 10px */
   scoreMinWidth: 16,
   /** Content row + vertical padding + border */
-  minHeight: 20,
+  minHeight: 24,
   gap: 3,
 } as const;
 
 /** Star + gap + score slot + horizontal padding + border */
 export const TRACKER_RATING_BADGE_MIN_WIDTH =
   12 + TRACKER_BADGE.starSize + TRACKER_BADGE.gap + TRACKER_BADGE.scoreMinWidth + 2;
+
+/** Fixed width for list-row status dropdown (fits "COMPLETED" + dot + chevron at 8px mono). */
+export const LIST_STATUS_BUTTON_WIDTH = 88;
 
 export const trackerBadgeBoxStyle = {
   padding: TRACKER_BADGE.padding,

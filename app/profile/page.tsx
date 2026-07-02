@@ -713,7 +713,7 @@ function OverviewTab({ data }: { data: OverviewData }) {
             </div>
             {totalFavouriteCount > 6 && (
               <Link
-                href="/watchlist?favourites=true"
+                href="/archive?favourites=true"
                 style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--primary)", textDecoration: "none", letterSpacing: "0.06em" }}
               >
                 View all →
@@ -866,7 +866,7 @@ function WatchlistTab({ data }: { data: WatchlistTabData }) {
       {/* View full tracker */}
       <div className="flex justify-end">
         <Link
-          href="/watchlist"
+          href="/archive"
           style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--primary)", textDecoration: "none", letterSpacing: "0.06em" }}
         >
           VIEW FULL TRACKER →

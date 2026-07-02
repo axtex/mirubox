@@ -3,23 +3,23 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import { ReviewBadge } from "@/components/tracker/ReviewBadge";
 import { RatingBadge } from "@/components/tracker/RatingBadge";
-import { STATUS_COLORS, STATUS_LABELS, formatEntryMetadata } from "./types";
+import { formatEntryMetadata } from "./types";
 import type { EntryData } from "./types";
-import { trackerStatusDropdownTriggerStyle, TRACKER_BADGE } from "@/components/tracker/badgeStyles";
+import { TRACKER_BADGE } from "@/components/tracker/badgeStyles";
 
 interface Props {
   entry: EntryData;
   onUpdate: (animeId: number, updates: Partial<EntryData>) => void;
   onRemove: (animeId: number) => void;
+  onFavouriteChange?: (animeId: number, isFavourite: boolean) => void;
 }
 
-export function ListRow({ entry, onUpdate, onRemove }: Props) {
+export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props) {
   const { animeId, anime, status, mediaType, progress, userScore, hasReview } = entry;
   const title = anime.titleEnglish ?? anime.title;
-  const dotColor = STATUS_COLORS[status] ?? "var(--fg-subtle)";
   const isManga = mediaType === "MANGA";
   const href = isManga ? `/manga/${animeId}` : `/anime/${animeId}`;
   const progressLabel = isManga ? "CH" : "EP";
@@ -34,9 +34,15 @@ export function ListRow({ entry, onUpdate, onRemove }: Props) {
   const [ratingHover, setRatingHover] = useState<number | null>(null);
   const [ratingLoading, setRatingLoading] = useState(false);
 
-  const [showStatusPicker, setShowStatusPicker] = useState(false);
-
   const rowRef = useRef<HTMLDivElement>(null);
+
+  const archiveCallbacks = {
+    onArchiveChange: (nextStatus: string | null) => {
+      if (nextStatus === null) onRemove(animeId);
+      else onUpdate(animeId, { status: nextStatus });
+    },
+    onFavouriteChange: (isFavourite: boolean) => onFavouriteChange?.(animeId, isFavourite),
+  };
 
   useEffect(() => {
     setLocalProgress(progress);
@@ -50,13 +56,12 @@ export function ListRow({ entry, onUpdate, onRemove }: Props) {
           debounceRef.current = null;
           if (localProgress !== progress) void doCommit(localProgress);
         }
-        setShowStatusPicker(false);
         setShowRating(false);
       }
     }
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
-  }, [localProgress, progress, showRating, showStatusPicker]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [localProgress, progress, showRating]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setLocalScore(userScore);
@@ -96,26 +101,6 @@ export function ListRow({ entry, onUpdate, onRemove }: Props) {
     } finally {
       setRatingLoading(false);
     }
-  }
-
-  async function handleStatusChange(newStatus: string) {
-    setShowStatusPicker(false);
-    onUpdate(animeId, { status: newStatus });
-    await fetch("/api/watchlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ animeId, status: newStatus, progress: localProgress }),
-    });
-  }
-
-  async function handleRemove() {
-    setShowStatusPicker(false);
-    onRemove(animeId);
-    await fetch("/api/watchlist", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ animeId }),
-    });
   }
 
   const progressPct = total ? Math.round((localProgress / total) * 100) : 0;
@@ -164,8 +149,9 @@ export function ListRow({ entry, onUpdate, onRemove }: Props) {
         </div>
       )}
 
-      {/* Progress + actions — single row, vertically aligned */}
-      <div className="hidden md:flex items-center gap-3 shrink-0">
+      {/* Progress + rating + review + status/heart */}
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="hidden md:flex items-center gap-3">
         {status === "IN_PROGRESS" && (
           <div
             className="flex items-center gap-1.5 shrink-0"
@@ -201,10 +187,7 @@ export function ListRow({ entry, onUpdate, onRemove }: Props) {
             type="button"
             score={localScore}
             className="shrink-0"
-            onClick={() => {
-              setShowRating(!showRating);
-              setShowStatusPicker(false);
-            }}
+            onClick={() => setShowRating(!showRating)}
           />
 
           {showRating && (
@@ -258,83 +241,16 @@ export function ListRow({ entry, onUpdate, onRemove }: Props) {
         >
           <ReviewBadge active={hasReview} className="shrink-0" />
         </Link>
-
-        <div className="relative flex items-center shrink-0">
-          <button
-            type="button"
-            aria-label={`Status: ${STATUS_LABELS[status] ?? status}. Change status or remove`}
-            aria-expanded={showStatusPicker}
-            aria-haspopup="menu"
-            onClick={() => {
-              setShowStatusPicker((open) => !open);
-              setShowRating(false);
-            }}
-            style={{
-              ...trackerStatusDropdownTriggerStyle,
-              background: showStatusPicker ? "var(--bg-elevated)" : "transparent",
-              border: showStatusPicker ? "1px solid var(--border-bright)" : "1px solid var(--border)",
-              color: "var(--fg-subtle)",
-            }}
-          >
-            <span
-              className="block rounded-full shrink-0"
-              style={{ width: TRACKER_BADGE.dotSize, height: TRACKER_BADGE.dotSize, background: dotColor }}
-            />
-            <ChevronDown
-              size={TRACKER_BADGE.chevronSize}
-              className="shrink-0"
-              style={{
-                transition: "transform 0.15s ease",
-                transform: showStatusPicker ? "rotate(180deg)" : "none",
-              }}
-            />
-          </button>
-
-          {showStatusPicker && (
-            <div
-              className="absolute z-30 py-1"
-              role="menu"
-              style={{
-                right: 0,
-                top: "calc(100% + 4px)",
-                background: "var(--bg-card-high)",
-                border: "1px solid var(--border-bright)",
-                borderRadius: 4,
-                minWidth: 168,
-              }}
-            >
-              {Object.entries(STATUS_LABELS)
-                .filter(([k]) => k !== status)
-                .map(([k, label]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    role="menuitem"
-                    className="w-full flex items-center gap-2 px-3 py-1.5 transition-colors"
-                    style={menuItemStyle}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-elevated)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-                    onClick={() => void handleStatusChange(k)}
-                  >
-                    <span className="block rounded-full shrink-0" style={{ width: 6, height: 6, background: STATUS_COLORS[k] }} />
-                    {label.toUpperCase()}
-                  </button>
-                ))}
-              <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
-              <button
-                type="button"
-                role="menuitem"
-                className="w-full flex items-center gap-2 px-3 py-1.5 transition-colors"
-                style={{ ...menuItemStyle, color: "#e61e2a" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-elevated)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-                onClick={() => void handleRemove()}
-              >
-                REMOVE FROM TRACKER
-              </button>
-            </div>
-          )}
         </div>
+
+        <AnimeCardActions
+          mediaId={animeId}
+          mediaType={mediaType}
+          iconSize="sm"
+          opaque
+          listLayout
+          {...archiveCallbacks}
+        />
       </div>
     </div>
   );
@@ -357,15 +273,4 @@ const btnStyle: React.CSSProperties = {
   margin: 0,
   appearance: "none",
   WebkitAppearance: "none",
-};
-
-const menuItemStyle: React.CSSProperties = {
-  fontFamily: "var(--font-space-mono)",
-  fontSize: 10,
-  color: "var(--fg-muted)",
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  textAlign: "left",
-  letterSpacing: "0.04em",
 };

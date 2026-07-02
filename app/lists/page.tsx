@@ -14,7 +14,11 @@ async function getLists(type: string, userId: string | null): Promise<ListCardDa
       ? { isOfficial: true }
       : type === "community"
         ? { isOfficial: false, isPublic: true }
-        : { isPublic: true };
+        : type === "mine"
+          ? userId
+            ? { userId }
+            : { id: "none" }
+          : { isOfficial: true };
 
   const lists = await prisma.list.findMany({
     where,
@@ -70,17 +74,17 @@ async function getLists(type: string, userId: string | null): Promise<ListCardDa
 export default async function ListsPage({ searchParams }: PageProps) {
   const session = await auth();
   const { type: typeParam } = await searchParams;
-  const type = ["all", "official", "community"].includes(typeParam ?? "")
-    ? (typeParam ?? "all")
-    : "all";
+  const type = ["official", "community", "mine"].includes(typeParam ?? "")
+    ? (typeParam ?? "official")
+    : "official";
 
   const lists = await getLists(type, session?.user?.id ?? null);
   const isLoggedIn = !!session?.user?.id;
 
   const TABS = [
-    { value: "all", label: "ALL" },
     { value: "official", label: "OFFICIAL" },
     { value: "community", label: "COMMUNITY" },
+    ...(isLoggedIn ? [{ value: "mine", label: "MINE" }] : []),
   ];
 
   return (
@@ -158,25 +162,6 @@ export default async function ListsPage({ searchParams }: PageProps) {
             </Link>
           );
         })}
-        {isLoggedIn && (
-          <Link
-            href="/profile?tab=lists"
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 10,
-              letterSpacing: "0.08em",
-              padding: "10px 14px",
-              color: "var(--fg-muted)",
-              borderBottom: "1.5px solid transparent",
-              marginBottom: -1,
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-              transition: "color 0.15s ease",
-            }}
-          >
-            MINE
-          </Link>
-        )}
       </div>
 
       {/* Grid */}
@@ -190,7 +175,11 @@ export default async function ListsPage({ searchParams }: PageProps) {
             padding: "48px 0",
           }}
         >
-          No lists yet. Be the first to create one.
+          {type === "mine"
+            ? "You haven't created any lists yet."
+            : type === "official"
+              ? "No official lists yet."
+              : "No community lists yet. Be the first to create one."}
         </p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
