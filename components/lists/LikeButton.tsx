@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Heart } from "lucide-react";
 
 interface Props {
   slug: string;
@@ -58,7 +59,13 @@ export function LikeButton({ slug, initialLiked, initialCount, isLoggedIn }: Pro
         transition: "all 0.15s ease",
       }}
     >
-      {liked ? "♥" : "♡"} {count}
+      <Heart
+        size={10}
+        fill={liked ? "#e8173f" : "none"}
+        stroke={liked ? "#e8173f" : "currentColor"}
+        aria-hidden
+      />
+      {count}
     </button>
   );
 }

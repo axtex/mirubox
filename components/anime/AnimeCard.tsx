@@ -5,7 +5,7 @@ import Image from "next/image";
 import { getDisplayTitle } from "@/lib/anilist";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 import { AnimeCardActions } from "./AnimeCardActions";
-import { useArchive, STATUS_COLORS, STATUS_LABELS, isTrackedEntry } from "@/lib/archive-context";
+import { useArchive, STATUS_COLORS, isTrackedEntry } from "@/lib/archive-context";
 
 interface AnimeCardProps {
   anime: AnimeCardType;
@@ -35,7 +35,6 @@ export function AnimeCard({
   const isTracked = isTrackedEntry(entry);
   const status = isTracked ? entry!.status : null;
   const sc = status ? (STATUS_COLORS[status] ?? null) : null;
-  const statusLabel = status ? (STATUS_LABELS[status] ?? null) : null;
 
   const title = getDisplayTitle(anime.title);
   const score = anime.averageScore;
@@ -96,29 +95,7 @@ export function AnimeCard({
           </div>
         )}
 
-        {/* Status badge — top left, always visible when archived */}
-        {statusLabel && sc && (
-          <div
-            className="absolute z-[2] pointer-events-none"
-            style={{
-              top: 6,
-              left: 6,
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 8,
-              fontWeight: 500,
-              color: sc.color,
-              background: sc.bg,
-              border: `1px solid ${sc.border}`,
-              borderRadius: 2,
-              padding: "1px 5px",
-              letterSpacing: "0.06em",
-            }}
-          >
-            {statusLabel}
-          </div>
-        )}
-
-        {/* Desktop hover bar — gradient + 3 icon buttons, bottom of poster */}
+        {/* Desktop hover bar — gradient + action buttons, bottom of poster */}
         {/* pointer-events-none on the bar so clicks on the gradient fall through to the Link */}
         <div
           className="absolute bottom-0 left-0 right-0 z-[3] opacity-0 pointer-events-none

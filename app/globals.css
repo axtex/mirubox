@@ -213,6 +213,118 @@ h1, h2, h3 {
   color: var(--fg);
 }
 
+.detail-sidebar-genre-link {
+  display: block;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: #9e9ea8;
+  padding: 3px 0;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.detail-sidebar-genre-link:hover {
+  color: #e4e1e6;
+}
+
+.detail-sidebar-section-title {
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+  margin-bottom: 6px;
+}
+
+.detail-sidebar-block {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 10px 12px;
+}
+
+.detail-sidebar-block--airing {
+  background: var(--primary-dim);
+  border-color: rgba(232, 23, 63, 0.22);
+}
+
+.detail-sidebar-airing-copy {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.detail-sidebar-airing-ep {
+  font-weight: 600;
+  color: var(--fg);
+  flex-shrink: 0;
+}
+
+.detail-sidebar-airing-timing {
+  color: var(--primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail-sidebar-block--links {
+  padding: 0;
+  overflow: hidden;
+}
+
+.detail-sidebar-watch-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.detail-sidebar-watch-link + .detail-sidebar-watch-link {
+  border-top: 1px solid var(--bg-surface);
+}
+
+.detail-sidebar-watch-link:hover {
+  background: var(--bg-surface);
+  color: var(--fg);
+}
+
+.detail-sidebar-watch-link-icon {
+  flex-shrink: 0;
+  opacity: 0.45;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.detail-sidebar-watch-link:hover .detail-sidebar-watch-link-icon {
+  opacity: 0.9;
+  transform: translate(1px, -1px);
+}
+
+.detail-sidebar-empty {
+  margin: 0;
+  padding: 10px 12px;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--fg-subtle);
+}
+
 /* ── Subtle nav/footer links ────────────────────────────────────────────── */
 
 .link-subtle {

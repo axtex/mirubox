@@ -7,7 +7,7 @@ const NAV_LINKS = [
   { href: "/anime",     label: "ANIME",     active: (p: string) => p.startsWith("/anime") },
   { href: "/manga",     label: "MANGA",     active: (p: string) => p.startsWith("/manga") },
   { href: "/archive",   label: "TRACKER",   active: (p: string) => p.startsWith("/archive") },
-  { href: "/community", label: "COMMUNITY", active: (p: string) => p.startsWith("/community") },
+  { href: "/community", label: "COMMUNITY", active: (p: string) => p.startsWith("/community") || p.startsWith("/lists") },
 ];
 
 export function NavbarLinks(): React.JSX.Element {

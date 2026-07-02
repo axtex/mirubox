@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Plus } from "lucide-react";
+import { Heart, Plus } from "lucide-react";
 
 export interface ListCardData {
   id: string;
@@ -147,7 +147,10 @@ export function ListCard({ list }: { list: ListCardData }) {
             <span>by {list.username}</span>
           )}
           <span>{list.entryCount} titles</span>
-          <span>♥ {list.likeCount}</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+            <Heart size={10} fill="none" stroke="currentColor" aria-hidden />
+            {list.likeCount}
+          </span>
         </div>
       </div>
     </Link>

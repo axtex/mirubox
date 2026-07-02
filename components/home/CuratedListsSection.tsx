@@ -57,7 +57,7 @@ export async function CuratedListsSection() {
         <div className="section-header-row">
           <h2 className="text-headline-md font-display uppercase">CURATED LISTS</h2>
           <Link
-            href="/lists?type=official"
+            href="/community?tab=lists&type=official"
             className="text-label"
             style={{ color: "var(--fg-subtle)", textDecoration: "none" }}
           >

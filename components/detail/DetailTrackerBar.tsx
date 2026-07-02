@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { STATUS_COLORS } from "@/lib/archive-context";
+import { AddToListButton } from "@/components/lists/AddToListModal";
 
 const STATUSES = [
   { value: "IN_PROGRESS", label: "IN PROGRESS" },
@@ -19,7 +20,17 @@ interface DetailTrackerBarProps {
   initialProgress: number;
   initialTotal: number | null;
   initialRating: number | null;
+  initialReview: { content: string; containsSpoilers: boolean } | null;
+  isLoggedIn: boolean;
 }
+
+const SECTION_LABEL: React.CSSProperties = {
+  fontFamily: "var(--font-space-mono)",
+  fontSize: 9,
+  letterSpacing: "0.1em",
+  color: "#5a5a65",
+  marginBottom: 6,
+};
 
 export function DetailTrackerBar({
   mediaId,
@@ -28,13 +39,20 @@ export function DetailTrackerBar({
   initialProgress,
   initialTotal,
   initialRating,
+  initialReview,
+  isLoggedIn,
 }: DetailTrackerBarProps) {
-  const [status, setStatus] = useState(initialStatus);
+  const [status] = useState(initialStatus);
   const [progress, setProgress] = useState(initialProgress);
   const [total] = useState(initialTotal);
   const [rating, setRating] = useState(initialRating);
+  const [reviewContent, setReviewContent] = useState(initialReview?.content ?? "");
+  const [containsSpoilers, setContainsSpoilers] = useState(initialReview?.containsSpoilers ?? false);
+  const [savedReview, setSavedReview] = useState(initialReview);
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   const unit = mediaType === "MANGA" ? "CH" : "EP";
@@ -59,7 +77,7 @@ export function DetailTrackerBar({
     return () => document.removeEventListener("mousedown", onOutsideClick);
   }, [expanded]);
 
-  async function patchWatchlist(updates: { status?: string; progress?: number; rating?: number | null }) {
+  async function patchWatchlist(updates: { progress?: number; rating?: number | null }) {
     setSaving(true);
     try {
       if (updates.rating !== undefined) {
@@ -82,7 +100,7 @@ export function DetailTrackerBar({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             animeId: mediaId,
-            status: updates.status ?? status,
+            status,
             progress: updates.progress ?? progress,
             mediaType,
           }),
@@ -91,11 +109,6 @@ export function DetailTrackerBar({
     } finally {
       setSaving(false);
     }
-  }
-
-  async function handleStatus(newStatus: string) {
-    setStatus(newStatus);
-    await patchWatchlist({ status: newStatus });
   }
 
   async function handleProgress(delta: number) {
@@ -109,6 +122,58 @@ export function DetailTrackerBar({
     const next = rating === score ? null : score;
     setRating(next);
     await patchWatchlist({ rating: next });
+  }
+
+  const trimmedReview = reviewContent.trim();
+  const hasReview = savedReview !== null;
+  const hasReviewChanges =
+    trimmedReview !== (savedReview?.content ?? "") ||
+    containsSpoilers !== (savedReview?.containsSpoilers ?? false);
+
+  async function handleReviewSave() {
+    if (!trimmedReview || reviewSaving) return;
+
+    setReviewSaving(true);
+    setReviewError(null);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ animeId: mediaId, content: trimmedReview, containsSpoilers }),
+      });
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        setReviewError(data.error ?? "Failed to save review");
+        return;
+      }
+      setSavedReview({ content: trimmedReview, containsSpoilers });
+    } finally {
+      setReviewSaving(false);
+    }
+  }
+
+  async function handleReviewDelete() {
+    if (reviewSaving || !hasReview) return;
+    if (!window.confirm("Delete your review?")) return;
+
+    setReviewSaving(true);
+    setReviewError(null);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ animeId: mediaId }),
+      });
+      if (!res.ok) {
+        setReviewError("Failed to delete review");
+        return;
+      }
+      setReviewContent("");
+      setContainsSpoilers(false);
+      setSavedReview(null);
+    } finally {
+      setReviewSaving(false);
+    }
   }
 
   const barLabel = total
@@ -181,59 +246,16 @@ export function DetailTrackerBar({
             gap: 12,
           }}
         >
-          {/* Status */}
           <div>
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 9,
-                letterSpacing: "0.1em",
-                color: "#5a5a65",
-                marginBottom: 6,
-              }}
-            >
-              STATUS
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {STATUSES.map(({ value, label }) => {
-                const optSc = STATUS_COLORS[value];
-                const isActive = status === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => void handleStatus(value)}
-                    style={{
-                      fontFamily: "var(--font-space-mono)",
-                      fontSize: 9,
-                      letterSpacing: "0.06em",
-                      padding: "4px 8px",
-                      borderRadius: 2,
-                      border: `1px solid ${isActive ? optSc.border : "#2a2a2d"}`,
-                      background: isActive ? optSc.bg : "transparent",
-                      color: isActive ? optSc.color : "#5a5a65",
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
+            <p style={SECTION_LABEL}>LIST</p>
+            <div className="flex">
+              <AddToListButton mediaId={mediaId} mediaType={mediaType} isLoggedIn={isLoggedIn} />
             </div>
           </div>
 
           {/* Progress counter */}
           <div>
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 9,
-                letterSpacing: "0.1em",
-                color: "#5a5a65",
-                marginBottom: 6,
-              }}
-            >
+            <p style={SECTION_LABEL}>
               {unit === "EP" ? "EPISODES" : "CHAPTERS"}
             </p>
             <div className="flex items-center gap-2">
@@ -295,17 +317,7 @@ export function DetailTrackerBar({
 
           {/* Rating */}
           <div>
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 9,
-                letterSpacing: "0.1em",
-                color: "#5a5a65",
-                marginBottom: 6,
-              }}
-            >
-              YOUR RATING
-            </p>
+            <p style={SECTION_LABEL}>YOUR RATING</p>
             <div className="flex gap-1 flex-wrap">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
                 const active = rating !== null && n <= rating;
@@ -335,6 +347,88 @@ export function DetailTrackerBar({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          <div>
+            <p style={SECTION_LABEL}>YOUR REVIEW</p>
+            <textarea
+              value={reviewContent}
+              onChange={(e) => setReviewContent(e.target.value)}
+              placeholder="Share your thoughts…"
+              rows={3}
+              maxLength={10000}
+              disabled={reviewSaving}
+              className="w-full resize-y outline-none"
+              style={{
+                fontFamily: "var(--font-anybody)",
+                fontSize: 13,
+                lineHeight: 1.5,
+                color: "var(--fg)",
+                background: "var(--bg-surface)",
+                border: "1px solid #2a2a2d",
+                borderRadius: 2,
+                padding: "8px 10px",
+              }}
+            />
+            <label className="mt-2 flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={containsSpoilers}
+                onChange={(e) => setContainsSpoilers(e.target.checked)}
+                disabled={reviewSaving}
+                style={{ accentColor: "var(--primary)" }}
+              />
+              <span style={{ ...SECTION_LABEL, marginBottom: 0 }}>CONTAINS SPOILERS</span>
+            </label>
+            <div className="mt-2 flex items-center justify-end gap-2 flex-wrap">
+              {reviewError && (
+                <span style={{ ...SECTION_LABEL, marginBottom: 0, color: "var(--primary)" }}>
+                  {reviewError}
+                </span>
+              )}
+              {hasReview && (
+                <button
+                  type="button"
+                  onClick={() => void handleReviewDelete()}
+                  disabled={reviewSaving}
+                  style={{
+                    fontFamily: "var(--font-space-mono)",
+                    fontSize: 9,
+                    letterSpacing: "0.06em",
+                    color: "#5a5a65",
+                    background: "none",
+                    border: "none",
+                    cursor: reviewSaving ? "not-allowed" : "pointer",
+                    padding: 0,
+                  }}
+                >
+                  DELETE
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => void handleReviewSave()}
+                disabled={reviewSaving || !trimmedReview || (hasReview && !hasReviewChanges)}
+                style={{
+                  fontFamily: "var(--font-space-mono)",
+                  fontSize: 9,
+                  letterSpacing: "0.06em",
+                  padding: "5px 10px",
+                  borderRadius: 2,
+                  border: "1px solid var(--primary)",
+                  background: hasReview && !hasReviewChanges ? "transparent" : "var(--primary)",
+                  color: hasReview && !hasReviewChanges ? "#5a5a65" : "#fff",
+                  cursor:
+                    reviewSaving || !trimmedReview || (hasReview && !hasReviewChanges)
+                      ? "not-allowed"
+                      : "pointer",
+                  opacity:
+                    reviewSaving || !trimmedReview || (hasReview && !hasReviewChanges) ? 0.5 : 1,
+                }}
+              >
+                {reviewSaving ? "SAVING…" : hasReview ? "UPDATE" : "SAVE"}
+              </button>
             </div>
           </div>
         </div>
