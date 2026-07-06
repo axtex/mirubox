@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   getTrending,
   getSeasonalAnime,
@@ -8,28 +7,14 @@ import {
   formatSeasonLabel,
 } from "@/lib/anilist";
 import { SectionRow } from "@/components/anime/SectionRow";
-import { ForYouSection, recommendationToForYouItem } from "@/components/home/ForYouSection";
+import { DiscoverSection } from "@/components/home/DiscoverSection";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
-import { auth } from "@/auth";
-import { getRecommendations } from "@/lib/recommendations";
 
-const GENRE_CHIPS = [
-  "Action",
-  "Adventure",
-  "Comedy",
-  "Drama",
-  "Fantasy",
-  "Horror",
-  "Romance",
-  "Sci-Fi",
-  "Slice of Life",
-  "Supernatural",
-] as const;
+export const revalidate = 3600;
 
 export default async function AnimeBrowsePage() {
   const { season, year } = getCurrentSeason();
   const { season: nextSeason, year: nextYear } = getNextSeason();
-  const session = await auth();
 
   const [trending, seasonal, upcoming, topRated] = await Promise.all([
     getTrending("ANIME", 1, 20),
@@ -38,53 +23,12 @@ export default async function AnimeBrowsePage() {
     getTopRated("ANIME", 1, 20),
   ]);
 
-  let forYouItems: ReturnType<typeof recommendationToForYouItem>[] = [];
-  let forYouNeedsMoreData = true;
-
-  if (session?.user?.id) {
-    const recs = await getRecommendations(session.user.id, 20);
-    forYouNeedsMoreData = recs.needsMoreData;
-    forYouItems = recs.recommendations.map(recommendationToForYouItem).slice(0, 7);
-  }
-
   const currentSeasonLabel = `CURRENT SEASON — ${formatSeasonLabel(season).toUpperCase()} ${year}`;
   const upcomingSeasonLabel = `UPCOMING — ${formatSeasonLabel(nextSeason).toUpperCase()} ${nextYear}`;
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       <div className="flex flex-col" style={{ gap: 72, paddingTop: 56, paddingBottom: 56 }}>
-
-        {/* 1. BROWSE BY GENRE */}
-        <section>
-          <div className="section-header">
-            <div className="section-header-row">
-              <h2 className="text-headline-md font-display uppercase">BROWSE BY GENRE</h2>
-            </div>
-            <div className="section-underline" />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {GENRE_CHIPS.map((genre) => (
-              <Link
-                key={genre}
-                href={`/search?genre=${encodeURIComponent(genre)}&tab=browse`}
-                className="genre-chip"
-              >
-                {genre}
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* 2. FOR YOU */}
-        {session && (
-          <ForYouSection
-            items={forYouItems}
-            needsMoreData={forYouNeedsMoreData}
-            isLoggedIn={true}
-          />
-        )}
-
-        {/* 3. TRENDING NOW */}
         {trending.media.length > 0 && (
           <SectionRow
             title="TRENDING NOW"
@@ -93,7 +37,6 @@ export default async function AnimeBrowsePage() {
           />
         )}
 
-        {/* 4. CURRENT SEASON */}
         {seasonal.media.length > 0 && (
           <SectionRow
             title={currentSeasonLabel}
@@ -102,7 +45,6 @@ export default async function AnimeBrowsePage() {
           />
         )}
 
-        {/* 5. UPCOMING SEASON */}
         {upcoming.media.length > 0 && (
           <SectionRow
             title={upcomingSeasonLabel}
@@ -111,7 +53,6 @@ export default async function AnimeBrowsePage() {
           />
         )}
 
-        {/* 6. ALL TIME */}
         {topRated.media.length > 0 && (
           <SectionRow
             title="ALL TIME"
@@ -120,9 +61,9 @@ export default async function AnimeBrowsePage() {
           />
         )}
 
-        {/* 7. CURATED LISTS */}
-        <CuratedListsSection />
+        <DiscoverSection type="ANIME" maxItems={24} />
 
+        <CuratedListsSection />
       </div>
     </div>
   );

@@ -8,13 +8,10 @@ import {
   formatSeasonLabel,
 } from "@/lib/anilist";
 import { SectionRow } from "@/components/anime/SectionRow";
-import { ForYouSection, recommendationToForYouItem } from "@/components/home/ForYouSection";
 import { DiscoverSection } from "@/components/home/DiscoverSection";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
 import { WeeklyDigestSection } from "@/components/home/WeeklyDigestSection";
-import { auth } from "@/auth";
-import { getRecommendations } from "@/lib/recommendations";
 import { takeUnique } from "@/lib/homepage";
 
 const HERO_COUNT = 8;
@@ -22,7 +19,6 @@ const HERO_COUNT = 8;
 export default async function HomePage() {
   const { season, year } = getCurrentSeason();
   const { season: nextSeason, year: nextYear } = getNextSeason();
-  const session = await auth();
 
   const [trending, seasonal, upcoming, manga] = await Promise.all([
     getTrending("ANIME", 1, 28),
@@ -44,21 +40,6 @@ export default async function HomePage() {
     };
   });
 
-  let forYouItems: ReturnType<typeof recommendationToForYouItem>[] = [];
-  let forYouNeedsMoreData = true;
-
-  if (session?.user?.id) {
-    const recs = await getRecommendations(session.user.id, 20);
-    forYouNeedsMoreData = recs.needsMoreData;
-    forYouItems = [];
-    for (const item of recs.recommendations.map(recommendationToForYouItem)) {
-      if (shownIds.has(item.anime.id)) continue;
-      forYouItems.push(item);
-      shownIds.add(item.anime.id);
-      if (forYouItems.length >= 7) break;
-    }
-  }
-
   const trendingRow = takeUnique(trending.media.slice(HERO_COUNT), shownIds);
   const seasonalRow = takeUnique(seasonal.media, shownIds);
   const upcomingRow = takeUnique(upcoming.media, shownIds);
@@ -71,15 +52,7 @@ export default async function HomePage() {
       {heroSlides.length > 0 && <HeroCarousel slides={heroSlides} />}
 
       <div className="flex flex-col" style={{ gap: 72, paddingTop: 56, paddingBottom: 56 }}>
-        {session ? (
-          <ForYouSection
-            items={forYouItems}
-            needsMoreData={forYouNeedsMoreData}
-            isLoggedIn={true}
-          />
-        ) : (
-          <DiscoverSection />
-        )}
+        <DiscoverSection type="ANIME" maxItems={24} />
 
         {trendingRow.length > 0 && (
           <SectionRow

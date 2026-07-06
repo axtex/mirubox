@@ -126,7 +126,7 @@ export function AnimeCard({
 
       {/* ── Title + meta ── */}
       {!hideTitle && (
-        <div style={{ padding: "6px 8px 8px" }}>
+        <div className="anime-card-foot" style={{ padding: "6px 8px 8px" }}>
           <p
             style={{
               fontSize: 12,

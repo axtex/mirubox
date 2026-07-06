@@ -29,6 +29,8 @@
   --transition: 0.2s ease;
   --page-max-width: 1200px;
   --page-padding-x: 1rem;
+  --section-row-cols: 7;
+  --section-row-gap: 12px;
 }
 
 @media (min-width: 768px) {
@@ -545,7 +547,7 @@ span.detail-sidebar-genre-link:hover {
 
 .section-cards {
   display: flex;
-  gap: 12px;
+  gap: var(--section-row-gap);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
@@ -565,8 +567,8 @@ span.detail-sidebar-genre-link:hover {
 @media (min-width: 768px) {
   .section-cards {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(var(--section-row-cols), minmax(0, 1fr));
+    gap: var(--section-row-gap);
     overflow: visible;
     padding-bottom: 0;
   }
@@ -582,15 +584,62 @@ span.detail-sidebar-genre-link:hover {
 }
 
 @media (min-width: 768px) {
-  .discover-ai-cell {
+  .section-cards .discover-ai-cell {
     flex-shrink: unset;
     width: 100%;
   }
 
-  .discover-ai-cell > .anime-card {
+  .section-cards .discover-ai-cell > .anime-card {
     width: 100%;
     max-width: none;
   }
+}
+
+.discover-scroll-track {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.discover-scroll-track::-webkit-scrollbar {
+  display: none;
+}
+
+.discover-scroll-track .discover-ai-cell {
+  display: flex;
+  flex-direction: column;
+  width: var(--discover-card-width, 140px);
+  flex-shrink: 0;
+}
+
+.discover-vibe-label {
+  flex-shrink: 0;
+  height: 11px;
+  line-height: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-space-mono);
+  font-size: 9px;
+  color: var(--fg-subtle);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+.discover-scroll-track .discover-ai-cell > .anime-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  max-width: none;
+}
+
+.discover-scroll-track .discover-ai-cell .anime-card-foot {
+  min-height: 58px;
+  box-sizing: border-box;
 }
 
 /* ── Horizontal scroll carousel ─────────────────────────────────────────── */

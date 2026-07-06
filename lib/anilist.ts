@@ -7,6 +7,34 @@ import type {
 
 const client = new GraphQLClient("https://graphql.anilist.co");
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRateLimitError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes("429") || msg.includes("Too Many");
+}
+
+async function anilistRequest<T>(
+  query: string,
+  variables?: Record<string, unknown>,
+): Promise<T> {
+  const maxAttempts = 4;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await client.request<T>(query, variables);
+    } catch (err) {
+      if (isRateLimitError(err) && attempt < maxAttempts - 1) {
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("AniList request failed");
+}
+
 const ANIME_CARD_FRAGMENT = gql`
   fragment AnimeCard on Media {
     id
@@ -54,7 +82,7 @@ export async function getTrending(
       }
     }
   `;
-  const data = await client.request<{ Page: MediaPage }>(query, {
+  const data = await anilistRequest<{ Page: MediaPage }>(query, {
     type,
     page,
     perPage,
@@ -83,7 +111,7 @@ export async function getPopular(
       }
     }
   `;
-  const data = await client.request<{ Page: MediaPage }>(query, {
+  const data = await anilistRequest<{ Page: MediaPage }>(query, {
     type,
     page,
     perPage,
@@ -124,7 +152,7 @@ export async function getSeasonalAnime(
       }
     }
   `;
-  const data = await client.request<{ Page: MediaPage }>(query, {
+  const data = await anilistRequest<{ Page: MediaPage }>(query, {
     season,
     year,
     page,
@@ -186,7 +214,7 @@ export async function searchMedia(
       }
     }
   `;
-  const data = await client.request<{ Page: MediaPage }>(gqlQuery, {
+  const data = await anilistRequest<{ Page: MediaPage }>(gqlQuery, {
     search: query || undefined,
     type,
     genres: filters.genres?.length ? filters.genres : undefined,
@@ -199,6 +227,36 @@ export async function searchMedia(
     perPage,
   });
   return data.Page;
+}
+
+const MEDIA_CARD_BATCH_SIZE = 50;
+
+export async function getMediaCardsByIds(ids: number[]): Promise<AnimeCard[]> {
+  if (ids.length === 0) return [];
+
+  const unique = [...new Set(ids)];
+  const results: AnimeCard[] = [];
+  const query = gql`
+    ${ANIME_CARD_FRAGMENT}
+    query GetMediaCards($id_in: [Int], $perPage: Int) {
+      Page(perPage: $perPage) {
+        media(id_in: $id_in, isAdult: false) {
+          ...AnimeCard
+        }
+      }
+    }
+  `;
+
+  for (let i = 0; i < unique.length; i += MEDIA_CARD_BATCH_SIZE) {
+    const chunk = unique.slice(i, i + MEDIA_CARD_BATCH_SIZE);
+    const data = await anilistRequest<{ Page: { media: AnimeCard[] } }>(query, {
+      id_in: chunk,
+      perPage: chunk.length,
+    });
+    results.push(...data.Page.media);
+  }
+
+  return results;
 }
 
 export async function getMediaById(id: number): Promise<AnimeDetail | null> {
@@ -291,7 +349,7 @@ export async function getMediaById(id: number): Promise<AnimeDetail | null> {
     }
   `;
   try {
-    const data = await client.request<{ Media: AnimeDetail | null }>(query, {
+    const data = await anilistRequest<{ Media: AnimeDetail | null }>(query, {
       id,
     });
     return data.Media;
@@ -321,7 +379,7 @@ export async function getTopRated(
       }
     }
   `;
-  const data = await client.request<{ Page: MediaPage }>(query, {
+  const data = await anilistRequest<{ Page: MediaPage }>(query, {
     type,
     page,
     perPage,

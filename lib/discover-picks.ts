@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { getMediaById } from "@/lib/anilist";
+import { getMediaCardsByIds } from "@/lib/anilist";
+import { cacheAnimeCard } from "@/lib/anilist-cache";
 import type { AnimeCard } from "@/types/anilist";
 
 export interface GenreTile {
@@ -9,9 +10,16 @@ export interface GenreTile {
   href: string;
 }
 
-export interface PoolData {
+export type DiscoverMediaType = "ANIME" | "MANGA";
+
+export interface DiscoverPick {
   label: string;
-  anime: AnimeCard[];
+  anime: AnimeCard;
+}
+
+interface DiscoverEntry {
+  label: string;
+  id: number;
 }
 
 const GENRE_POOL: GenreTile[] = [
@@ -23,14 +31,75 @@ const GENRE_POOL: GenreTile[] = [
   { genre: "Thriller",      descriptor: "Paranoia, twists, can't look away",tint: "rgba(60,80,100,0.15)",   href: "/search?genre=Thriller&mode=browse"      },
 ];
 
-const ANIME_POOLS: Record<string, { label: string; ids: number[] }> = {
-  A: { label: "cozy witches",      ids: [431, 21858, 112609]  },
-  B: { label: "killer conscience", ids: [101348, 101517, 20755] },
-  C: { label: "found family",      ids: [5114, 154587, 106625] },
-  D: { label: "slow burn",         ids: [21827, 100189, 20954] },
-  E: { label: "brain rot art",     ids: [7088, 20349, 21708]  },
-  F: { label: "legendary s1s",     ids: [1, 9253, 16498]      },
-  G: { label: "quiet devastation", ids: [30, 23273, 339]      },
+const ANIME_DISCOVER: DiscoverEntry[] = [
+  { label: "cozy witches", id: 431 },
+  { label: "rural enchantment", id: 21858 },
+  { label: "moonlit spells", id: 112609 },
+  { label: "killer conscience", id: 101348 },
+  { label: "moral rot", id: 101517 },
+  { label: "guilty minds", id: 20755 },
+  { label: "found family", id: 5114 },
+  { label: "borrowed bonds", id: 154587 },
+  { label: "home you choose", id: 106625 },
+  { label: "slow burn", id: 21827 },
+  { label: "aching patience", id: 100189 },
+  { label: "lingered glances", id: 20954 },
+  { label: "brain rot art", id: 7088 },
+  { label: "unhinged visuals", id: 20349 },
+  { label: "fever dream frames", id: 21708 },
+  { label: "legendary s1s", id: 1 },
+  { label: "perfect premieres", id: 9253 },
+  { label: "season one gods", id: 16498 },
+  { label: "quiet devastation", id: 30 },
+  { label: "soft ruin", id: 23273 },
+  { label: "gentle grief", id: 339 },
+  { label: "modern classics", id: 170068 },
+  { label: "current canon", id: 113415 },
+  { label: "new essentials", id: 101922 },
+  { label: "sports highs", id: 20464 },
+  { label: "court drama", id: 20665 },
+  { label: "game day rush", id: 11061 },
+  { label: "atmospheric", id: 21366 },
+  { label: "mood pieces", id: 457 },
+  { label: "still air", id: 4181 },
+];
+
+const MANGA_DISCOVER: DiscoverEntry[] = [
+  { label: "epic journeys", id: 53390 },
+  { label: "long road", id: 30013 },
+  { label: "odyssey ink", id: 87699 },
+  { label: "killer conscience", id: 30003 },
+  { label: "moral descent", id: 46470 },
+  { label: "shadow guilt", id: 30072 },
+  { label: "found family", id: 85877 },
+  { label: "messy table", id: 108556 },
+  { label: "chosen crew", id: 87789 },
+  { label: "slow burn", id: 30022 },
+  { label: "quiet yearning", id: 30002 },
+  { label: "patient hearts", id: 34437 },
+  { label: "brain rot art", id: 105778 },
+  { label: "visceral lines", id: 114535 },
+  { label: "chaotic panels", id: 137281 },
+  { label: "legendary runs", id: 30051 },
+  { label: "generational runs", id: 657 },
+  { label: "peak volumes", id: 30038 },
+  { label: "quiet devastation", id: 30021 },
+  { label: "hollow ache", id: 104 },
+  { label: "muted pain", id: 30059 },
+  { label: "shonen staples", id: 30016 },
+  { label: "jump legends", id: 30011 },
+  { label: "battle manga", id: 30015 },
+  { label: "romance peaks", id: 105152 },
+  { label: "heart spikes", id: 115113 },
+  { label: "love arcs", id: 104538 },
+  { label: "isekai escape", id: 85934 },
+  { label: "portal life", id: 86243 },
+  { label: "other world", id: 101322 },
+];
+
+const DISCOVER_ENTRIES: Record<DiscoverMediaType, DiscoverEntry[]> = {
+  ANIME: ANIME_DISCOVER,
+  MANGA: MANGA_DISCOVER,
 };
 
 export function getDaySeededGenres(): GenreTile[] {
@@ -75,66 +144,44 @@ function dbRowToAnimeCard(row: {
   };
 }
 
-async function fetchOne(id: number): Promise<AnimeCard | null> {
+async function loadMediaMap(
+  ids: number[],
+  type: DiscoverMediaType,
+): Promise<Map<number, AnimeCard>> {
+  const map = new Map<number, AnimeCard>();
+
   try {
-    const cached = await prisma.anime.findUnique({ where: { id } });
-    if (cached) return dbRowToAnimeCard(cached);
+    const rows = await prisma.anime.findMany({ where: { id: { in: ids } } });
+    for (const row of rows) {
+      if (row.type === type) map.set(row.id, dbRowToAnimeCard(row));
+    }
   } catch { /* DB unavailable */ }
 
-  const media = await getMediaById(id);
-  if (!media) return null;
+  const missing = ids.filter((id) => !map.has(id));
+  if (missing.length === 0) return map;
 
-  try {
-    await prisma.anime.upsert({
-      where: { id },
-      create: {
-        id: media.id,
-        title: media.title.romaji ?? media.title.english ?? "Unknown",
-        titleEnglish: media.title.english ?? null,
-        titleNative: media.title.native ?? null,
-        description: media.description ?? null,
-        coverImage: media.coverImage.extraLarge ?? media.coverImage.large ?? null,
-        bannerImage: media.bannerImage ?? null,
-        genres: media.genres ?? [],
-        episodes: media.episodes ?? null,
-        chapters: media.chapters ?? null,
-        volumes: media.volumes ?? null,
-        status: media.status ?? null,
-        season: media.season ?? null,
-        seasonYear: media.seasonYear ?? null,
-        averageScore: media.averageScore ?? null,
-        popularity: media.popularity ?? null,
-        format: media.format ?? null,
-        type: media.type ?? "ANIME",
-        cachedAt: new Date(),
-      },
-      update: {
-        title: media.title.romaji ?? media.title.english ?? "Unknown",
-        titleEnglish: media.title.english ?? null,
-        coverImage: media.coverImage.extraLarge ?? media.coverImage.large ?? null,
-        bannerImage: media.bannerImage ?? null,
-        genres: media.genres ?? [],
-        averageScore: media.averageScore ?? null,
-        cachedAt: new Date(),
-      },
-    });
-  } catch { /* Silently skip */ }
+  const fetched = await getMediaCardsByIds(missing);
+  for (const card of fetched) {
+    if (card.type !== type) continue;
+    map.set(card.id, card);
+    await cacheAnimeCard(card);
+  }
 
-  return media;
+  return map;
 }
 
-export async function fetchAllPools(): Promise<Record<string, PoolData>> {
-  const out: Record<string, PoolData> = {};
+export async function fetchDiscoverPicks(
+  type: DiscoverMediaType = "ANIME",
+): Promise<DiscoverPick[]> {
+  const entries = DISCOVER_ENTRIES[type];
+  const allIds = [...new Set(entries.map((entry) => entry.id))];
+  const mediaMap = await loadMediaMap(allIds, type);
 
-  await Promise.all(
-    Object.entries(ANIME_POOLS).map(async ([key, pool]) => {
-      const results = await Promise.all(pool.ids.map(fetchOne));
-      const valid = results.filter((r): r is AnimeCard => r !== null);
-      if (valid.length >= 1) {
-        out[key] = { label: pool.label, anime: valid };
-      }
-    })
-  );
+  const picks: DiscoverPick[] = [];
+  for (const entry of entries) {
+    const anime = mediaMap.get(entry.id);
+    if (anime) picks.push({ label: entry.label, anime });
+  }
 
-  return out;
+  return picks;
 }
