@@ -204,7 +204,7 @@ export const STATUS_COLORS: Record<string, StatusColorDef> = {
 };
 
 export const STATUS_LABELS: Record<string, string> = {
-  IN_PROGRESS: "WATCHING",
+  IN_PROGRESS: "IN PROGRESS",
   COMPLETED:   "COMPLETED",
   PLANNED:     "PLANNED",
   DROPPED:     "DROPPED",

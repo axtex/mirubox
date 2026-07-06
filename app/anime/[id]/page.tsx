@@ -8,10 +8,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { DescriptionToggle } from "@/components/anime/detail/DescriptionToggle";
 import { AnimeCard } from "@/components/anime/AnimeCard";
-import { AddToListButton } from "@/components/lists/AddToListModal";
-import { HeroArchiveButton } from "@/components/detail/HeroArchiveButton";
 import { DetailHeroScore } from "@/components/detail/DetailHeroScore";
-import { DetailTrackerBar } from "@/components/detail/DetailTrackerBar";
 import { DetailSidebar } from "@/components/detail/DetailSidebar";
 import { AnimeCharacterSection } from "@/components/detail/AnimeCharacterSection";
 import { AnimeVASection } from "@/components/detail/AnimeVASection";
@@ -79,7 +76,6 @@ export default async function AnimeDetailPage({ params }: PageProps) {
   const nativeTitle =
     media.title.native && media.title.native !== title ? media.title.native : null;
 
-  let userWatchlistStatus: string | null = null;
   let userProgress = 0;
   let userRating: number | null = null;
   let userReview: { content: string; containsSpoilers: boolean } | null = null;
@@ -89,7 +85,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
       prisma.watchlistEntry
         .findUnique({
           where: { userId_animeId: { userId: session.user.id, animeId: numId } },
-          select: { status: true, progress: true },
+          select: { progress: true },
         })
         .catch(() => null),
       prisma.rating
@@ -105,7 +101,6 @@ export default async function AnimeDetailPage({ params }: PageProps) {
         })
         .catch(() => null),
     ]);
-    userWatchlistStatus = entry?.status ?? null;
     userProgress = entry?.progress ?? 0;
     userRating = rating?.score ?? null;
     userReview = review;
@@ -160,8 +155,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
     { label: "SCORE",    value: media.averageScore !== null ? (media.averageScore / 10).toFixed(1) : null },
   ];
 
-  const showGenresInSidebar = media.genres.length > 5;
-  const heroGenres = showGenresInSidebar ? media.genres.slice(0, 4) : media.genres;
+  const heroGenres = media.genres.slice(0, 5);
 
   const SECTION_TITLE: CSSProperties = {
     fontFamily: "var(--font-space-mono)",
@@ -175,9 +169,16 @@ export default async function AnimeDetailPage({ params }: PageProps) {
 
   const SIDEBAR = (
     <DetailSidebar
+      tracker={{
+        mediaId: numId,
+        mediaType: "ANIME",
+        title,
+        total: media.episodes ?? null,
+        initialProgress: userProgress,
+        initialRating: userRating,
+        initialReview: userReview,
+      }}
       details={sidebarDetails}
-      genres={media.genres}
-      genreSearchPrefix="/search?genre="
       watchSection={{
         title: "WHERE TO WATCH",
         links: streamingLinks,
@@ -225,7 +226,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
           className="hidden md:flex absolute flex-col"
           style={{
             width: 160,
-            top: 128,
+            top: 166,
             left: "max(calc((100vw - var(--page-max-width)) / 2 + var(--page-padding-x)), var(--page-padding-x))",
             gap: 10,
             zIndex: 20,
@@ -251,7 +252,6 @@ export default async function AnimeDetailPage({ params }: PageProps) {
               </div>
             )}
           </div>
-          <HeroArchiveButton mediaId={numId} mediaType="ANIME" />
         </div>
 
         {/* HERO CONTENT */}
@@ -277,10 +277,6 @@ export default async function AnimeDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            <div className="w-full max-w-[160px] mb-4">
-              <HeroArchiveButton mediaId={numId} mediaType="ANIME" />
-            </div>
-
             <div className="flex items-center justify-center gap-2 flex-wrap mb-1">
               <h1 style={{ fontFamily: "var(--font-anybody)", fontWeight: 600, fontSize: 18, lineHeight: 1.2, color: "#e4e1e6" }}>
                 {title}
@@ -298,11 +294,8 @@ export default async function AnimeDetailPage({ params }: PageProps) {
             {heroGenres.length > 0 && (
               <div className="flex flex-wrap justify-center gap-2 mb-4">
                 {heroGenres.map((g) => (
-                  <Link key={g} href={`/search?genre=${encodeURIComponent(g)}`} className="genre-chip">{g}</Link>
+                  <span key={g} className="genre-chip">{g}</span>
                 ))}
-                {showGenresInSidebar && (
-                  <a href="#sidebar-genres" className="genre-chip">+{media.genres.length - 4} MORE →</a>
-                )}
               </div>
             )}
 
@@ -327,11 +320,8 @@ export default async function AnimeDetailPage({ params }: PageProps) {
             {heroGenres.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {heroGenres.map((g) => (
-                  <Link key={g} href={`/search?genre=${encodeURIComponent(g)}`} className="genre-chip">{g}</Link>
+                  <span key={g} className="genre-chip">{g}</span>
                 ))}
-                {showGenresInSidebar && (
-                  <a href="#sidebar-genres" className="genre-chip">+{media.genres.length - 4} MORE →</a>
-                )}
               </div>
             )}
 
@@ -346,21 +336,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
           {/* MAIN COLUMN */}
           <div className="flex flex-col gap-5 min-w-0" style={{ flex: 1 }}>
 
-            {/* 1. TRACKER STATUS BAR */}
-            {session?.user && (
-              <DetailTrackerBar
-                mediaId={numId}
-                mediaType="ANIME"
-                initialStatus={userWatchlistStatus ?? "PLANNED"}
-                initialProgress={userProgress}
-                initialTotal={media.episodes ?? null}
-                initialRating={userRating}
-                initialReview={userReview}
-                isLoggedIn={!!session}
-              />
-            )}
-
-            {/* 2. SYNOPSIS */}
+            {/* 1. SYNOPSIS */}
             {media.description && (
               <section>
                 <p style={SECTION_TITLE}>SYNOPSIS</p>
@@ -368,15 +344,15 @@ export default async function AnimeDetailPage({ params }: PageProps) {
               </section>
             )}
 
-            {/* 3. CHARACTERS */}
+            {/* 2. CHARACTERS */}
             {sortedChars.length > 0 && (
               <AnimeCharacterSection chars={sortedChars} />
             )}
 
-            {/* 4. VOICE ACTORS */}
+            {/* 3. VOICE ACTORS */}
             <AnimeVASection chars={sortedChars} />
 
-            {/* 5. RELATED */}
+            {/* 4. RELATED */}
             {filteredRelations.length > 0 && (
               <section>
                 <p style={SECTION_TITLE}>RELATED</p>
@@ -388,7 +364,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
               </section>
             )}
 
-            {/* 6. RECOMMENDATIONS */}
+            {/* 5. RECOMMENDATIONS */}
             {recs.length > 0 && (
               <section>
                 <p style={SECTION_TITLE}>YOU MIGHT ALSO LIKE</p>

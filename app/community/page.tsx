@@ -5,7 +5,7 @@ import { getLists } from "@/lib/list-queries";
 import { ListCard, CreateListCard } from "@/components/lists/ListCard";
 
 export const metadata: Metadata = {
-  title: "Community — mirubox",
+  title: "Lists — mirubox",
 };
 
 const TABS = [
@@ -17,19 +17,10 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]["value"];
 
-const STATIC_COPY: Record<Exclude<Tab, "lists">, { title: string; body: string }> = {
-  news: {
-    title: "Community news",
-    body: "Announcements, spotlights, and updates from mirubox. Coming soon.",
-  },
-  forum: {
-    title: "Forum",
-    body: "Discuss anime, manga, and lists with the community. Coming soon.",
-  },
-  friends: {
-    title: "Friends",
-    body: "Follow friends, compare taste, and see what they're watching. Coming soon.",
-  },
+const TAB_TITLES: Record<Exclude<Tab, "lists">, string> = {
+  forum: "FORUM",
+  news: "NEWS",
+  friends: "FRIENDS",
 };
 
 interface PageProps {
@@ -48,8 +39,16 @@ export default async function CommunityPage({ searchParams }: PageProps) {
     ? (typeParam ?? "official")
     : "official";
 
+  if (tab !== "lists") {
+    return (
+      <div className="page-container py-8">
+        <h1 className="text-headline-lg font-display uppercase">{TAB_TITLES[tab]}</h1>
+      </div>
+    );
+  }
+
   const isLoggedIn = !!session?.user?.id;
-  const lists = tab === "lists" ? await getLists(listType, session?.user?.id ?? null) : [];
+  const lists = await getLists(listType, session?.user?.id ?? null);
 
   const LIST_TABS = [
     { value: "official", label: "OFFICIAL" },
@@ -59,39 +58,43 @@ export default async function CommunityPage({ searchParams }: PageProps) {
 
   return (
     <div className="page-container py-8">
-      <div style={{ marginBottom: 24 }}>
-        <h1
-          className="text-headline-lg font-display uppercase"
-          style={{ marginBottom: 4 }}
-        >
-          COMMUNITY
-        </h1>
-        <p
-          style={{
-            fontFamily: "var(--font-space-mono)",
-            fontSize: 11,
-            color: "var(--fg-muted)",
-          }}
-        >
-          News, discussion, lists, and friends
-        </p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          marginBottom: 24,
+          gap: 16,
+        }}
+      >
+        <h1 className="text-headline-lg font-display uppercase">LISTS</h1>
+
+        {isLoggedIn && (
+          <Link
+            href="/lists/new"
+            className="btn-primary shrink-0"
+            style={{ fontSize: 10, letterSpacing: "0.08em" }}
+          >
+            + CREATE LIST
+          </Link>
+        )}
       </div>
 
-      <nav
+      <div
         style={{
           display: "flex",
           gap: 6,
-          marginBottom: 32,
+          marginBottom: 24,
           borderBottom: "1px solid var(--border)",
           paddingBottom: 0,
         }}
       >
-        {TABS.map(({ value, label }) => {
-          const active = tab === value;
+        {LIST_TABS.map(({ value, label }) => {
+          const active = listType === value;
           return (
             <Link
               key={value}
-              href={`/community?tab=${value}`}
+              href={`/community?tab=lists&type=${value}`}
               style={{
                 fontFamily: "var(--font-space-mono)",
                 fontSize: 10,
@@ -111,127 +114,30 @@ export default async function CommunityPage({ searchParams }: PageProps) {
             </Link>
           );
         })}
-      </nav>
+      </div>
 
-      {tab === "lists" ? (
-        <>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              marginBottom: 24,
-              gap: 16,
-            }}
-          >
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 11,
-                color: "var(--fg-subtle)",
-                maxWidth: 420,
-                lineHeight: 1.6,
-              }}
-            >
-              Curated by mirubox and the community
-            </p>
-
-            {isLoggedIn && (
-              <Link
-                href="/lists/new"
-                className="btn-primary shrink-0"
-                style={{ fontSize: 10, letterSpacing: "0.08em" }}
-              >
-                + CREATE LIST
-              </Link>
-            )}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 6,
-              marginBottom: 24,
-              borderBottom: "1px solid var(--border)",
-              paddingBottom: 0,
-            }}
-          >
-            {LIST_TABS.map(({ value, label }) => {
-              const active = listType === value;
-              return (
-                <Link
-                  key={value}
-                  href={`/community?tab=lists&type=${value}`}
-                  style={{
-                    fontFamily: "var(--font-space-mono)",
-                    fontSize: 10,
-                    letterSpacing: "0.08em",
-                    padding: "10px 14px",
-                    color: active ? "var(--primary)" : "var(--fg-muted)",
-                    borderBottom: active
-                      ? "1.5px solid var(--primary)"
-                      : "1.5px solid transparent",
-                    marginBottom: -1,
-                    textDecoration: "none",
-                    whiteSpace: "nowrap",
-                    transition: "color 0.15s ease",
-                  }}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </div>
-
-          {lists.length === 0 ? (
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 12,
-                color: "var(--fg-muted)",
-                textAlign: "center",
-                padding: "48px 0",
-              }}
-            >
-              {listType === "mine"
-                ? "You haven't created any lists yet."
-                : listType === "official"
-                  ? "No official lists yet."
-                  : "No community lists yet. Be the first to create one."}
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-              {lists.map((list) => (
-                <ListCard key={list.id} list={list} />
-              ))}
-              {isLoggedIn && <CreateListCard />}
-            </div>
-          )}
-        </>
+      {lists.length === 0 ? (
+        <p
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 12,
+            color: "var(--fg-muted)",
+            textAlign: "center",
+            padding: "48px 0",
+          }}
+        >
+          {listType === "mine"
+            ? "You haven't created any lists yet."
+            : listType === "official"
+              ? "No official lists yet."
+              : "No community lists yet. Be the first to create one."}
+        </p>
       ) : (
-        <div>
-          <p
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 10,
-              letterSpacing: "0.08em",
-              color: "var(--fg-muted)",
-              marginBottom: 8,
-            }}
-          >
-            {STATIC_COPY[tab].title.toUpperCase()}
-          </p>
-          <p
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 11,
-              color: "var(--fg-subtle)",
-              maxWidth: 420,
-              lineHeight: 1.6,
-            }}
-          >
-            {STATIC_COPY[tab].body}
-          </p>
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+          {lists.map((list) => (
+            <ListCard key={list.id} list={list} />
+          ))}
+          {isLoggedIn && <CreateListCard />}
         </div>
       )}
     </div>

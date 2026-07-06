@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { TrackerSidebarBlock } from "@/components/detail/TrackerSidebarBlock";
 
 interface SidebarDetailsRow {
   label: string;
@@ -12,10 +12,19 @@ interface SidebarExternalLink {
   site: string;
 }
 
+interface TrackerSidebarProps {
+  mediaId: number;
+  mediaType: "ANIME" | "MANGA";
+  title: string;
+  total: number | null;
+  initialProgress: number;
+  initialRating: number | null;
+  initialReview: { content: string; containsSpoilers: boolean } | null;
+}
+
 interface DetailSidebarProps {
+  tracker: TrackerSidebarProps;
   details: SidebarDetailsRow[];
-  genres: string[];
-  genreSearchPrefix: string;
   watchSection?: {
     title: string;
     links: SidebarExternalLink[];
@@ -60,16 +69,15 @@ function parseAiringLabel(label: string): { episode: string; timing: string } | 
 }
 
 export function DetailSidebar({
+  tracker,
   details,
-  genres,
-  genreSearchPrefix,
   watchSection,
   nextEpisodeLabel,
 }: DetailSidebarProps) {
-  const showGenresBlock = genres.length > 5;
-
   return (
     <div className="flex flex-col gap-4">
+      <TrackerSidebarBlock {...tracker} />
+
       <div>
         <p style={SECTION_TITLE}>DETAILS</p>
         <div style={BLOCK_STYLE}>
@@ -142,22 +150,6 @@ export function DetailSidebar({
         </div>
       )}
 
-      {showGenresBlock && (
-        <div id="sidebar-genres">
-          <p style={SECTION_TITLE}>GENRES</p>
-          <div style={BLOCK_STYLE}>
-            {genres.map((g) => (
-              <Link
-                key={g}
-                href={`${genreSearchPrefix}${encodeURIComponent(g)}`}
-                className="detail-sidebar-genre-link"
-              >
-                {g}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

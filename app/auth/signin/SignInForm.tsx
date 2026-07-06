@@ -8,26 +8,27 @@ export function SignInForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [magicLoading, setMagicLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
   const [error, setError] = useState("");
 
   async function handleGoogle() {
-    setLoading(true);
+    setGoogleLoading(true);
     await signIn("google", { callbackUrl });
   }
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
-    setLoading(true);
+    setMagicLoading(true);
     setError("");
     const res = await signIn("resend", {
       email,
       callbackUrl,
       redirect: false,
     });
-    setLoading(false);
+    setMagicLoading(false);
     if (res?.error) {
       setError("Failed to send magic link. Try again.");
     } else {
@@ -68,7 +69,7 @@ export function SignInForm() {
           {/* Google */}
           <button
             onClick={handleGoogle}
-            disabled={loading}
+            disabled={googleLoading}
             className="btn-ghost w-full justify-center gap-3"
             style={{ background: "var(--bg-elevated)" }}
           >
@@ -136,10 +137,10 @@ export function SignInForm() {
             )}
             <button
               type="submit"
-              disabled={loading || !email}
+              disabled={magicLoading || !email}
               className="btn-ghost w-full justify-center"
             >
-              {loading ? "Sending…" : "Send magic link"}
+              {magicLoading ? "Sending…" : "Send magic link"}
             </button>
           </form>
         </>

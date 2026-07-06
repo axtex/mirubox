@@ -23,6 +23,10 @@ interface AnimeCardActionsProps {
   onFavouriteChange?: (isFavourite: boolean) => void;
   /** Solid button backgrounds — for tracker poster overlays. */
   opaque?: boolean;
+  /** Flat controls matching detail sidebar blocks (TRACK box). */
+  sidebar?: boolean;
+  /** Fired when the status picker opens or closes (sidebar inline menu). */
+  onPickerOpenChange?: (open: boolean) => void;
   /** Tracker list row: full status label, no truncation. */
   listLayout?: boolean;
 }
@@ -42,6 +46,8 @@ export function AnimeCardActions({
   onArchiveChange,
   onFavouriteChange,
   opaque = false,
+  sidebar = false,
+  onPickerOpenChange,
   listLayout = false,
 }: AnimeCardActionsProps) {
   const router = useRouter();
@@ -55,7 +61,12 @@ export function AnimeCardActions({
 
   const [loading, setLoading] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [pickerPos, setPickerPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [pickerPos, setPickerPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    below: boolean;
+  } | null>(null);
 
   const addBtnRef = useRef<HTMLButtonElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -87,12 +98,21 @@ export function AnimeCardActions({
     };
   }, [showPicker]);
 
+  useEffect(() => {
+    if (sidebar) onPickerOpenChange?.(showPicker);
+  }, [showPicker, sidebar, onPickerOpenChange]);
+
   const handleAddClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
       if (!isLoggedIn) {
         router.push("/auth/signin");
+        return;
+      }
+      if (sidebar) {
+        setShowPicker((open) => !open);
+        e.currentTarget.blur();
         return;
       }
       if (!addBtnRef.current) return;
@@ -104,11 +124,16 @@ export function AnimeCardActions({
         ? Math.max(cardRect.width - inset * 2, btnRect.width)
         : btnRect.width;
       const left = cardRect ? cardRect.left + inset : btnRect.left;
-      setPickerPos({ top: btnRect.top, left, width });
+      setPickerPos({
+        top: sidebar ? btnRect.bottom : btnRect.top,
+        left,
+        width,
+        below: sidebar,
+      });
       setShowPicker((open) => !open);
       e.currentTarget.blur();
     },
-    [isLoggedIn, router, iconSize]
+    [isLoggedIn, router, iconSize, sidebar]
   );
 
   const handleStatusSelect = useCallback(
@@ -151,6 +176,20 @@ export function AnimeCardActions({
   const ICON_TRANSITION = "opacity 0.15s ease, fill 0.15s ease, stroke 0.15s ease";
 
   function addBtnStyle(): React.CSSProperties {
+    if (sidebar) {
+      if (isTracked && statusSc) {
+        return {
+          background: "transparent",
+          border: `1px solid ${statusSc.border}`,
+          color: statusSc.color,
+        };
+      }
+      return {
+        background: "transparent",
+        border: "1px solid var(--bg-card-high)",
+        color: "var(--fg-muted)",
+      };
+    }
     if (isTracked && statusSc) {
       return opaque
         ? {
@@ -178,6 +217,20 @@ export function AnimeCardActions({
   }
 
   function heartStyle(): React.CSSProperties {
+    if (sidebar) {
+      if (isFavourite) {
+        return {
+          background: "var(--primary-dim)",
+          border: "1px solid rgba(232,23,63,0.3)",
+          color: "var(--primary)",
+        };
+      }
+      return {
+        background: "transparent",
+        border: "1px solid var(--bg-card-high)",
+        color: "var(--fg-muted)",
+      };
+    }
     if (isFavourite) {
       return opaque
         ? {
@@ -224,28 +277,8 @@ export function AnimeCardActions({
   const menuFontSize = iconSize === "sm" ? 8 : 9;
   const menuPadding = iconSize === "sm" ? "4px 6px" : "5px 8px";
 
-  const pickerMenu = showPicker && pickerPos ? (
-    <div
-      ref={pickerRef}
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-      role="menu"
-      style={{
-        position: "fixed",
-        top: pickerPos.top,
-        left: pickerPos.left,
-        width: pickerPos.width,
-        maxWidth: pickerPos.width,
-        boxSizing: "border-box",
-        transform: "translateY(calc(-100% - 4px))",
-        zIndex: 9999,
-        background: "#1b1b1e",
-        border: "1px solid #2a2a2d",
-        borderRadius: 2,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
-        overflow: "hidden",
-      }}
-    >
+  const pickerMenuItems = (
+    <>
       {STATUS_OPTIONS.map((opt) => {
         const isActive = status === opt.value;
         const optSc = STATUS_COLORS[opt.value];
@@ -296,49 +329,82 @@ export function AnimeCardActions({
           </button>
         );
       })}
-      {isTracked && (
-        <>
-          <div style={{ height: 1, background: "#2a2a2d", margin: "2px 0" }} />
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => { void handleStatusSelect("__remove__"); }}
-            style={{
-              display: "block",
-              width: "100%",
-              padding: menuPadding,
-              fontFamily: "var(--font-space-mono)",
-              fontSize: menuFontSize,
-              letterSpacing: "0.05em",
-              color: "var(--fg-muted)",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              textAlign: "left",
-              transition: "background 0.1s, color 0.1s",
-              lineHeight: 1.2,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#e8173f";
-              e.currentTarget.style.background = "rgba(232,23,63,0.08)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--fg-muted)";
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            Remove
-          </button>
-        </>
-      )}
+      <button
+        type="button"
+        role="menuitem"
+        disabled={!isTracked}
+        onClick={() => { void handleStatusSelect("__remove__"); }}
+        style={{
+          display: "block",
+          width: "100%",
+          padding: menuPadding,
+          fontFamily: "var(--font-space-mono)",
+          fontSize: menuFontSize,
+          letterSpacing: "0.05em",
+          color: isTracked ? "var(--fg-muted)" : "#3a3a3d",
+          background: "transparent",
+          border: "none",
+          borderTop: "1px solid #2a2a2d",
+          cursor: isTracked ? "pointer" : "not-allowed",
+          textAlign: "left",
+          transition: "background 0.1s, color 0.1s",
+          lineHeight: 1.2,
+        }}
+        onMouseEnter={
+          isTracked
+            ? (e) => {
+                e.currentTarget.style.color = "#e8173f";
+                e.currentTarget.style.background = "rgba(232,23,63,0.08)";
+              }
+            : undefined
+        }
+        onMouseLeave={
+          isTracked
+            ? (e) => {
+                e.currentTarget.style.color = "var(--fg-muted)";
+                e.currentTarget.style.background = "transparent";
+              }
+            : undefined
+        }
+      >
+        Remove
+      </button>
+    </>
+  );
+
+  const fixedPickerMenu = showPicker && pickerPos && !sidebar ? (
+    <div
+      ref={pickerRef}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      role="menu"
+      style={{
+        position: "fixed",
+        top: pickerPos.top,
+        left: pickerPos.left,
+        width: pickerPos.width,
+        maxWidth: pickerPos.width,
+        boxSizing: "border-box",
+        transform: pickerPos.below ? "translateY(4px)" : "translateY(calc(-100% - 4px))",
+        zIndex: 9999,
+        background: "#1b1b1e",
+        border: "1px solid #2a2a2d",
+        borderRadius: 2,
+        boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+        overflow: "hidden",
+      }}
+    >
+      {pickerMenuItems}
     </div>
   ) : null;
 
   return (
     <>
-      {pickerMenu && createPortal(pickerMenu, document.body)}
+      {fixedPickerMenu && createPortal(fixedPickerMenu, document.body)}
 
-      <div className={`flex gap-1.5 items-center ${listLayout ? "" : "w-full"}`}>
+      <div className={`w-full${sidebar ? " anime-card-actions--sidebar" : ""}`}>
+        <div className={`flex gap-1.5 ${sidebar ? "items-start" : "items-center"} ${listLayout ? "" : "w-full"}`}>
+        <div className={sidebar ? "flex min-w-0 flex-1 flex-col" : "contents"}>
         {/* Status dropdown */}
         <button
           ref={addBtnRef}
@@ -349,10 +415,19 @@ export function AnimeCardActions({
           aria-haspopup="menu"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={handleAddClick}
+          className={
+            sidebar
+              ? `detail-sidebar-track-btn${isTracked && statusSc ? " detail-sidebar-track-btn--status" : ""}`
+              : undefined
+          }
           style={{
             ...ICON_BTN,
             ...addBtnStyle(),
-            ...(listLayout ? { width: LIST_STATUS_BUTTON_WIDTH } : { flex: 1, minWidth: 0 }),
+            ...(listLayout
+              ? { width: LIST_STATUS_BUTTON_WIDTH }
+              : sidebar
+                ? { width: "100%" }
+                : { flex: 1, minWidth: 0 }),
             display: "inline-flex",
             justifyContent: listLayout ? "space-between" : "center",
             padding: iconSize === "sm" ? "0 6px" : "0 8px",
@@ -381,12 +456,30 @@ export function AnimeCardActions({
           />
         </button>
 
+        {sidebar && showPicker && (
+          <div
+            ref={pickerRef}
+            role="menu"
+            className="detail-sidebar-track-picker"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {pickerMenuItems}
+          </div>
+        )}
+        </div>
+
         {/* Heart */}
         <button
           type="button"
           title={heartTitle}
           aria-label={heartTitle}
           onClick={(e) => { void handleHeart(e); }}
+          className={
+            sidebar
+              ? `detail-sidebar-track-btn${isFavourite ? " detail-sidebar-track-btn--favourite" : ""}`
+              : undefined
+          }
           style={{ ...ICON_BTN, ...heartStyle() }}
         >
           <Heart
@@ -399,6 +492,7 @@ export function AnimeCardActions({
             }}
           />
         </button>
+        </div>
       </div>
     </>
   );
