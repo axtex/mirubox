@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { SearchResults } from "./SearchResults";
 import { SearchFiltersBar } from "./SearchFiltersBar";
-import { AnimeCardSkeleton } from "@/components/anime/AnimeCardSkeleton";
+import { SearchSkeletonGrid } from "@/components/search/SearchSkeletonGrid";
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -90,30 +90,13 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
   return (
     <div className="py-12 min-h-screen" style={{ background: "var(--bg)" }}>
-      {/* Centered search section */}
-      <div className="flex justify-center px-0">
-        <Suspense fallback={null}>
-          <SearchFiltersBar params={params} />
-        </Suspense>
-      </div>
-
-      {/* Results — full page-container width */}
-      {showResults && (
-        <Suspense
-          fallback={
-            <div>
-              <div className="h-5 w-32 shimmer rounded mb-4" />
-              <div className="grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-3">
-                {Array.from({ length: 14 }).map((_, i) => (
-                  <AnimeCardSkeleton key={i} size="md" />
-                ))}
-              </div>
-            </div>
-          }
-        >
-          <SearchResults params={params} />
-        </Suspense>
-      )}
+      <SearchFiltersBar params={params}>
+        {showResults ? (
+          <Suspense fallback={<SearchSkeletonGrid />}>
+            <SearchResults params={params} />
+          </Suspense>
+        ) : null}
+      </SearchFiltersBar>
     </div>
   );
 }

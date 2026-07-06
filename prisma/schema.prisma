@@ -131,6 +131,10 @@ model Anime {
   reviews          Review[]
   xpEvents         XpEvent[]
   favourites       Favourite[]
+
+  @@index([title])
+  @@index([titleEnglish])
+  @@index([popularity])
 }
 
 model WatchlistEntry {

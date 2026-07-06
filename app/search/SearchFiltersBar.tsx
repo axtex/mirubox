@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useState, useTransition, useRef, useEffect } from "react";
-import { Search } from "lucide-react";
+import { useState, useTransition, useRef, useEffect, type ReactNode } from "react";
+import { Search, X } from "lucide-react";
 import { FilterSelect } from "@/components/FilterSelect";
+import { SearchSkeletonGrid } from "@/components/search/SearchSkeletonGrid";
 
 const EXAMPLE_PROMPTS = [
   "cozy witches",
@@ -12,6 +13,16 @@ const EXAMPLE_PROMPTS = [
   "psychological thriller with a twist",
   "slow burn that wrecks you",
   "brain rot but make it art",
+  "enemies to lovers with real stakes",
+  "melancholy seaside town vibes",
+  "isekai but actually good",
+  "mind-bending time loops",
+  "gritty underdog sports story",
+  "dark academia and buried secrets",
+  "wholesome comfort watch",
+  "mecha with real consequences",
+  "absurd comedy that goes hard",
+  "grief and moving on done right",
 ];
 
 const GENRES = [
@@ -19,7 +30,6 @@ const GENRES = [
   "Mecha", "Music", "Mystery", "Psychological", "Romance", "Sci-Fi",
   "Slice of Life", "Sports", "Supernatural", "Thriller",
 ];
-const FORMATS_ANIME = ["TV", "MOVIE", "OVA", "ONA", "SPECIAL", "MUSIC"];
 const STATUSES = ["RELEASING", "FINISHED", "NOT_YET_RELEASED", "CANCELLED"];
 const YEARS = Array.from({ length: 35 }, (_, i) => String(new Date().getFullYear() - i));
 const SEASONS = ["SPRING", "SUMMER", "FALL", "WINTER"];
@@ -29,19 +39,23 @@ const SORTS = [
   { value: "POPULARITY_DESC", label: "POPULAR" },
 ];
 
+const BROWSE_DEBOUNCE_MS = 350;
+
 interface SearchFiltersBarProps {
   params: Record<string, string | string[] | undefined>;
+  children?: ReactNode;
 }
 
 function str(v: string | string[] | undefined): string {
   return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
 }
 
-export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
+export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tab = str(params.tab) || "ai";
   const [query, setQuery] = useState(str(params.q));
@@ -50,13 +64,13 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
   const type = str(params.type) || "ANIME";
   const genre = str(params.genre);
   const status = str(params.status);
-  const format = str(params.format);
   const year = str(params.year);
   const season = str(params.season);
   const sort = str(params.sort);
 
-  const activeFilterCount = [genre, status, format, year, season, sort].filter(Boolean).length;
+  const activeFilterCount = [genre, status, year, season, sort].filter(Boolean).length;
   const hasBrowseQuery = !!str(params.q);
+  const hadResultsBefore = tab === "browse" ? (activeFilterCount > 0 || hasBrowseQuery) : hasBrowseQuery;
 
   // Auto-focus when coming from navbar click (?focus=true)
   useEffect(() => {
@@ -67,6 +81,25 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
       window.history.replaceState({}, "", url.toString());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // "/" focuses the search input and selects its content when it isn't already focused
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      if (e.key !== "/") return;
+      if (document.activeElement === inputRef.current) return;
+      const tagName = (e.target as HTMLElement)?.tagName;
+      if (tagName === "INPUT" || tagName === "TEXTAREA") return;
+      e.preventDefault();
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+  }, []);
+
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
   }, []);
 
   function buildHref(overrides: Record<string, string | undefined>): string {
@@ -88,6 +121,7 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
   }
 
   function handleTabChange(newTab: "ai" | "browse"): void {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     setQuery("");
     navigate({
       tab: newTab,
@@ -102,6 +136,7 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
   }
 
   function handleSubmit(): void {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
     if (!q) return;
     // In BROWSE tab: keyword search through AniList. In AI tab: semantic search.
@@ -114,6 +149,7 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
   }
 
   function clearFilters(): void {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     setQuery("");
     navigate({
       q: undefined,
@@ -126,190 +162,278 @@ export function SearchFiltersBar({ params }: SearchFiltersBarProps) {
     });
   }
 
-  return (
-    <div className="flex flex-col items-center w-full mb-8">
-      <div className="w-full" style={{ maxWidth: 680 }}>
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    const value = e.target.value;
+    setQuery(value);
+    const trimmed = value.trim();
 
-        {/* Input with attached submit button */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            height: 48,
-            paddingRight: 8,
-            background: "var(--bg-elevated)",
-            border: `1px solid ${focused ? "#3a3a3d" : "var(--bg-card-high)"}`,
-            borderRadius: 2,
-            marginBottom: 16,
-            transition: "border-color 0.15s ease",
-          }}
-        >
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            placeholder="dark fantasy with a slow burn romance..."
-            className="outline-none"
+    if (tab === "browse") {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (trimmed.length === 0) {
+        if (str(params.q)) navigate({ q: undefined });
+      } else if (trimmed.length >= 2) {
+        debounceRef.current = setTimeout(() => navigate({ q: trimmed }), BROWSE_DEBOUNCE_MS);
+      }
+    } else if (trimmed.length === 0 && str(params.q)) {
+      // AI mode: clearing the input immediately drops any prior results
+      navigate({ q: undefined, tab: "ai" });
+    }
+  }
+
+  function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
+    if (e.key === "Enter") {
+      handleSubmit();
+      return;
+    }
+    if (e.key === "Escape") {
+      if (query.length > 0) {
+        setQuery("");
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (str(params.q)) navigate({ q: undefined, tab: tab === "browse" ? "browse" : "ai" });
+      } else {
+        inputRef.current?.blur();
+      }
+    }
+  }
+
+  const showHint = tab === "ai" && query.trim().length >= 1 && !hasBrowseQuery;
+  const placeholder = tab === "ai" ? "dark fantasy with a slow burn romance..." : "search by title...";
+
+  return (
+    <>
+      <div className="flex flex-col items-center w-full mb-8">
+        <div className="w-full" style={{ maxWidth: 680 }}>
+
+          {/* Input with attached submit button */}
+          <div
             style={{
-              flex: 1,
-              alignSelf: "stretch",
-              minWidth: 0,
-              border: "none",
-              background: "transparent",
-              color: "var(--fg)",
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 13,
-              letterSpacing: "0.04em",
-              padding: "0 16px",
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleSubmit}
-            style={{
-              width: 32,
-              height: 32,
-              flexShrink: 0,
-              background: "var(--primary)",
-              border: "none",
-              borderRadius: 2,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
+              height: 48,
+              paddingRight: 8,
+              background: "var(--bg-elevated)",
+              border: `1px solid ${focused ? "#3a3a3d" : "var(--bg-card-high)"}`,
+              borderRadius: 2,
+              marginBottom: 16,
+              transition: "border-color 0.15s ease",
             }}
           >
-            <Search className="w-3.5 h-3.5" style={{ color: "#fff" }} />
-          </button>
-        </div>
-
-        {/* 3. Mode tabs — flat underline style */}
-        <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 20 }}>
-          <FlatTab label="AI SEARCH" active={tab === "ai"} onClick={() => handleTabChange("ai")} flushStart />
-          <FlatTab label="BROWSE" active={tab === "browse"} onClick={() => handleTabChange("browse")} />
-        </div>
-
-        {/* 4a. AI SEARCH: prompt chips when no query */}
-        {tab === "ai" && !str(params.q) && (
-          <div>
-            <p
+            <span
               style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 11,
-                letterSpacing: "0.06em",
-                color: "var(--fg-muted)",
-                marginBottom: 12,
+                paddingLeft: 14,
+                fontSize: 13,
+                color: tab === "ai" ? "var(--primary)" : "var(--fg-muted)",
+                flexShrink: 0,
+                userSelect: "none",
               }}
             >
-              WHAT ARE YOU IN THE MOOD FOR?
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {EXAMPLE_PROMPTS.map((prompt) => (
-                <PromptChip key={prompt} label={prompt} onClick={() => handleChipClick(prompt)} />
-              ))}
-            </div>
+              {tab === "ai" ? "✦" : "⌕"}
+            </span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={handleInputChange}
+              onKeyDown={handleInputKeyDown}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              placeholder={placeholder}
+              className="outline-none search-input"
+              style={{
+                flex: 1,
+                alignSelf: "stretch",
+                minWidth: 0,
+                border: "none",
+                background: "transparent",
+                color: "var(--fg)",
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 13,
+                letterSpacing: "0.04em",
+                padding: "0 16px 0 8px",
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleSubmit}
+              style={{
+                width: 32,
+                height: 32,
+                flexShrink: 0,
+                background: "var(--primary)",
+                border: "none",
+                borderRadius: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <Search className="w-3.5 h-3.5" style={{ color: "#fff" }} />
+            </button>
           </div>
-        )}
 
-        {/* 4b. BROWSE: type toggle + filter dropdowns */}
-        {tab === "browse" && (
-          <div>
-            {/* ANIME / MANGA toggle — same flat tab style */}
-            <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 16 }}>
-              <FlatTab label="ANIME" active={type === "ANIME"} onClick={() => navigate({ type: "ANIME" })} flushStart />
-              <FlatTab label="MANGA" active={type === "MANGA"} onClick={() => navigate({ type: "MANGA" })} />
-            </div>
+          {/* 3. Mode tabs — flat underline style */}
+          <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 20 }}>
+            <FlatTab label="BROWSE" active={tab === "browse"} onClick={() => handleTabChange("browse")} flushStart />
+            <FlatTab label="DESCRIBE" active={tab === "ai"} onClick={() => handleTabChange("ai")} />
+          </div>
 
-            {/* Filter dropdowns */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              <FilterSelect
-                value={sort}
-                onChange={(v) => navigate({ sort: v || undefined })}
-                placeholder="SORT"
-                options={SORTS}
-                active={!!sort}
-              />
-              <FilterSelect
-                value={genre}
-                onChange={(v) => navigate({ genre: v || undefined })}
-                placeholder="GENRE"
-                options={GENRES.map((g) => ({ value: g, label: g.toUpperCase() }))}
-                active={!!genre}
-              />
-              <FilterSelect
-                value={status}
-                onChange={(v) => navigate({ status: v || undefined })}
-                placeholder="STATUS"
-                options={STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, " ") }))}
-                active={!!status}
-              />
-              <FilterSelect
-                value={season}
-                onChange={(v) => navigate({ season: v || undefined })}
-                placeholder="SEASON"
-                options={SEASONS.map((s) => ({ value: s, label: s }))}
-                active={!!season}
-              />
-              <FilterSelect
-                value={format}
-                onChange={(v) => navigate({ format: v || undefined })}
-                placeholder="FORMAT"
-                options={FORMATS_ANIME.map((f) => ({ value: f, label: f }))}
-                active={!!format}
-              />
-              <FilterSelect
-                value={year}
-                onChange={(v) => navigate({ year: v || undefined })}
-                placeholder="YEAR"
-                options={YEARS.map((y) => ({ value: y, label: y }))}
-                active={!!year}
-              />
-              {(activeFilterCount > 0 || hasBrowseQuery) && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
+          {/* 4a. DESCRIBE: hint + prompt chips when no submitted query */}
+          {tab === "ai" && !hasBrowseQuery && (
+            <div>
+              {showHint && (
+                <p
                   style={{
-                    flexShrink: 0,
                     fontFamily: "var(--font-space-mono)",
-                    fontSize: 10,
-                    letterSpacing: "0.06em",
-                    padding: "0 10px",
-                    height: 32,
-                    background: "transparent",
-                    color: "var(--score-low)",
-                    border: "1px solid var(--score-low)",
-                    borderRadius: 2,
-                    cursor: "pointer",
+                    fontSize: 9,
+                    color: "#3a3a45",
+                    marginBottom: 10,
                   }}
                 >
-                  CLEAR
-                </button>
+                  Describe what you&apos;re in the mood for, then press →
+                </p>
               )}
-            </div>
-
-            {/* Empty state: no filters, no keyword */}
-            {activeFilterCount === 0 && !hasBrowseQuery && (
               <p
                 style={{
                   fontFamily: "var(--font-space-mono)",
                   fontSize: 11,
                   letterSpacing: "0.06em",
                   color: "var(--fg-muted)",
-                  textAlign: "center",
-                  padding: "32px 0",
+                  marginBottom: 12,
                 }}
               >
-                Select a filter or type a keyword to browse.
+                WHAT ARE YOU IN THE MOOD FOR?
               </p>
-            )}
-          </div>
-        )}
+              <div className="flex flex-wrap gap-2">
+                {EXAMPLE_PROMPTS.map((prompt) => (
+                  <PromptChip key={prompt} label={prompt} onClick={() => handleChipClick(prompt)} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 4b. BROWSE: type toggle + filter dropdowns */}
+          {tab === "browse" && (
+            <div>
+              {/* ANIME / MANGA toggle — same flat tab style */}
+              <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 16 }}>
+                <FlatTab label="ANIME" active={type === "ANIME"} onClick={() => navigate({ type: "ANIME" })} flushStart />
+                <FlatTab label="MANGA" active={type === "MANGA"} onClick={() => navigate({ type: "MANGA" })} />
+              </div>
+
+              {/* Filter dropdowns */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                <FilterSelect
+                  value={sort}
+                  onChange={(v) => navigate({ sort: v || undefined })}
+                  placeholder="SORT"
+                  options={SORTS}
+                  active={!!sort}
+                />
+                <FilterSelect
+                  value={genre}
+                  onChange={(v) => navigate({ genre: v || undefined })}
+                  placeholder="GENRE"
+                  options={GENRES.map((g) => ({ value: g, label: g.toUpperCase() }))}
+                  active={!!genre}
+                />
+                <FilterSelect
+                  value={status}
+                  onChange={(v) => navigate({ status: v || undefined })}
+                  placeholder="STATUS"
+                  options={STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, " ") }))}
+                  active={!!status}
+                />
+                <FilterSelect
+                  value={season}
+                  onChange={(v) => navigate({ season: v || undefined })}
+                  placeholder="SEASON"
+                  options={SEASONS.map((s) => ({ value: s, label: s }))}
+                  active={!!season}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  <FilterSelect
+                    value={year}
+                    onChange={(v) => navigate({ year: v || undefined })}
+                    placeholder="YEAR"
+                    options={YEARS.map((y) => ({ value: y, label: y }))}
+                    active={!!year}
+                  />
+                  {(activeFilterCount > 0 || hasBrowseQuery) && (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      aria-label="Clear filters"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        width: 32,
+                        height: 32,
+                        background: "transparent",
+                        color: "var(--fg-muted)",
+                        border: "1px solid var(--bg-card-high)",
+                        borderRadius: 2,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Debounced live-search loading indicator */}
+              {isPending && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "8px 0",
+                    fontFamily: "var(--font-space-mono)",
+                    fontSize: 9,
+                    color: "#5a5a65",
+                  }}
+                >
+                  <span className="dot-pulse">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                  Searching...
+                </div>
+              )}
+
+              {/* Empty state: no filters, no keyword */}
+              {activeFilterCount === 0 && !hasBrowseQuery && (
+                <p
+                  style={{
+                    fontFamily: "var(--font-space-mono)",
+                    fontSize: 11,
+                    letterSpacing: "0.06em",
+                    color: "var(--fg-muted)",
+                    textAlign: "center",
+                    padding: "32px 0",
+                  }}
+                >
+                  Select a filter or type to browse.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Results — full page-container width */}
+      <div style={{ position: "relative" }}>
+        <div style={{ opacity: isPending && hadResultsBefore ? 0.5 : 1, transition: "opacity 0.15s ease" }}>
+          {children}
+        </div>
+        {isPending && !hadResultsBefore && <SearchSkeletonGrid />}
+      </div>
+    </>
   );
 }
 

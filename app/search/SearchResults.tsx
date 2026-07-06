@@ -34,6 +34,29 @@ function hybridToCard(r: HybridResult): AnimeCardType {
 
 const GRID = "grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-3";
 
+function ResultsLabel({ query, count, mode }: { query: string; count: number; mode: "ai" | "browse" }) {
+  const truncated = query.length > 30 ? `${query.slice(0, 30)}…` : query;
+  const left = mode === "browse" && !query ? "RESULTS" : `RESULTS FOR "${truncated.toUpperCase()}"`;
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 0 8px 0", marginTop: 4 }}>
+      <span
+        style={{
+          fontFamily: "var(--font-space-mono)",
+          fontSize: 9,
+          letterSpacing: "0.08em",
+          color: "#5a5a65",
+          textTransform: "uppercase",
+        }}
+      >
+        {left}
+      </span>
+      <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "#3a3a45" }}>
+        {count} found
+      </span>
+    </div>
+  );
+}
+
 export async function SearchResults({ params }: SearchResultsProps) {
   const query = str(params.q);
   const type = str(params.type) === "MANGA" ? "MANGA" : "ANIME";
@@ -62,9 +85,7 @@ export async function SearchResults({ params }: SearchResultsProps) {
 
     return (
       <div>
-        <p className="text-label mb-4" style={{ color: "var(--fg-subtle)" }}>
-          <span style={{ color: "var(--fg)" }}>{results.length}</span> RESULTS FOR &ldquo;{query.toUpperCase()}&rdquo;
-        </p>
+        <ResultsLabel query={query} count={results.length} mode="ai" />
         <div className={GRID}>
           {results.map((r) => (
             <AnimeCard
@@ -92,17 +113,12 @@ export async function SearchResults({ params }: SearchResultsProps) {
   const results = await searchMedia(query, type, filters, page, 28);
 
   if (results.media.length === 0) {
-    return <EmptyState query={query} />;
+    return <BrowseEmptyState />;
   }
 
   return (
     <div>
-      {results.pageInfo.total !== null && (
-        <p className="text-label mb-4" style={{ color: "var(--fg-subtle)" }}>
-          <span style={{ color: "var(--fg)" }}>{results.pageInfo.total.toLocaleString()}</span>
-          {" "}RESULTS{query ? ` FOR "${query.toUpperCase()}"` : ""}
-        </p>
-      )}
+      <ResultsLabel query={query} count={results.pageInfo.total ?? results.media.length} mode="browse" />
 
       <div className={GRID}>
         {results.media.map((anime) => (
@@ -147,27 +163,27 @@ export async function SearchResults({ params }: SearchResultsProps) {
   );
 }
 
+function BrowseEmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-2 text-center">
+      <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65" }}>
+        No results.
+      </p>
+      <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65" }}>
+        Try adjusting your filters.
+      </p>
+    </div>
+  );
+}
+
 function EmptyState({ query, message }: { query?: string; message?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-      <div
-        className="font-display"
-        style={{
-          fontFamily: "var(--font-anybody)",
-          fontSize: "clamp(64px, 12vw, 96px)",
-          fontWeight: 800,
-          color: "var(--fg-subtle)",
-          lineHeight: 1,
-          opacity: 0.3,
-        }}
-      >
-        ?
-      </div>
-      <p className="text-headline-md font-display" style={{ color: "var(--fg-muted)" }}>
-        {message ?? (query ? `NO RESULTS FOR "${query.toUpperCase()}"` : "NOTHING FOUND")}
+    <div className="flex flex-col items-center justify-center py-24 gap-2 text-center">
+      <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65" }}>
+        {message ?? (query ? `No results for "${query}".` : "Nothing found.")}
       </p>
-      <p className="text-label" style={{ color: "var(--fg-subtle)", maxWidth: 320 }}>
-        TRY A BROADER SEARCH OR DESCRIBE WHAT YOU&apos;RE LOOKING FOR
+      <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65" }}>
+        Try rephrasing — describe a mood, theme, or feeling.
       </p>
     </div>
   );
