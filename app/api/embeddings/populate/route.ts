@@ -4,8 +4,8 @@ import { getPopular } from "@/lib/anilist";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { generateEmbeddings, getAnimeEmbeddingText, toVectorLiteral, EMBEDDING_DIMS } from "@/lib/embeddings";
 
-// 2000 anime + 500 manga takes longer than the old 500-anime job — allow up to 10 minutes on Vercel Pro
-export const maxDuration = 600;
+// Hobby plan max is 300s; Pro allows up to 800s if you upgrade later
+export const maxDuration = 300;
 
 interface RawAnimeRow {
   id: number;
