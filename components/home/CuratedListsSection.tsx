@@ -3,6 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { ListCard } from "@/components/lists/ListCard";
 
 async function getTopLists() {
+  try {
+    return await fetchTopLists();
+  } catch {
+    return [];
+  }
+}
+
+async function fetchTopLists() {
   const lists = await prisma.list.findMany({
     where: { isOfficial: true },
     take: 8,

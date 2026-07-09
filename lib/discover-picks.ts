@@ -166,7 +166,8 @@ async function loadMediaMap(
   for (const card of fetched) {
     if (card.type !== type) continue;
     map.set(card.id, card);
-    await cacheAnimeCard(card);
+    // Don't block the page on cache writes — upsert in the background.
+    void cacheAnimeCard(card);
   }
 
   return map;
