@@ -12,6 +12,7 @@ import { RANKS } from "@/lib/xp";
 import type { XPAction } from "@prisma/client";
 import { ProfileHeaderActions } from "@/components/profile/ProfileHeaderActions";
 import { ListCard, CreateListCard } from "@/components/lists/ListCard";
+import { UserAvatar } from "@/components/avatar/UserAvatar";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -145,9 +146,21 @@ export default async function ProfilePage({ searchParams }: PageProps) {
   // Always-needed data
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, image: true, totalXP: true, rank: true, tasteSummary: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      totalXP: true,
+      rank: true,
+      tasteSummary: true,
+      displayName: true,
+      username: true,
+    },
   });
   if (!user) redirect("/auth/signin");
+
+  const displayName = user.displayName || user.name || user.email?.split("@")[0] || "Anonymous";
 
   const [archiveCounts, reviewsCount, completedCount, watchedCount, readCount] = await Promise.all([
     getArchiveCounts(userId),
@@ -446,25 +459,13 @@ export default async function ProfilePage({ searchParams }: PageProps) {
           {/* Avatar + name */}
           <div className="flex flex-1 min-w-0 gap-4 md:gap-6">
             <div className="shrink-0">
-              <div
-                className="flex items-center justify-center overflow-hidden"
-                style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--bg-card)", border: "1px solid var(--border)" }}
-              >
-                {user.image ? (
-                  <Image
-                    src={user.image}
-                    alt={user.name ?? "User"}
-                    width={64}
-                    height={64}
-                    className="object-cover"
-                    style={{ borderRadius: "50%" }}
-                  />
-                ) : (
-                  <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 24, fontWeight: 700, color: "var(--primary)" }}>
-                    {(user.name ?? "U")[0].toUpperCase()}
-                  </span>
-                )}
-              </div>
+              <UserAvatar
+                username={user.username}
+                userId={user.id}
+                displayName={displayName}
+                size={64}
+                borderColor="var(--border)"
+              />
             </div>
 
             <div className="flex flex-col gap-1.5 flex-1 min-w-0">
@@ -493,7 +494,7 @@ export default async function ProfilePage({ searchParams }: PageProps) {
                   <HelpCircle size={13} />
                 </Link>
               </span>
-              <h1 className="text-headline-md font-display">{user.name ?? "Anime Fan"}</h1>
+              <h1 className="text-headline-md font-display">{displayName}</h1>
               {user.tasteSummary ? (
                 <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)", fontStyle: "italic" }}>
                   {user.tasteSummary}

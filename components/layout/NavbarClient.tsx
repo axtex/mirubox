@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { Session } from "next-auth";
+import { useAuthModal } from "@/context/AuthModalContext";
+import { UserAvatar } from "@/components/avatar/UserAvatar";
 
 interface NavbarClientProps {
   session: Session | null;
@@ -17,10 +20,14 @@ const ITEM_STYLE: React.CSSProperties = {
 
 const MENU_ITEM_CLASS = "block px-4 py-2.5 font-mono text-[10px] tracking-[0.06em]";
 
-export function NavbarClient({ session }: NavbarClientProps) {
+export function NavbarClient({ session: initialSession }: NavbarClientProps) {
+  const { data: liveSession } = useSession();
+  const session = liveSession ?? initialSession;
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const { openAuthModal } = useAuthModal();
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -32,17 +39,21 @@ export function NavbarClient({ session }: NavbarClientProps) {
 
   if (!session?.user) {
     return (
-      <Link
-        href="/auth/signin"
+      <button
+        type="button"
+        onClick={() =>
+          openAuthModal({ reason: "access your profile and archive", callbackUrl: pathname })
+        }
         className="btn-ghost"
         style={{ height: 32, minHeight: 32, padding: "0 14px", fontSize: 10 }}
       >
         SIGN IN
-      </Link>
+      </button>
     );
   }
 
-  const initial = (session.user.name ?? session.user.email ?? "U")[0].toUpperCase();
+  const displayName =
+    session.user.displayName || session.user.name || session.user.email?.split("@")[0] || "Anonymous";
 
   return (
     <div className="relative" ref={ref}>
@@ -56,19 +67,19 @@ export function NavbarClient({ session }: NavbarClientProps) {
         aria-expanded={open}
         className="flex items-center justify-center transition-colors"
         style={{
-          width: 32,
-          height: 32,
           background: "transparent",
-          border: `1px solid ${hovered || open ? "var(--primary)" : "var(--bg-card-high)"}`,
-          borderRadius: 2,
-          fontFamily: "var(--font-space-mono)",
-          fontSize: 11,
-          fontWeight: 700,
-          color: "var(--primary)",
+          border: "none",
+          padding: 0,
           cursor: "pointer",
         }}
       >
-        {initial}
+        <UserAvatar
+          username={session.user.username}
+          userId={session.user.id}
+          displayName={displayName}
+          size={32}
+          borderColor={hovered || open ? "var(--primary)" : "var(--bg-card-high)"}
+        />
       </button>
 
       {/* Dropdown */}
@@ -90,7 +101,7 @@ export function NavbarClient({ session }: NavbarClientProps) {
             style={{ borderBottom: `1px solid var(--bg-card)` }}
           >
             <p style={{ ...ITEM_STYLE, fontSize: 11, fontWeight: 700, color: "var(--fg)" }}>
-              {session.user.name ?? "User"}
+              {displayName}
             </p>
             <p style={{ ...ITEM_STYLE, fontSize: 10, color: "var(--fg-subtle)", marginTop: 2 }}>
               {session.user.email}

@@ -52,3 +52,7 @@ __pycache__
 
 # private internal docs — not for the public repo
 DOCS.md
+
+# local dev scripts
+scripts/verify-discover.ts
+discover-report.txt

@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useAuthModal } from "@/context/AuthModalContext";
 
 interface UserList {
   id: string;
@@ -34,12 +35,13 @@ interface Props {
 }
 
 export function AddToListButton({ mediaId, mediaType, isLoggedIn }: Props) {
-  const router = useRouter();
+  const pathname = usePathname();
+  const { openAuthModal } = useAuthModal();
   const [open, setOpen] = useState(false);
 
   function handleClick() {
     if (!isLoggedIn) {
-      router.push("/auth/signin");
+      openAuthModal({ reason: "add this to a list", callbackUrl: pathname });
       return;
     }
     setOpen(true);

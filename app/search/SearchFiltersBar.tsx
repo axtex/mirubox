@@ -218,17 +218,19 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
               transition: "border-color 0.15s ease",
             }}
           >
-            <span
-              style={{
-                paddingLeft: 14,
-                fontSize: 13,
-                color: tab === "ai" ? "var(--primary)" : "var(--fg-muted)",
-                flexShrink: 0,
-                userSelect: "none",
-              }}
-            >
-              {tab === "ai" ? "✦" : "⌕"}
-            </span>
+            {tab === "ai" && (
+              <span
+                style={{
+                  paddingLeft: 14,
+                  fontSize: 13,
+                  color: "var(--primary)",
+                  flexShrink: 0,
+                  userSelect: "none",
+                }}
+              >
+                ✦
+              </span>
+            )}
             <input
               ref={inputRef}
               type="text"
@@ -249,7 +251,7 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
                 fontFamily: "var(--font-space-mono)",
                 fontSize: 13,
                 letterSpacing: "0.04em",
-                padding: "0 16px 0 8px",
+                padding: tab === "ai" ? "0 16px 0 8px" : "0 16px 0 14px",
               }}
             />
             <button

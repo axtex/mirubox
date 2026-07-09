@@ -29,10 +29,26 @@ interface DbRow {
   similarity: number;
 }
 
-async function searchSemanticDB(query: string, limit: number): Promise<HybridResult[]> {
+export interface HybridSearchOptions {
+  /** Max results returned after merging. Default 12. */
+  limit?: number;
+  /** Minimum cosine similarity for a semantic match to count. Below this is noise. Default 0.32. */
+  threshold?: number;
+  type?: "ANIME" | "MANGA";
+}
+
+const DEFAULT_LIMIT = 12;
+const DEFAULT_THRESHOLD = 0.31;
+
+async function searchSemanticDB(
+  query: string,
+  limit: number,
+  threshold: number,
+  type: "ANIME" | "MANGA"
+): Promise<HybridResult[]> {
   // Skip if we don't have enough embedded anime to be useful
   const countResult = await prisma.$queryRaw<[{ count: bigint }]>`
-    SELECT COUNT(*) FROM "Anime" WHERE embedding IS NOT NULL
+    SELECT COUNT(*) FROM "Anime" WHERE embedding IS NOT NULL AND type = ${type}
   `;
   if (Number(countResult[0].count) < 5) return [];
 
@@ -46,7 +62,8 @@ async function searchSemanticDB(query: string, limit: number): Promise<HybridRes
       (1 - (embedding <=> ${vectorStr}::vector)) AS similarity
     FROM "Anime"
     WHERE embedding IS NOT NULL
-      AND (1 - (embedding <=> ${vectorStr}::vector)) > 0.2
+      AND type = ${type}
+      AND (1 - (embedding <=> ${vectorStr}::vector)) > ${threshold}
     ORDER BY similarity DESC
     LIMIT ${limit}
   `;
@@ -54,8 +71,12 @@ async function searchSemanticDB(query: string, limit: number): Promise<HybridRes
   return rows.map((r) => ({ ...r, similarity: Number(r.similarity), source: "semantic" as const }));
 }
 
-async function searchAniListKeyword(query: string, limit: number): Promise<HybridResult[]> {
-  const results = await searchMedia(query, "ANIME", {}, 1, limit);
+async function searchAniListKeyword(
+  query: string,
+  limit: number,
+  type: "ANIME" | "MANGA"
+): Promise<HybridResult[]> {
+  const results = await searchMedia(query, type, {}, 1, limit);
   return results.media.map((m) => ({
     id: m.id,
     title: m.title.romaji ?? m.title.english ?? "",
@@ -101,10 +122,17 @@ function mergeResults(
     .slice(0, limit);
 }
 
-export async function hybridSearch(query: string, limit = 20): Promise<HybridResult[]> {
+export async function hybridSearch(
+  query: string,
+  opts: HybridSearchOptions = {}
+): Promise<HybridResult[]> {
+  const limit = opts.limit ?? DEFAULT_LIMIT;
+  const threshold = opts.threshold ?? DEFAULT_THRESHOLD;
+  const type = opts.type ?? "ANIME";
+
   const [semantic, keyword] = await Promise.all([
-    searchSemanticDB(query, limit).catch(() => [] as HybridResult[]),
-    searchAniListKeyword(query, limit).catch(() => [] as HybridResult[]),
+    searchSemanticDB(query, limit, threshold, type).catch(() => [] as HybridResult[]),
+    searchAniListKeyword(query, limit, type).catch(() => [] as HybridResult[]),
   ]);
   return mergeResults(semantic, keyword, limit);
 }

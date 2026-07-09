@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ChevronDown, Heart } from "lucide-react";
 import {
   useArchive,
@@ -11,6 +11,7 @@ import {
   isTrackedEntry,
 } from "@/lib/archive-context";
 import { LIST_STATUS_BUTTON_WIDTH } from "@/components/tracker/badgeStyles";
+import { useAuthModal } from "@/context/AuthModalContext";
 
 interface AnimeCardActionsProps {
   mediaId: number;
@@ -50,7 +51,8 @@ export function AnimeCardActions({
   onPickerOpenChange,
   listLayout = false,
 }: AnimeCardActionsProps) {
-  const router = useRouter();
+  const pathname = usePathname();
+  const { openAuthModal } = useAuthModal();
   const { isLoggedIn, archiveMap, favouriteIds, addToArchive, updateStatus, removeFromArchive, toggleFavourite } =
     useArchive();
 
@@ -107,7 +109,10 @@ export function AnimeCardActions({
       e.preventDefault();
       e.stopPropagation();
       if (!isLoggedIn) {
-        router.push("/auth/signin");
+        openAuthModal({
+          reason: sidebar ? "track your progress on this title" : "add this to your archive",
+          callbackUrl: pathname,
+        });
         return;
       }
       if (sidebar) {
@@ -133,7 +138,7 @@ export function AnimeCardActions({
       setShowPicker((open) => !open);
       e.currentTarget.blur();
     },
-    [isLoggedIn, router, iconSize, sidebar]
+    [isLoggedIn, openAuthModal, pathname, iconSize, sidebar]
   );
 
   const handleStatusSelect = useCallback(
@@ -158,7 +163,10 @@ export function AnimeCardActions({
     async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
-      if (!isLoggedIn) { router.push("/auth/signin"); return; }
+      if (!isLoggedIn) {
+        openAuthModal({ reason: "save this as a favourite", callbackUrl: pathname });
+        return;
+      }
       if (loading) return;
       setLoading(true);
       try {
@@ -168,7 +176,7 @@ export function AnimeCardActions({
       finally { setLoading(false); }
       e.currentTarget.blur();
     },
-    [isLoggedIn, loading, mediaId, mediaType, toggleFavourite, router, isFavourite, onFavouriteChange]
+    [isLoggedIn, loading, mediaId, mediaType, toggleFavourite, openAuthModal, pathname, isFavourite, onFavouriteChange]
   );
 
   const statusSc = status ? STATUS_COLORS[status] : null;

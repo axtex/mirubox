@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Heart } from "lucide-react";
+import { useAuthModal } from "@/context/AuthModalContext";
 
 interface Props {
   slug: string;
@@ -12,14 +13,15 @@ interface Props {
 }
 
 export function LikeButton({ slug, initialLiked, initialCount, isLoggedIn }: Props) {
-  const router = useRouter();
+  const pathname = usePathname();
+  const { openAuthModal } = useAuthModal();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [pending, setPending] = useState(false);
 
   async function toggle() {
     if (!isLoggedIn) {
-      router.push("/auth/signin");
+      openAuthModal({ reason: "like and save lists", callbackUrl: pathname });
       return;
     }
     if (pending) return;

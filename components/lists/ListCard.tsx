@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter, usePathname } from "next/navigation";
 import { Heart, Plus } from "lucide-react";
+import { useArchive } from "@/lib/archive-context";
+import { useAuthModal } from "@/context/AuthModalContext";
 
 export interface ListCardData {
   id: string;
@@ -157,20 +162,62 @@ export function ListCard({ list }: { list: ListCardData }) {
   );
 }
 
-export function CreateListCard() {
+export function CreateListButton() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isLoggedIn } = useArchive();
+  const { openAuthModal } = useAuthModal();
+
+  function handleClick() {
+    if (!isLoggedIn) {
+      openAuthModal({ reason: "create your own lists", callbackUrl: pathname });
+      return;
+    }
+    router.push("/lists/new");
+  }
+
   return (
-    <Link
-      href="/lists/new"
+    <button
+      type="button"
+      onClick={handleClick}
+      className="btn-primary shrink-0"
+      style={{ fontSize: 10, letterSpacing: "0.08em" }}
+    >
+      + CREATE LIST
+    </button>
+  );
+}
+
+export function CreateListCard() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isLoggedIn } = useArchive();
+  const { openAuthModal } = useAuthModal();
+
+  function handleClick() {
+    if (!isLoggedIn) {
+      openAuthModal({ reason: "create your own lists", callbackUrl: pathname });
+      return;
+    }
+    router.push("/lists/new");
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
       style={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         gap: 4,
+        width: "100%",
         border: "1px dashed #2a2a2d",
         borderRadius: 2,
         minHeight: 140,
-        textDecoration: "none",
+        background: "transparent",
+        cursor: "pointer",
         transition: "border-color 0.15s ease, color 0.15s ease",
       }}
       className="create-list-card"
@@ -186,6 +233,6 @@ export function CreateListCard() {
       >
         CREATE A LIST
       </span>
-    </Link>
+    </button>
   );
 }

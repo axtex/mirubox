@@ -76,13 +76,13 @@ export async function SearchResults({ params }: SearchResultsProps) {
   if (query.length >= 2 && type === "ANIME" && !isBrowseMode) {
     let results: HybridResult[] = [];
     try {
-      results = await hybridSearch(query, 28);
+      results = await hybridSearch(query, { type: "ANIME" });
     } catch {
       return <EmptyState message="SEARCH UNAVAILABLE — TRY AGAIN" />;
     }
 
     if (results.length === 0) {
-      return <EmptyState query={query} />;
+      return <DiscoverEmptyState />;
     }
 
     return (
@@ -90,12 +90,7 @@ export async function SearchResults({ params }: SearchResultsProps) {
         <ResultsLabel query={query} count={results.length} mode="ai" />
         <div className={GRID}>
           {results.map((r) => (
-            <AnimeCard
-              key={r.id}
-              anime={hybridToCard(r)}
-              size="md"
-              similarity={(r.source === "semantic" || r.source === "both") && r.similarity !== null ? r.similarity : undefined}
-            />
+            <AnimeCard key={r.id} anime={hybridToCard(r)} size="md" />
           ))}
         </div>
       </div>
@@ -178,15 +173,62 @@ function BrowseEmptyState() {
   );
 }
 
-function EmptyState({ query, message }: { query?: string; message?: string }) {
+function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 gap-2 text-center">
       <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65" }}>
-        {message ?? (query ? `No results for "${query}".` : "Nothing found.")}
+        {message}
       </p>
-      <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65" }}>
-        Try rephrasing — describe a mood, theme, or feeling.
+    </div>
+  );
+}
+
+const DISCOVER_EMPTY_PROMPTS = [
+  "cozy witches",
+  "found family in a broken world",
+  "slow burn that wrecks you",
+  "psychological thriller with a twist",
+];
+
+function DiscoverEmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <p style={{ fontSize: 14, fontWeight: 500, color: "#e4e1e6", marginBottom: 6 }}>
+        No matches found
       </p>
+      <p
+        style={{
+          fontFamily: "var(--font-space-mono)",
+          fontSize: 11,
+          color: "#5a5a65",
+          lineHeight: 1.7,
+          maxWidth: 360,
+        }}
+      >
+        Try describing a mood, theme, or feeling — like &quot;slow burn romance&quot; or &quot;dark fantasy with good world-building&quot;.
+      </p>
+      <div className="flex flex-wrap justify-center gap-2 mt-4">
+        {DISCOVER_EMPTY_PROMPTS.map((prompt) => (
+          <a
+            key={prompt}
+            href={`?${new URLSearchParams({ tab: "ai", q: prompt })}`}
+            style={{
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 11,
+              letterSpacing: "0.04em",
+              color: "var(--fg-muted)",
+              background: "var(--bg-elevated)",
+              border: "1px dashed var(--bg-card-high)",
+              borderRadius: 2,
+              padding: "6px 12px",
+              whiteSpace: "nowrap",
+              textDecoration: "none",
+            }}
+          >
+            {prompt}
+          </a>
+        ))}
+      </div>
     </div>
   );
 }

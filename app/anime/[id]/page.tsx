@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getMediaById, getDisplayTitle, splitLastWord } from "@/lib/anilist";
+import { embedIfMissing } from "@/lib/embed-if-missing";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { DescriptionToggle } from "@/components/anime/detail/DescriptionToggle";
@@ -73,6 +74,8 @@ export default async function AnimeDetailPage({ params }: PageProps) {
 
   const [media, session] = await Promise.all([getMediaById(numId), auth()]);
   if (!media) notFound();
+
+  void embedIfMissing(media);
 
   const title = getDisplayTitle(media.title);
   const nativeTitle =

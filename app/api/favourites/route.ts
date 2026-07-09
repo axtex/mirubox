@@ -4,6 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { getMediaById } from "@/lib/anilist";
 
+function isValidId(n: unknown): n is number {
+  return (
+    typeof n === "number" &&
+    Number.isFinite(n) &&
+    Number.isInteger(n) &&
+    n > 0 &&
+    n <= 2147483647
+  );
+}
+
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -40,9 +50,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json() as { mediaId?: unknown; mediaType?: unknown };
+  let body: { mediaId?: unknown; mediaType?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const mediaId = Number(body.mediaId);
-  if (isNaN(mediaId)) {
+  if (!isValidId(mediaId)) {
     return NextResponse.json({ error: "Invalid mediaId" }, { status: 400 });
   }
 

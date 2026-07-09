@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { generateEmbeddings, getAnimeEmbeddingText } from "@/lib/embeddings";
 
@@ -14,7 +15,20 @@ interface RawAnimeRow {
 
 export async function POST(req: Request) {
   const secret = req.headers.get("x-admin-secret");
-  if (secret !== process.env.ADMIN_SECRET) {
+  const adminSecret = process.env.ADMIN_SECRET;
+
+  if (!secret || !adminSecret) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const secretBuf = Buffer.from(secret);
+  const adminBuf = Buffer.from(adminSecret);
+
+  const match =
+    secretBuf.length === adminBuf.length &&
+    timingSafeEqual(secretBuf, adminBuf);
+
+  if (!match) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

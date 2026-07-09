@@ -20,7 +20,12 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = (await req.json()) as { mediaId?: number; mediaType?: string; note?: string };
+  let body: { mediaId?: number; mediaType?: string; note?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   if (!body.mediaId || !body.mediaType) {
     return NextResponse.json({ error: "mediaId and mediaType required" }, { status: 400 });
   }
@@ -65,7 +70,12 @@ export async function DELETE(req: NextRequest, ctx: RouteContext): Promise<NextR
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = (await req.json()) as { mediaId?: number };
+  let body: { mediaId?: number };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   if (!body.mediaId) {
     return NextResponse.json({ error: "mediaId required" }, { status: 400 });
   }

@@ -4,7 +4,7 @@ import { SignInForm } from "./SignInForm";
 export default function SignInPage() {
   return (
     <div
-      className="min-h-dvh flex items-center justify-center"
+      className="min-h-dvh flex items-center justify-center px-4"
       style={{ background: "var(--bg)" }}
     >
       <Suspense fallback={<div style={{ color: "var(--fg-muted)" }} className="text-sm">Loading…</div>}>

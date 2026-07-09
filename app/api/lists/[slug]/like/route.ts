@@ -15,10 +15,13 @@ export async function POST(_req: NextRequest, ctx: RouteContext): Promise<NextRe
   const { slug } = await ctx.params;
   const list = await prisma.list.findUnique({
     where: { slug },
-    select: { id: true },
+    select: { id: true, isPublic: true, userId: true },
   });
 
   if (!list) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (!list.isPublic && list.userId !== session.user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

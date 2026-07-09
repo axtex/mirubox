@@ -18,6 +18,11 @@ model User {
   rank          String    @default("WATCHER")
   tasteSummary  String?   @db.Text
 
+  username      String?   @unique
+  displayName   String?
+  avatarUrl     String?
+  onboarded     Boolean   @default(false)
+
   accounts         Account[]
   sessions         Session[]
   watchlist        WatchlistEntry[]

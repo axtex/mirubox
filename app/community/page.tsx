@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { getLists } from "@/lib/list-queries";
-import { ListCard, CreateListCard } from "@/components/lists/ListCard";
+import { ListCard, CreateListCard, CreateListButton } from "@/components/lists/ListCard";
 
 export const metadata: Metadata = {
   title: "Lists — mirubox",
@@ -79,15 +79,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
       >
         <h1 className="text-headline-lg font-display uppercase">LISTS</h1>
 
-        {isLoggedIn && (
-          <Link
-            href="/lists/new"
-            className="btn-primary shrink-0"
-            style={{ fontSize: 10, letterSpacing: "0.08em" }}
-          >
-            + CREATE LIST
-          </Link>
-        )}
+        <CreateListButton />
       </div>
 
       <div
@@ -147,7 +139,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
           {lists.map((list) => (
             <ListCard key={list.id} list={list} />
           ))}
-          {isLoggedIn && <CreateListCard />}
+          <CreateListCard />
         </div>
       )}
     </div>

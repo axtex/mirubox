@@ -79,7 +79,12 @@ export async function PATCH(req: NextRequest, ctx: RouteContext): Promise<NextRe
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = (await req.json()) as { title?: string; description?: string; isPublic?: boolean };
+  let body: { title?: string; description?: string; isPublic?: boolean };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
   const updated = await prisma.list.update({
     where: { slug },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getMediaById, getDisplayTitle, splitLastWord } from "@/lib/anilist";
 import { cacheAnimeAdaptationFlag } from "@/lib/anilist-cache";
+import { embedIfMissing } from "@/lib/embed-if-missing";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { DescriptionToggle } from "@/components/anime/detail/DescriptionToggle";
@@ -75,6 +76,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
   if (!media) notFound();
 
   void cacheAnimeAdaptationFlag(media);
+  void embedIfMissing(media);
 
   const title = getDisplayTitle(media.title);
   const nativeTitle =

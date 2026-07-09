@@ -5,6 +5,16 @@ import { awardXP } from "@/lib/xp";
 
 const MAX_CONTENT_LENGTH = 10_000;
 
+function isValidId(n: unknown): n is number {
+  return (
+    typeof n === "number" &&
+    Number.isFinite(n) &&
+    Number.isInteger(n) &&
+    n > 0 &&
+    n <= 2147483647
+  );
+}
+
 export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -14,7 +24,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const animeId = Number(searchParams.get("animeId"));
 
-  if (isNaN(animeId)) {
+  if (!isValidId(animeId)) {
     return NextResponse.json({ error: "Invalid animeId" }, { status: 400 });
   }
 
@@ -31,16 +41,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json() as {
-    animeId?: unknown;
-    content?: unknown;
-    containsSpoilers?: unknown;
-  };
+  let body: { animeId?: unknown; content?: unknown; containsSpoilers?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const animeId = Number(body.animeId);
   const content = typeof body.content === "string" ? body.content.trim() : "";
   const containsSpoilers = body.containsSpoilers === true;
 
-  if (isNaN(animeId) || content.length === 0) {
+  if (!isValidId(animeId) || content.length === 0) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
@@ -76,10 +87,15 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json() as { animeId?: unknown };
+  let body: { animeId?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const animeId = Number(body.animeId);
 
-  if (isNaN(animeId)) {
+  if (!isValidId(animeId)) {
     return NextResponse.json({ error: "Invalid animeId" }, { status: 400 });
   }
 

@@ -14,6 +14,8 @@ interface AnimeCardProps {
   watchlistStatus?: string | null;
   userRating?: number | null;
   similarity?: number | null;
+  /** Show the numeric match % badge. Only meaningful for taste-vector scores (e.g. FOR YOU) — leave off for noisy discover-search similarity. */
+  showMatchScore?: boolean;
   hideTitle?: boolean;
 }
 
@@ -27,6 +29,7 @@ export function AnimeCard({
   anime,
   size = "md",
   similarity,
+  showMatchScore = false,
   hideTitle = false,
 }: AnimeCardProps) {
   const { isLoggedIn, archiveMap } = useArchive();
@@ -157,7 +160,7 @@ export function AnimeCard({
               {[anime.format?.replace(/_/g, " "), anime.seasonYear].filter(Boolean).join(" · ")}
             </p>
           )}
-          {similarity != null && (
+          {showMatchScore && similarity != null && (
             <p
               style={{
                 fontSize: 10,

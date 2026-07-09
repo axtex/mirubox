@@ -7,6 +7,9 @@ import { Footer } from "@/components/layout/Footer";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { LoginXPTracker } from "@/components/layout/LoginXPTracker";
 import { ArchiveProvider } from "@/lib/archive-context";
+import { AuthModalProvider } from "@/context/AuthModalContext";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { SessionProviderWrapper } from "@/components/providers/SessionProviderWrapper";
 import { auth } from "@/auth";
 const anybody = Anybody({
   subsets: ["latin"],
@@ -55,15 +58,20 @@ export default async function RootLayout({
           flex-col
         `}
       >
-        <ArchiveProvider isLoggedIn={!!session?.user}>
-          <LoginXPTracker isLoggedIn={!!session?.user} />
-          <Navbar />
-          <MobileNav />
-          <main className="flex-1 pb-[56px] md:pb-0">
-            <PageContainer>{children}</PageContainer>
-          </main>
-          <Footer />
-        </ArchiveProvider>
+        <SessionProviderWrapper session={session}>
+          <ArchiveProvider isLoggedIn={!!session?.user}>
+            <AuthModalProvider>
+              <LoginXPTracker isLoggedIn={!!session?.user} />
+              <Navbar />
+              <MobileNav />
+              <main className="flex flex-1 flex-col min-h-0 pb-[56px] md:pb-0">
+                <PageContainer className="flex flex-1 flex-col min-h-0">{children}</PageContainer>
+              </main>
+              <Footer />
+              <AuthModal />
+            </AuthModalProvider>
+          </ArchiveProvider>
+        </SessionProviderWrapper>
       </body>
     </html>
   );

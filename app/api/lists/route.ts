@@ -104,12 +104,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await req.json()) as {
+  let body: {
     title?: string;
     description?: string;
     isPublic?: boolean;
     entries?: Array<{ mediaId?: unknown; mediaType?: unknown }>;
   };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   if (!body.title?.trim()) {
     return NextResponse.json({ error: "Title required" }, { status: 400 });
   }
@@ -121,6 +126,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   if (entries.length < 1) {
     return NextResponse.json({ error: "A list must contain at least one title." }, { status: 400 });
+  }
+  if (entries.length > 100) {
+    return NextResponse.json({ error: "A list cannot contain more than 100 titles." }, { status: 400 });
   }
 
   const slug = await uniqueSlug(toSlug(body.title.trim()));

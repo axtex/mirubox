@@ -75,7 +75,7 @@ export function ForYouSection({
       {isLoggedIn && !needsMoreData && items.length > 0 && (
         <div className="section-cards">
           {items.slice(0, 7).map(({ anime, similarity }) => (
-            <AnimeCard key={anime.id} anime={anime} size="md" similarity={similarity} />
+            <AnimeCard key={anime.id} anime={anime} size="md" similarity={similarity} showMatchScore />
           ))}
         </div>
       )}

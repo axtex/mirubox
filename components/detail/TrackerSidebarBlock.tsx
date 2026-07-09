@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Star } from "lucide-react";
 import {
   useArchive,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/archive-context";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import { ReviewModal } from "@/components/detail/ReviewModal";
+import { useAuthModal } from "@/context/AuthModalContext";
 
 interface ReviewData {
   content: string;
@@ -54,7 +56,9 @@ export function TrackerSidebarBlock({
   initialRating,
   initialReview,
 }: TrackerSidebarBlockProps) {
-  const { archiveMap } = useArchive();
+  const { archiveMap, isLoggedIn } = useArchive();
+  const pathname = usePathname();
+  const { openAuthModal } = useAuthModal();
 
   const entry = archiveMap.get(mediaId) ?? null;
   const isTracked = isTrackedEntry(entry);
@@ -130,6 +134,69 @@ export function TrackerSidebarBlock({
           sidebar
           onPickerOpenChange={setPickerOpen}
         />
+
+        {!isLoggedIn && (
+          <div style={{ marginTop: 12 }}>
+            <p
+              style={{
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 9,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "#9e9ea8",
+                marginBottom: 4,
+              }}
+            >
+              RATING
+            </p>
+            <div className="flex gap-1">
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() =>
+                    openAuthModal({ reason: "rate this title", callbackUrl: pathname })
+                  }
+                  aria-label={`Rate ${n}`}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", lineHeight: 0 }}
+                >
+                  <Star size={14} fill="none" stroke="#2a2a2d" />
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => openAuthModal({ reason: "write a review", callbackUrl: pathname })}
+              style={{
+                width: "100%",
+                marginTop: 12,
+                padding: "5px 0",
+                textAlign: "center",
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 9,
+                color: "var(--fg-muted)",
+                border: "1px solid var(--bg-card-high)",
+                borderRadius: 2,
+                background: "transparent",
+                cursor: "pointer",
+                transition: "color 0.15s ease, background 0.15s ease, border-color 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--bg-surface)";
+                e.currentTarget.style.color = "var(--fg)";
+                e.currentTarget.style.borderColor = "var(--border-bright)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--fg-muted)";
+                e.currentTarget.style.borderColor = "var(--bg-card-high)";
+              }}
+            >
+              WRITE A REVIEW
+            </button>
+          </div>
+        )}
 
         {isTracked && status && !pickerOpen && (
           <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "space-between" }}>
