@@ -64,12 +64,7 @@ export async function POST(req: Request) {
   });
 
   if (!existing) {
-    const media = await prisma.anime.findUnique({
-      where: { id: animeId },
-      select: { type: true },
-    });
-    const reason = media?.type === "MANGA" ? "Reviewed manga" : "Reviewed anime";
-    await awardXP(session.user.id, 10, reason, animeId);
+    await awardXP(session.user.id, "WRITE_REVIEW", { mediaId: animeId });
   }
 
   return NextResponse.json({ review });

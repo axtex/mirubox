@@ -1,13 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Lock, Heart } from "lucide-react";
+import { Lock, Heart, HelpCircle } from "lucide-react";
 import { RatingBadge } from "@/components/tracker/RatingBadge";
 import { ReviewBadge } from "@/components/tracker/ReviewBadge";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getArchiveCounts } from "@/lib/archive";
 import { formatActivityLabel, getRecentActivity, timeAgo, xpIcon, type ActivityEvent } from "@/lib/profile";
+import { RANKS } from "@/lib/xp";
+import type { XPAction } from "@prisma/client";
 import { ProfileHeaderActions } from "@/components/profile/ProfileHeaderActions";
 import { ListCard, CreateListCard } from "@/components/lists/ListCard";
 
@@ -115,17 +117,10 @@ const PROFILE_TABS: { value: ProfileTab; label: string }[] = [
   { value: "lists",     label: "LISTS" },
 ];
 
-function getRank(xp: number): string {
-  if (xp >= 4000) return "SCHOLAR";
-  if (xp >= 1500) return "CURATOR";
-  if (xp >= 600)  return "ARCHIVIST";
-  if (xp >= 200)  return "TRACKER";
-  return "WATCHER";
-}
-
-function getActivityDot(reason: string): string {
-  if (reason.toLowerCase().includes("rate")) return "var(--score-mid)";
-  if (reason.toLowerCase().includes("complet")) return "#4ade80";
+function getActivityDot(action: XPAction): string {
+  if (action === "RATE_TITLE") return "var(--score-mid)";
+  if (action === "MARK_COMPLETED" || action === "MARK_COMPLETED_DIRECT" || action === "COMPLETE_MOVIE_OVA")
+    return "#4ade80";
   return "var(--primary)";
 }
 
@@ -150,7 +145,7 @@ export default async function ProfilePage({ searchParams }: PageProps) {
   // Always-needed data
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, image: true, xp: true, level: true, tasteSummary: true },
+    select: { id: true, name: true, image: true, totalXP: true, rank: true, tasteSummary: true },
   });
   if (!user) redirect("/auth/signin");
 
@@ -162,9 +157,14 @@ export default async function ProfilePage({ searchParams }: PageProps) {
     prisma.watchlistEntry.count({ where: { userId, status: "COMPLETED", anime: { type: "MANGA" } } }),
   ]);
 
-  const rank = getRank(user.xp);
-  const xpInLevel = user.xp % 100;
-  const progressPct = Math.min(100, xpInLevel);
+  const rank = user.rank;
+  const rankIndex = RANKS.findIndex((r) => r.name === rank);
+  const currentThreshold = RANKS[rankIndex]?.min ?? 0;
+  const nextThreshold = RANKS[rankIndex + 1]?.min ?? currentThreshold;
+  const progressPct =
+    nextThreshold > currentThreshold
+      ? Math.min(100, ((user.totalXP - currentThreshold) / (nextThreshold - currentThreshold)) * 100)
+      : 100;
 
   // Tab-specific data
   let overviewData: OverviewData | null = null;
@@ -468,21 +468,30 @@ export default async function ProfilePage({ searchParams }: PageProps) {
             </div>
 
             <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-              <span
-                className="self-start"
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 8,
-                  color: "var(--primary)",
-                  background: "rgba(232,23,63,0.1)",
-                  border: "1px solid rgba(232,23,63,0.2)",
-                  borderRadius: 2,
-                  padding: "1px 5px",
-                  letterSpacing: "0.06em",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {rank}
+              <span className="self-start flex items-center gap-1.5">
+                <span
+                  style={{
+                    fontFamily: "var(--font-space-mono)",
+                    fontSize: 8,
+                    color: "var(--primary)",
+                    background: "rgba(232,23,63,0.1)",
+                    border: "1px solid rgba(232,23,63,0.2)",
+                    borderRadius: 2,
+                    padding: "1px 5px",
+                    letterSpacing: "0.06em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {rank}
+                </span>
+                <Link
+                  href="/how-it-works"
+                  aria-label="How XP and ranks work"
+                  style={{ color: "#3a3a45", display: "flex", transition: "color 0.15s ease" }}
+                  className="how-it-works-link"
+                >
+                  <HelpCircle size={13} />
+                </Link>
               </span>
               <h1 className="text-headline-md font-display">{user.name ?? "Anime Fan"}</h1>
               {user.tasteSummary ? (
@@ -571,9 +580,8 @@ export default async function ProfilePage({ searchParams }: PageProps) {
       {activeTab === "stats" && statsData && (
         <StatsTab
           data={statsData}
-          xp={user.xp}
-          level={user.level}
-          xpInLevel={xpInLevel}
+          totalXP={user.totalXP}
+          rank={rank}
           progressPct={progressPct}
         />
       )}
@@ -656,7 +664,7 @@ function OverviewTab({ data }: { data: OverviewData }) {
                 className="flex items-center gap-3 py-2.5"
                 style={{ borderBottom: "1px solid var(--border)" }}
               >
-                <span style={{ color: getActivityDot(event.reason), fontSize: 10, flexShrink: 0 }}>●</span>
+                <span style={{ color: getActivityDot(event.action), fontSize: 10, flexShrink: 0 }}>●</span>
                 <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {formatActivityLabel(event)}
                 </span>
@@ -716,7 +724,7 @@ function OverviewTab({ data }: { data: OverviewData }) {
                 href="/archive?favourites=true"
                 style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--primary)", textDecoration: "none", letterSpacing: "0.06em" }}
               >
-                View all →
+                View all
               </Link>
             )}
           </div>
@@ -880,17 +888,17 @@ function WatchlistTab({ data }: { data: WatchlistTabData }) {
 
 function StatsTab({
   data,
-  xp,
-  level,
-  xpInLevel,
+  totalXP,
+  rank,
   progressPct,
 }: {
   data: StatsData;
-  xp: number;
-  level: number;
-  xpInLevel: number;
+  totalXP: number;
+  rank: string;
   progressPct: number;
 }) {
+  const rankIndex = RANKS.findIndex((r) => r.name === rank);
+  const nextRank = RANKS[rankIndex + 1] ?? null;
   const maxRatingCount = Math.max(...Object.values(data.ratingBuckets), 1);
   const maxGenreCount = data.topGenres[0]?.count ?? 1;
 
@@ -912,24 +920,24 @@ function StatsTab({
         <div className="flex items-center gap-4 mb-4">
           <div
             className="flex items-center justify-center shrink-0"
-            style={{ width: 48, height: 48, background: "var(--primary)", borderRadius: 4, fontFamily: "var(--font-anybody)", fontWeight: 800, fontSize: 22, color: "#fff" }}
+            style={{ width: 48, height: 48, background: "var(--primary)", borderRadius: 4, fontFamily: "var(--font-anybody)", fontWeight: 800, fontSize: 10, color: "#fff", textAlign: "center", padding: 4 }}
           >
-            {level}
+            {rank}
           </div>
           <div className="flex-1">
             <div className="flex justify-between mb-1">
               <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "var(--fg-subtle)" }}>
-                {xpInLevel} / 100 XP TO LEVEL {level + 1}
+                {nextRank ? `${totalXP} / ${nextRank.min} XP TO ${nextRank.name}` : `${totalXP} XP · MAX RANK`}
               </span>
               <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "var(--primary)" }}>
-                {progressPct}%
+                {Math.round(progressPct)}%
               </span>
             </div>
             <div className="w-full overflow-hidden" style={{ height: 4, background: "var(--bg-elevated)", borderRadius: 2 }}>
               <div style={{ width: `${progressPct}%`, height: "100%", background: "var(--primary)", borderRadius: 2 }} />
             </div>
             <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "var(--fg-subtle)", marginTop: 4 }}>
-              {xp} TOTAL XP
+              {totalXP} TOTAL XP
             </p>
           </div>
         </div>
@@ -941,7 +949,7 @@ function StatsTab({
                 className="flex items-center gap-3 px-3 py-2"
                 style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 4 }}
               >
-                <span style={{ color: "var(--fg-subtle)" }}>{xpIcon(event.reason)}</span>
+                <span style={{ color: "var(--fg-subtle)" }}>{xpIcon(event.action)}</span>
                 <span className="flex-1 truncate" style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-muted)" }}>
                   {formatActivityLabel(event)}
                 </span>

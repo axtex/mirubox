@@ -61,7 +61,7 @@ export async function CuratedListsSection() {
             className="text-label"
             style={{ color: "var(--fg-subtle)", textDecoration: "none" }}
           >
-            VIEW ALL →
+            VIEW ALL
           </Link>
         </div>
         <div className="section-underline" />

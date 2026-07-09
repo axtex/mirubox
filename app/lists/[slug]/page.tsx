@@ -91,6 +91,8 @@ export default async function ListDetailPage({ params }: PageProps) {
         popularity: m.popularity ?? null,
         format: m.format ?? null,
         type: m.type as "ANIME" | "MANGA",
+        tags: [],
+        rankings: [],
       };
       return { card, note: entry.note };
     })

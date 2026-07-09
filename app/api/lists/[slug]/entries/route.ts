@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { awardXP } from "@/lib/xp";
 
 interface RouteContext {
   params: Promise<{ slug: string }>;
@@ -45,6 +46,8 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
       order: (maxOrder._max.order ?? -1) + 1,
     },
   });
+
+  await awardXP(session.user.id, "ADD_TO_LIST", { mediaId: body.mediaId, listId: list.id });
 
   return NextResponse.json(entry, { status: 201 });
 }

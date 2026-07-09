@@ -43,6 +43,16 @@ export default async function CommunityPage({ searchParams }: PageProps) {
     return (
       <div className="page-container py-8">
         <h1 className="text-headline-lg font-display uppercase">{TAB_TITLES[tab]}</h1>
+        <p
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 11,
+            color: "var(--fg-muted)",
+            marginTop: 4,
+          }}
+        >
+          Coming soon
+        </p>
       </div>
     );
   }

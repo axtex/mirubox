@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { RANKS, computeRank } from "@/lib/xp";
 
 export async function GET() {
   const session = await auth();
@@ -10,13 +11,22 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { xp: true, level: true },
+    select: { totalXP: true, rank: true },
   });
 
-  const xp = user?.xp ?? 0;
-  const level = user?.level ?? 1;
-  const nextLevelXp = level * 100;
-  const progress = (xp % 100) / 100;
+  const totalXP = user?.totalXP ?? 0;
+  const rank = user?.rank ?? computeRank(totalXP);
+  const rankIndex = RANKS.findIndex((r) => r.name === rank);
+  const nextRank = RANKS[rankIndex + 1] ?? null;
+  const currentThreshold = RANKS[rankIndex]?.min ?? 0;
+  const nextThreshold = nextRank?.min ?? currentThreshold;
+  const progress = nextRank ? (totalXP - currentThreshold) / (nextThreshold - currentThreshold) : 1;
 
-  return NextResponse.json({ xp, level, nextLevelXp, progress });
+  return NextResponse.json({
+    totalXP,
+    rank,
+    nextRank: nextRank?.name ?? null,
+    nextRankAt: nextRank?.min ?? null,
+    progress,
+  });
 }

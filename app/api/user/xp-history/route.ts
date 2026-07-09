@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { getRecentActivity } from "@/lib/profile";
 
 export async function GET() {
   const session = await auth();
@@ -8,11 +8,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const events = await prisma.xpEvent.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  });
+  const events = await getRecentActivity(session.user.id, 10);
 
   return NextResponse.json({ events });
 }

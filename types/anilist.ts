@@ -9,6 +9,17 @@ export interface CoverImage {
   extraLarge: string | null;
 }
 
+export interface MediaTag {
+  name: string;
+  category: string | null;
+}
+
+export interface MediaRanking {
+  rank: number;
+  type: string;
+  allTime: boolean | null;
+}
+
 export interface AnimeCard {
   id: number;
   title: AnimeTitle;
@@ -24,6 +35,8 @@ export interface AnimeCard {
   popularity: number | null;
   format: string | null;
   type: string;
+  tags: MediaTag[];
+  rankings: MediaRanking[];
 }
 
 export interface VoiceActor {

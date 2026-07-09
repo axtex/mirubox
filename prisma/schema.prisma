@@ -14,19 +14,22 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  xp            Int       @default(0)
-  level         Int       @default(1)
+  totalXP       Int       @default(0)
+  rank          String    @default("WATCHER")
   tasteSummary  String?   @db.Text
 
-  accounts       Account[]
-  sessions       Session[]
-  watchlist      WatchlistEntry[]
-  ratings        Rating[]
-  reviews        Review[]
-  xpEvents       XpEvent[]
-  favourites     Favourite[]
-  lists          List[]
-  listLikes      ListLike[]
+  accounts         Account[]
+  sessions         Session[]
+  watchlist        WatchlistEntry[]
+  ratings          Rating[]
+  reviews          Review[]
+  xpTransactions   XPTransaction[]
+  userBadges       UserBadge[]
+  userStreak       UserStreak?
+  seasonalProgress SeasonalProgress[]
+  favourites       Favourite[]
+  lists            List[]
+  listLikes        ListLike[]
 }
 
 model List {
@@ -123,13 +126,15 @@ model Anime {
   popularity   Int?
   format       String?
   type         String   @default("ANIME")
+  demographic         String?
+  hasAnimeAdaptation  Boolean  @default(false)
+  isTop100            Boolean  @default(false)
   cachedAt     DateTime @default(now())
   embedding    Unsupported("vector(1536)")?
 
   watchlistEntries WatchlistEntry[]
   ratings          Rating[]
   reviews          Review[]
-  xpEvents         XpEvent[]
   favourites       Favourite[]
 
   @@index([title])
@@ -156,12 +161,13 @@ model WatchlistEntry {
 }
 
 model Rating {
-  id        String   @id @default(cuid())
-  userId    String
-  animeId   Int
-  score     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  userId               String
+  animeId              Int
+  score                Float
+  anilistScoreAtRating Float?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   anime Anime @relation(fields: [animeId], references: [id])
@@ -197,14 +203,137 @@ model Favourite {
   @@unique([userId, mediaId])
 }
 
-model XpEvent {
+model XPTransaction {
   id        String   @id @default(cuid())
   userId    String
-  animeId   Int?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   amount    Int
-  reason    String
+  action    XPAction
+  mediaId   Int?
+  listId    String?
+  meta      Json?
   createdAt DateTime @default(now())
 
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  anime Anime? @relation(fields: [animeId], references: [id])
+  @@index([userId])
+  @@index([userId, action])
+  @@index([userId, mediaId])
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     BadgeKey
+  earnedAt  DateTime @default(now())
+  xpAwarded Int      @default(0)
+
+  @@unique([userId, badge])
+  @@index([userId])
+}
+
+model UserStreak {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastActivityDate DateTime?
+  loginStreak      Int       @default(0)
+  lastLoginDate    DateTime?
+}
+
+model SeasonalProgress {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season    String
+  count     Int     @default(0)
+  completed Boolean @default(false)
+
+  @@unique([userId, season])
+  @@index([userId])
+}
+
+enum XPAction {
+  ADD_TO_ARCHIVE
+  MARK_IN_PROGRESS
+  MARK_COMPLETED
+  MARK_COMPLETED_DIRECT
+  COMPLETE_MOVIE_OVA
+  RATE_TITLE
+  WRITE_REVIEW
+  ADD_TO_LIST
+  CREATE_LIST
+  DAILY_LOGIN
+  LOGIN_STREAK_7
+  ADD_FRIEND
+  INVITE_FRIEND
+  FIRST_TITLE
+  SEASON_CHALLENGE
+  BADGE_UNLOCKED
+}
+
+enum BadgeKey {
+  // Completion
+  FIRST_FINISH
+  SERIES_BINGER
+  COMPLETIONIST
+  CENTENARIAN
+  CINEPHILE
+  COMPLETIONIST_PLUS
+  // Demographic enthusiast
+  SHONEN_ENTHUSIAST
+  SHOJO_ENTHUSIAST
+  SEINEN_ENTHUSIAST
+  JOSEI_ENTHUSIAST
+  // Demographic veteran
+  SHONEN_VETERAN
+  SHOJO_VETERAN
+  SEINEN_VETERAN
+  JOSEI_VETERAN
+  // Genre mastery
+  MIND_BENT
+  SLICE_OF_LIFER
+  THE_ROMANTIC
+  HORROR_HEAD
+  SCI_FI_FAN
+  FANTASY_DWELLER
+  // Manga
+  READER
+  BOOKWORM
+  STACKER
+  ONE_AND_DONE
+  READ_BEFORE_WATCH
+  ORIGIN_SEEKER
+  UP_TO_DATE
+  // Critic
+  FIRST_TAKE
+  CRITIC
+  STAFF_WRITER
+  BIG_RATER
+  DISCERNING
+  // Streak
+  ON_A_ROLL
+  COMMITTED
+  DEVOTED
+  // Seasonal
+  SPRING_WATCHER
+  SUMMER_WATCHER
+  FALL_WATCHER
+  WINTER_WATCHER
+  SEASONED_WATCHER
+  // Explorer
+  GENRE_EXPLORER
+  HISTORIAN
+  HIDDEN_GEM
+  ALL_ROUNDER
+  // Social
+  RECRUITER
+  AMBASSADOR
+  LIST_MAKER
+  WELL_LIKED
+  // Prestige
+  TOP_100
+  PURIST
+  CONTRARIAN
 }

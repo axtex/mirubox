@@ -197,7 +197,7 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
   }
 
   const showHint = tab === "ai" && query.trim().length >= 1 && !hasBrowseQuery;
-  const placeholder = tab === "ai" ? "dark fantasy with a slow burn romance..." : "search by title...";
+  const placeholder = tab === "ai" ? "describe a mood, theme, or feeling..." : "search by title...";
 
   return (
     <>
@@ -275,7 +275,7 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
           {/* 3. Mode tabs — flat underline style */}
           <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 20 }}>
             <FlatTab label="BROWSE" active={tab === "browse"} onClick={() => handleTabChange("browse")} flushStart />
-            <FlatTab label="DESCRIBE" active={tab === "ai"} onClick={() => handleTabChange("ai")} />
+            <FlatTab label="✦ DISCOVER" active={tab === "ai"} onClick={() => handleTabChange("ai")} />
           </div>
 
           {/* 4a. DESCRIBE: hint + prompt chips when no submitted query */}

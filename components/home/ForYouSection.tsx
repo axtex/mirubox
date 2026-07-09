@@ -110,6 +110,8 @@ export function recommendationToForYouItem(r: {
       popularity: null,
       format: r.format,
       type: "ANIME",
+      tags: [],
+      rankings: [],
     },
   };
 }

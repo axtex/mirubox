@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Footer } from "@/components/layout/Footer";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { LoginXPTracker } from "@/components/layout/LoginXPTracker";
 import { ArchiveProvider } from "@/lib/archive-context";
 import { auth } from "@/auth";
 const anybody = Anybody({
@@ -55,6 +56,7 @@ export default async function RootLayout({
         `}
       >
         <ArchiveProvider isLoggedIn={!!session?.user}>
+          <LoginXPTracker isLoggedIn={!!session?.user} />
           <Navbar />
           <MobileNav />
           <main className="flex-1 pb-[56px] md:pb-0">

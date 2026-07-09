@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getMediaById, getDisplayTitle } from "@/lib/anilist";
+import { getMediaById, getDisplayTitle, splitLastWord } from "@/lib/anilist";
+import { cacheAnimeAdaptationFlag } from "@/lib/anilist-cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { DescriptionToggle } from "@/components/anime/detail/DescriptionToggle";
@@ -60,6 +61,8 @@ function relationToCard(node: Relation): AnimeCardType {
     popularity: null,
     format: node.format,
     type: node.type,
+    tags: [],
+    rankings: [],
   };
 }
 
@@ -71,9 +74,12 @@ export default async function MangaDetailPage({ params }: PageProps) {
   const [media, session] = await Promise.all([getMediaById(numId), auth()]);
   if (!media) notFound();
 
+  void cacheAnimeAdaptationFlag(media);
+
   const title = getDisplayTitle(media.title);
   const nativeTitle =
     media.title.native && media.title.native !== title ? media.title.native : null;
+  const { leading: titleLeading, lastWord: titleLastWord } = splitLastWord(title);
 
   let userProgress = 0;
   let userRating: number | null = null;
@@ -201,37 +207,6 @@ export default async function MangaDetailPage({ params }: PageProps) {
           />
         </div>
 
-        {/* POSTER + ACTIONS — desktop: absolute, overlapping left of banner */}
-        <div
-          className="hidden md:flex absolute flex-col"
-          style={{
-            width: 160,
-            top: 166,
-            left: "max(calc((100vw - var(--page-max-width)) / 2 + var(--page-padding-x)), var(--page-padding-x))",
-            gap: 10,
-            zIndex: 20,
-          }}
-        >
-          <div
-            className="relative overflow-hidden"
-            style={{
-              width: 160,
-              height: 240,
-              borderRadius: 2,
-              border: "2px solid #2a2a2d",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-            }}
-          >
-            {media.coverImage.extraLarge ? (
-              <Image src={media.coverImage.extraLarge} alt={title} fill sizes="160px" className="object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center" style={{ background: "#1b1b1e" }}>
-                <span style={{ fontSize: 24, color: "#5a5a65", fontFamily: "var(--font-space-mono)" }}>{title[0]}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* HERO CONTENT */}
         <div className="page-container">
 
@@ -255,14 +230,17 @@ export default async function MangaDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            <div className="flex items-center justify-center gap-2 flex-wrap mb-1">
-              <h1 style={{ fontFamily: "var(--font-anybody)", fontWeight: 600, fontSize: 18, lineHeight: 1.2, color: "#e4e1e6" }}>
-                {title}
-              </h1>
-              {media.averageScore !== null && (
-                <DetailHeroScore score={media.averageScore} size="sm" />
-              )}
-            </div>
+            <h1 style={{ fontFamily: "var(--font-anybody)", fontWeight: 600, fontSize: 18, lineHeight: 1.2, color: "#e4e1e6", marginBottom: 1 }}>
+              {titleLeading}
+              <span style={{ whiteSpace: "nowrap" }}>
+                {titleLastWord}
+                {media.averageScore !== null && (
+                  <span style={{ display: "inline-flex", verticalAlign: "middle", marginLeft: 8 }}>
+                    <DetailHeroScore score={media.averageScore} size="sm" />
+                  </span>
+                )}
+              </span>
+            </h1>
             {nativeTitle && (
               <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65", marginBottom: 8 }}>
                 {nativeTitle}
@@ -279,30 +257,81 @@ export default async function MangaDetailPage({ params }: PageProps) {
 
           </div>
 
-          {/* ── Desktop ──────────────────────────────────────────────── */}
-          <div className="hidden md:block" style={{ paddingTop: 8, paddingLeft: "calc(160px + 2.5rem)" }}>
-            <div className="flex items-center gap-3 flex-wrap mb-1">
-              <h1 style={{ fontFamily: "var(--font-anybody)", fontWeight: 600, fontSize: 22, lineHeight: 1.2, color: "#e4e1e6" }}>
-                {title}
-              </h1>
-              {media.averageScore !== null && (
-                <DetailHeroScore score={media.averageScore} />
+          {/* ── Desktop — poster and info block as flex siblings ────────── */}
+          {/* maxWidth reserves the sidebar's column (220px width + 28px gap-7) so long
+              titles wrap before running under where the sidebar sits below the hero. */}
+          <div
+            className="hidden md:flex"
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-end",
+              gap: 16,
+              marginTop: -80,
+              maxWidth: "calc(100% - 248px)",
+              position: "relative",
+              zIndex: 2,
+            }}
+          >
+            <div
+              className="relative overflow-hidden"
+              style={{
+                width: 110,
+                height: 165,
+                flexShrink: 0,
+                borderRadius: 2,
+                border: "2px solid #2a2a2d",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+              }}
+            >
+              {media.coverImage.extraLarge ? (
+                <Image src={media.coverImage.extraLarge} alt={title} fill sizes="110px" className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center" style={{ background: "#1b1b1e" }}>
+                  <span style={{ fontSize: 24, color: "#5a5a65", fontFamily: "var(--font-space-mono)" }}>{title[0]}</span>
+                </div>
               )}
             </div>
-            {nativeTitle && (
-              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65", marginBottom: 8 }}>
-                {nativeTitle}
-              </p>
-            )}
 
-            {heroGenres.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {heroGenres.map((g) => (
-                  <span key={g} className="genre-chip">{g}</span>
-                ))}
-              </div>
-            )}
+            <div style={{ flex: 1, minWidth: 0, overflow: "visible" }}>
+              <h1
+                style={{
+                  fontFamily: "var(--font-anybody)",
+                  fontWeight: 600,
+                  fontSize: 22,
+                  color: "#e4e1e6",
+                  whiteSpace: "normal",
+                  overflow: "visible",
+                  textOverflow: "unset",
+                  wordBreak: "break-word",
+                  lineHeight: 1.2,
+                  maxWidth: "100%",
+                  marginBottom: 4,
+                }}
+              >
+                {titleLeading}
+                <span style={{ whiteSpace: "nowrap" }}>
+                  {titleLastWord}
+                  {media.averageScore !== null && (
+                    <span style={{ display: "inline-flex", verticalAlign: "middle", marginLeft: 10 }}>
+                      <DetailHeroScore score={media.averageScore} />
+                    </span>
+                  )}
+                </span>
+              </h1>
+              {nativeTitle && (
+                <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65", marginBottom: 8 }}>
+                  {nativeTitle}
+                </p>
+              )}
 
+              {heroGenres.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {heroGenres.map((g) => (
+                    <span key={g} className="genre-chip">{g}</span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -316,10 +345,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
 
             {/* 1. SYNOPSIS */}
             {media.description && (
-              <section>
-                <p style={SECTION_TITLE}>SYNOPSIS</p>
-                <DescriptionToggle description={media.description} />
-              </section>
+              <DescriptionToggle description={media.description} />
             )}
 
             {/* 2. CHARACTERS (manga — no VAs) */}

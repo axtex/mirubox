@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface ScrollCardItem {
   id: number;
@@ -153,7 +154,7 @@ export function ScrollableCardRow({ title, subtitle, items, cardWidth = 70 }: Sc
             aria-label="Scroll left"
             className="scroll-row-arrow"
           >
-            ←
+            <ChevronLeft size={12} strokeWidth={2} />
           </button>
           <button
             type="button"
@@ -162,7 +163,7 @@ export function ScrollableCardRow({ title, subtitle, items, cardWidth = 70 }: Sc
             aria-label="Scroll right"
             className="scroll-row-arrow"
           >
-            →
+            <ChevronRight size={12} strokeWidth={2} />
           </button>
         </div>
       </div>

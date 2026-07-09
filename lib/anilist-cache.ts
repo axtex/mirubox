@@ -8,6 +8,18 @@ function isFresh(cachedAt: Date): boolean {
   return Date.now() - cachedAt.getTime() < CACHE_TTL_MS;
 }
 
+const DEMOGRAPHIC_TAGS = new Set(["SHOUNEN", "SHOUJO", "SEINEN", "JOSEI"]);
+
+function demographicFromTags(tags: AnimeCard["tags"] | undefined): string | null {
+  const tag = (tags ?? []).find((t) => t.category === "Demographic");
+  const demographic = tag?.name.toUpperCase() ?? null;
+  return demographic && DEMOGRAPHIC_TAGS.has(demographic) ? demographic : null;
+}
+
+function isTop100FromRankings(rankings: AnimeCard["rankings"] | undefined): boolean {
+  return (rankings ?? []).some((r) => r.allTime && r.type === "RATED" && r.rank <= 100);
+}
+
 function toDbAnime(media: AnimeCard | AnimeDetail) {
   return {
     id: media.id,
@@ -28,6 +40,8 @@ function toDbAnime(media: AnimeCard | AnimeDetail) {
     popularity: media.popularity ?? null,
     format: media.format ?? null,
     type: media.type ?? "ANIME",
+    demographic: demographicFromTags(media.tags),
+    isTop100: isTop100FromRankings(media.rankings),
     cachedAt: new Date(),
   };
 }
@@ -53,6 +67,21 @@ export async function checkAndGetAnime(id: number): Promise<AnimeDetail | null> 
   } catch {
     // DB unavailable — fall through to AniList
     return getMediaById(id);
+  }
+}
+
+// Relations are only available on the full detail fetch — call this from anime/manga
+// detail pages after fetching. Never clobbers the flag from a card-only refresh.
+export async function cacheAnimeAdaptationFlag(media: AnimeDetail): Promise<void> {
+  try {
+    const hasAdaptation = media.relations.edges.some((e) => e.relationType === "ADAPTATION");
+    await prisma.anime.upsert({
+      where: { id: media.id },
+      create: { ...toDbAnime(media), hasAnimeAdaptation: hasAdaptation },
+      update: { hasAnimeAdaptation: hasAdaptation },
+    });
+  } catch {
+    // Silently skip if DB unavailable
   }
 }
 

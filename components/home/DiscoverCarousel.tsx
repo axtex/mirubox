@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AiPicksClient } from "@/components/home/AiPicksClient";
 import type { DiscoverPick } from "@/lib/discover-picks";
 
@@ -79,7 +80,7 @@ export function DiscoverCarousel({ picks, maxItems = 7 }: DiscoverCarouselProps)
                 aria-label="Scroll left"
                 className="scroll-row-arrow"
               >
-                ←
+                <ChevronLeft size={12} strokeWidth={2} />
               </button>
               <button
                 type="button"
@@ -88,7 +89,7 @@ export function DiscoverCarousel({ picks, maxItems = 7 }: DiscoverCarouselProps)
                 aria-label="Scroll right"
                 className="scroll-row-arrow"
               >
-                →
+                <ChevronRight size={12} strokeWidth={2} />
               </button>
             </div>
           )}

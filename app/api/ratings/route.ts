@@ -41,20 +41,20 @@ export async function POST(req: Request) {
     where: { userId_animeId: { userId: session.user.id, animeId } },
   });
 
+  const media = await prisma.anime.findUnique({
+    where: { id: animeId },
+    select: { averageScore: true },
+  });
+
   const rating = await prisma.rating.upsert({
     where: { userId_animeId: { userId: session.user.id, animeId } },
-    create: { userId: session.user.id, animeId, score },
-    update: { score },
+    create: { userId: session.user.id, animeId, score, anilistScoreAtRating: media?.averageScore ?? null },
+    update: { score, anilistScoreAtRating: media?.averageScore ?? null },
   });
 
   // Only award XP on first rating
   if (!existing) {
-    const media = await prisma.anime.findUnique({
-      where: { id: animeId },
-      select: { type: true },
-    });
-    const reason = media?.type === "MANGA" ? "Rated manga" : "Rated anime";
-    await awardXP(session.user.id, 10, reason, animeId);
+    await awardXP(session.user.id, "RATE_TITLE", { mediaId: animeId });
   }
 
   return NextResponse.json({ rating });

@@ -1,19 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Clock } from "lucide-react";
-import type { XpEvent } from "@prisma/client";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { timeAgo, xpIcon } from "@/lib/profile";
+import { getRecentActivity, timeAgo, xpIcon } from "@/lib/profile";
 
 export default async function ProfileXpPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/profile/xp");
 
-  const xpEvents = await prisma.xpEvent.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const xpEvents = await getRecentActivity(session.user.id, 200);
 
   return (
     <div className="py-8" style={{ background: "var(--bg)", minHeight: "100vh" }}>
@@ -40,13 +35,13 @@ export default async function ProfileXpPage() {
         <p className="text-label" style={{ color: "var(--fg-subtle)" }}>NO ACTIVITY YET</p>
       ) : (
         <div className="scrollbar-theme flex flex-col gap-2 max-h-[calc(100vh-12rem)] overflow-y-auto pr-1">
-          {xpEvents.map((event: XpEvent) => (
+          {xpEvents.map((event) => (
             <div
               key={event.id}
               className="flex items-center gap-3 px-4 py-3"
               style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 4 }}
             >
-              <span style={{ color: "var(--fg-subtle)" }}>{xpIcon(event.reason)}</span>
+              <span style={{ color: "var(--fg-subtle)" }}>{xpIcon(event.action)}</span>
               <span className="flex-1 text-sm" style={{ color: "var(--fg-muted)" }}>
                 {event.reason}
               </span>

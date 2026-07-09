@@ -378,6 +378,10 @@ span.detail-sidebar-genre-link:hover {
   color: var(--fg);
 }
 
+.how-it-works-link:hover {
+  color: #9e9ea8 !important;
+}
+
 /* ── Buttons ────────────────────────────────────────────────────────────── */
 
 .btn-primary {
@@ -931,15 +935,15 @@ span.detail-sidebar-genre-link:hover {
 /* ── Scrollable card row (characters / voice actors) ─────────────────────── */
 
 .scroll-row-arrow {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border-radius: 2px;
-  border: 1px solid #2a2a2d;
+  border: 0.5px solid #2a2a2d;
   background: #1b1b1e;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 10px;
   color: #9e9ea8;
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease;

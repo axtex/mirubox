@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { awardXP } from "@/lib/xp";
 
 function toSlug(title: string): string {
   return title
@@ -103,22 +104,55 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await req.json()) as { title?: string; description?: string; isPublic?: boolean };
+  const body = (await req.json()) as {
+    title?: string;
+    description?: string;
+    isPublic?: boolean;
+    entries?: Array<{ mediaId?: unknown; mediaType?: unknown }>;
+  };
   if (!body.title?.trim()) {
     return NextResponse.json({ error: "Title required" }, { status: 400 });
   }
 
+  const entries = (body.entries ?? []).filter(
+    (e): e is { mediaId: number; mediaType: string } =>
+      typeof e.mediaId === "number" && (e.mediaType === "ANIME" || e.mediaType === "MANGA")
+  );
+
+  if (entries.length < 1) {
+    return NextResponse.json({ error: "A list must contain at least one title." }, { status: 400 });
+  }
+
   const slug = await uniqueSlug(toSlug(body.title.trim()));
 
-  const list = await prisma.list.create({
-    data: {
-      slug,
-      title: body.title.trim().slice(0, 80),
-      description: body.description?.trim().slice(0, 300) ?? null,
-      isPublic: body.isPublic ?? true,
-      userId: session.user.id,
-    },
+  const list = await prisma.$transaction(async (tx) => {
+    const created = await tx.list.create({
+      data: {
+        slug,
+        title: body.title!.trim().slice(0, 80),
+        description: body.description?.trim().slice(0, 300) ?? null,
+        isPublic: body.isPublic ?? true,
+        userId: session.user.id,
+      },
+    });
+
+    await tx.listEntry.createMany({
+      data: entries.map((e, i) => ({
+        listId: created.id,
+        mediaId: e.mediaId,
+        mediaType: e.mediaType,
+        order: i,
+      })),
+      skipDuplicates: true,
+    });
+
+    return created;
   });
+
+  await awardXP(session.user.id, "CREATE_LIST", { listId: list.id });
+  for (const entry of entries) {
+    await awardXP(session.user.id, "ADD_TO_LIST", { mediaId: entry.mediaId, listId: list.id });
+  }
 
   return NextResponse.json(list, { status: 201 });
 }

@@ -1,10 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { X } from "lucide-react";
 
 type Visibility = "public" | "private";
+type MediaType = "ANIME" | "MANGA";
+
+interface SearchResult {
+  id: number;
+  title: string;
+  coverImage: string | null;
+  format: string | null;
+  seasonYear: number | null;
+  type: string;
+}
+
+interface SelectedTitle {
+  id: number;
+  title: string;
+  coverImage: string | null;
+  type: MediaType;
+}
 
 export default function NewListPage() {
   const router = useRouter();
@@ -14,10 +33,68 @@ export default function NewListPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [searchType, setSearchType] = useState<MediaType>("ANIME");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selected, setSelected] = useState<SelectedTitle[]>([]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
+
+  function runSearch(nextQuery: string, type: MediaType) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (nextQuery.trim().length < 2) return;
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/search/quick?q=${encodeURIComponent(nextQuery.trim())}&type=${type}`
+        );
+        const data = (await res.json()) as { results: SearchResult[] };
+        setResults(data.results);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+  }
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    runSearch(value, searchType);
+  }
+
+  function handleSearchTypeChange(type: MediaType) {
+    setSearchType(type);
+    runSearch(query, type);
+  }
+
+  function addTitle(result: SearchResult) {
+    if (selected.some((s) => s.id === result.id)) return;
+    setSelected((prev) => [
+      ...prev,
+      { id: result.id, title: result.title, coverImage: result.coverImage, type: searchType },
+    ]);
+    setQuery("");
+    setResults([]);
+  }
+
+  function removeTitle(id: number) {
+    setSelected((prev) => prev.filter((s) => s.id !== id));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) {
       setError("List name is required.");
+      return;
+    }
+    if (selected.length < 1) {
+      setError("Add at least one title to create a list.");
       return;
     }
     setSubmitting(true);
@@ -30,6 +107,7 @@ export default function NewListPage() {
           title: title.trim(),
           description: description.trim() || undefined,
           isPublic: visibility === "public",
+          entries: selected.map((s) => ({ mediaId: s.id, mediaType: s.type })),
         }),
       });
       if (!res.ok) {
@@ -57,6 +135,15 @@ export default function NewListPage() {
     color: "var(--fg)",
     outline: "none",
     transition: "border-color 0.15s ease",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontFamily: "var(--font-space-mono)",
+    fontSize: 10,
+    color: "var(--fg-muted)",
+    letterSpacing: "0.06em",
+    marginBottom: 6,
   };
 
   return (
@@ -87,18 +174,7 @@ export default function NewListPage() {
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {/* Title */}
           <div>
-            <label
-              style={{
-                display: "block",
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 10,
-                color: "var(--fg-muted)",
-                letterSpacing: "0.06em",
-                marginBottom: 6,
-              }}
-            >
-              LIST NAME
-            </label>
+            <label style={labelStyle}>LIST NAME</label>
             <input
               type="text"
               value={title}
@@ -122,16 +198,7 @@ export default function NewListPage() {
 
           {/* Description */}
           <div>
-            <label
-              style={{
-                display: "block",
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 10,
-                color: "var(--fg-muted)",
-                letterSpacing: "0.06em",
-                marginBottom: 6,
-              }}
-            >
+            <label style={labelStyle}>
               DESCRIPTION <span style={{ color: "var(--fg-subtle)" }}>(optional)</span>
             </label>
             <textarea
@@ -154,20 +221,191 @@ export default function NewListPage() {
             </p>
           </div>
 
+          {/* Titles */}
+          <div>
+            <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>TITLES</label>
+              <div style={{ display: "flex", gap: 0 }}>
+                {(["ANIME", "MANGA"] as MediaType[]).map((t) => {
+                  const active = searchType === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => handleSearchTypeChange(t)}
+                      style={{
+                        fontFamily: "var(--font-space-mono)",
+                        fontSize: 9,
+                        letterSpacing: "0.06em",
+                        padding: "4px 10px",
+                        border: "1px solid #2a2a2d",
+                        borderRadius: t === "ANIME" ? "2px 0 0 2px" : "0 2px 2px 0",
+                        background: active ? "var(--primary)" : "transparent",
+                        color: active ? "#fff" : "var(--fg-muted)",
+                        cursor: "pointer",
+                        marginLeft: t === "MANGA" ? -1 : 0,
+                      }}
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ position: "relative" }}>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => handleQueryChange(e.target.value)}
+                placeholder={`Search ${searchType.toLowerCase()} to add…`}
+                style={inputStyle}
+              />
+              {query.trim().length >= 2 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 4px)",
+                    left: 0,
+                    right: 0,
+                    background: "var(--bg-elevated)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 3,
+                    maxHeight: 260,
+                    overflowY: "auto",
+                    zIndex: 10,
+                  }}
+                >
+                  {searching ? (
+                    <p
+                      style={{
+                        fontFamily: "var(--font-space-mono)",
+                        fontSize: 10,
+                        color: "var(--fg-subtle)",
+                        padding: "10px 12px",
+                      }}
+                    >
+                      Searching…
+                    </p>
+                  ) : results.length === 0 ? (
+                    <p
+                      style={{
+                        fontFamily: "var(--font-space-mono)",
+                        fontSize: 10,
+                        color: "var(--fg-subtle)",
+                        padding: "10px 12px",
+                      }}
+                    >
+                      No results.
+                    </p>
+                  ) : (
+                    results.map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => addTitle(r)}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "8px 12px",
+                          background: "none",
+                          border: "none",
+                          borderBottom: "1px solid var(--border)",
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "relative",
+                            width: 28,
+                            height: 40,
+                            flexShrink: 0,
+                            background: "var(--bg-card)",
+                            borderRadius: 2,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {r.coverImage && (
+                            <Image src={r.coverImage} alt="" fill sizes="28px" className="object-cover" />
+                          )}
+                        </div>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-space-mono)",
+                            fontSize: 11,
+                            color: "var(--fg)",
+                            flex: 1,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {r.title}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {selected.length === 0 ? (
+              <p
+                style={{
+                  fontFamily: "var(--font-space-mono)",
+                  fontSize: 9,
+                  color: "#5a5a65",
+                  marginTop: 8,
+                }}
+              >
+                Add at least one title to create a list.
+              </p>
+            ) : (
+              <div className="flex flex-wrap" style={{ gap: 6, marginTop: 10 }}>
+                {selected.map((s) => (
+                  <span
+                    key={s.id}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontFamily: "var(--font-space-mono)",
+                      fontSize: 10,
+                      color: "var(--fg)",
+                      background: "var(--bg-card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 2,
+                      padding: "4px 6px 4px 8px",
+                    }}
+                  >
+                    {s.title}
+                    <button
+                      type="button"
+                      onClick={() => removeTitle(s.id)}
+                      aria-label={`Remove ${s.title}`}
+                      style={{
+                        display: "flex",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "var(--fg-muted)",
+                        padding: 0,
+                      }}
+                    >
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Visibility toggle */}
           <div>
-            <label
-              style={{
-                display: "block",
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 10,
-                color: "var(--fg-muted)",
-                letterSpacing: "0.06em",
-                marginBottom: 6,
-              }}
-            >
-              VISIBILITY
-            </label>
+            <label style={labelStyle}>VISIBILITY</label>
             <div style={{ display: "flex", gap: 0 }}>
               {(["public", "private"] as Visibility[]).map((v) => {
                 const active = visibility === v;
@@ -214,9 +452,9 @@ export default function NewListPage() {
           <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || selected.length < 1}
               className="btn-primary"
-              style={{ opacity: submitting ? 0.6 : 1 }}
+              style={{ opacity: submitting || selected.length < 1 ? 0.5 : 1 }}
             >
               {submitting ? "CREATING..." : "CREATE LIST"}
             </button>

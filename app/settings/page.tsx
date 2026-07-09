@@ -113,6 +113,16 @@ export default async function SettingsPage() {
           </p>
         </SettingsSection>
 
+        {/* XP & badges */}
+        <SettingsSection title="XP & BADGES">
+          <Link
+            href="/how-it-works"
+            style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--primary)", textDecoration: "none", letterSpacing: "0.04em" }}
+          >
+            Learn how XP and badges work →
+          </Link>
+        </SettingsSection>
+
         {/* Danger zone */}
         <SettingsSection title="DANGER ZONE">
           {/* TODO: implement account deletion flow */}

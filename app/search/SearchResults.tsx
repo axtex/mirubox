@@ -29,6 +29,8 @@ function hybridToCard(r: HybridResult): AnimeCardType {
     popularity: null,
     format: r.format,
     type: r.type ?? "ANIME",
+    tags: [],
+    rankings: [],
   };
 }
 

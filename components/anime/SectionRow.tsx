@@ -26,7 +26,7 @@ export function SectionRow({ title, seeAllHref, items, size = "md", loading }: S
               href={seeAllHref}
               className="text-label link-subtle"
             >
-              VIEW ALL →
+              VIEW ALL
             </Link>
           )}
         </div>

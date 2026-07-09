@@ -141,6 +141,8 @@ function dbRowToAnimeCard(row: {
     popularity: row.popularity,
     format: row.format,
     type: row.type,
+    tags: [],
+    rankings: [],
   };
 }
 

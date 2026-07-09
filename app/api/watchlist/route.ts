@@ -3,8 +3,10 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { getMediaById } from "@/lib/anilist";
-import { awardXP } from "@/lib/xp";
+import { awardXP, checkAndAwardSeasonChallenge } from "@/lib/xp";
 import { embedAnimeIfNeeded } from "@/lib/embed-on-cache";
+
+const SHORT_FORMATS = ["MOVIE", "OVA", "SPECIAL", "MUSIC"];
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -61,6 +63,10 @@ export async function POST(req: Request) {
 
   const statusStr = status ?? "PLANNED";
 
+  const existing = await prisma.watchlistEntry.findUnique({
+    where: { userId_animeId: { userId: session.user.id, animeId } },
+  });
+
   // Ensure anime exists in DB cache (refresh if manga is missing chapter counts)
   let cached = await prisma.anime.findUnique({ where: { id: animeId } });
   const needsRefresh = !cached || (cached.type === "MANGA" && cached.chapters == null);
@@ -97,10 +103,44 @@ export async function POST(req: Request) {
     },
   });
 
-  const xpAmount = statusStr === "COMPLETED" ? 10 : 5;
-  const reason = statusStr === "COMPLETED" ? "Marked as completed" : "Added to tracker";
   if (statusStr !== "FAVOURITE") {
-    await awardXP(session.user.id, xpAmount, reason, animeId);
+    if (!existing) {
+      const totalEntries = await prisma.watchlistEntry.count({ where: { userId: session.user.id } });
+      if (totalEntries === 1) {
+        await awardXP(session.user.id, "FIRST_TITLE");
+      }
+
+      if (statusStr === "COMPLETED") {
+        await awardXP(session.user.id, "MARK_COMPLETED_DIRECT", { mediaId: animeId });
+      } else {
+        await awardXP(session.user.id, "ADD_TO_ARCHIVE", { mediaId: animeId });
+      }
+
+      await checkAndAwardSeasonChallenge(session.user.id, {
+        season: cached?.season ?? null,
+        seasonYear: cached?.seasonYear ?? null,
+      });
+    } else {
+      const wasPlanned = existing.status === "PLANNED";
+      const wasWatching = existing.status === "IN_PROGRESS";
+      const nowWatching = statusStr === "IN_PROGRESS";
+      const nowCompleted = statusStr === "COMPLETED";
+
+      if (wasPlanned && nowWatching) {
+        await awardXP(session.user.id, "MARK_IN_PROGRESS", { mediaId: animeId });
+      }
+
+      if (wasWatching && nowCompleted) {
+        const isShortFormat = cached?.format ? SHORT_FORMATS.includes(cached.format) : false;
+        await awardXP(session.user.id, isShortFormat ? "COMPLETE_MOVIE_OVA" : "MARK_COMPLETED", {
+          mediaId: animeId,
+        });
+        await checkAndAwardSeasonChallenge(session.user.id, {
+          season: cached?.season ?? null,
+          seasonYear: cached?.seasonYear ?? null,
+        });
+      }
+    }
   }
 
   void embedAnimeIfNeeded(animeId);
