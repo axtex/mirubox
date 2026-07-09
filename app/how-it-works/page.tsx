@@ -43,14 +43,14 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 // ─── Section 1 — Ranks ──────────────────────────────────────────────────────
 
-const RANK_META: Record<string, { emoji: string; color: string; unlocks: string }> = {
-  WATCHER: { emoji: "👁", color: "#9e9ea8", unlocks: "Basic profile, archive" },
-  TRACKER: { emoji: "📌", color: "#1d9e75", unlocks: "Passport card, public profile, create lists" },
-  ARCHIVIST: { emoji: "📂", color: "#8b83e0", unlocks: "AI taste summary, deep cut recommendations" },
-  CURATOR: { emoji: "🎯", color: "#BA7517", unlocks: "Featured lists, passport themes" },
-  SCHOLAR: { emoji: "⚡", color: "#e8173f", unlocks: "Community spotlight, crimson passport" },
-  SAGE: { emoji: "🔮", color: "#64b4e6", unlocks: "Void passport, early feature access" },
-  LEGEND: { emoji: "👑", color: "#e8c864", unlocks: "Gold passport, leaderboard, everything" },
+const RANK_META: Record<string, { emoji: string; color: string }> = {
+  WATCHER: { emoji: "👁", color: "#9e9ea8" },
+  TRACKER: { emoji: "📌", color: "#1d9e75" },
+  ARCHIVIST: { emoji: "📂", color: "#8b83e0" },
+  CURATOR: { emoji: "🎯", color: "#BA7517" },
+  SCHOLAR: { emoji: "⚡", color: "#e8173f" },
+  SAGE: { emoji: "🔮", color: "#64b4e6" },
+  LEGEND: { emoji: "👑", color: "#e8c864" },
 };
 
 // ─── Section 2 — How you earn XP ───────────────────────────────────────────
@@ -260,37 +260,33 @@ export default function HowItWorksPage() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
-                  padding: "10px 14px",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  padding: "8px 12px",
                   borderBottom: i === RANKS.length - 1 ? "none" : "1px solid #1a1a1d",
                 }}
               >
-                <span style={{ fontSize: 20, width: 28, flexShrink: 0 }}>{meta.emoji}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 16, width: 22, flexShrink: 0 }}>{meta.emoji}</span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-space-mono)",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "#e4e1e6",
+                    }}
+                  >
+                    {r.name}
+                  </span>
+                </div>
                 <span
                   style={{
                     fontFamily: "var(--font-space-mono)",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#e4e1e6",
-                    width: 90,
-                    flexShrink: 0,
-                  }}
-                >
-                  {r.name}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-space-mono)",
-                    fontSize: 10,
+                    fontSize: 9,
                     color: meta.color,
-                    width: 64,
-                    flexShrink: 0,
                   }}
                 >
                   {r.min.toLocaleString()} XP
-                </span>
-                <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "#5a5a65" }}>
-                  {meta.unlocks}
                 </span>
               </div>
             );

@@ -49,3 +49,6 @@ prisma/generated
 __pycache__
 
 /app/generated/prisma
+
+# private internal docs — not for the public repo
+DOCS.md
