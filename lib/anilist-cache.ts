@@ -74,7 +74,9 @@ export async function checkAndGetAnime(id: number): Promise<AnimeDetail | null> 
 // detail pages after fetching. Never clobbers the flag from a card-only refresh.
 export async function cacheAnimeAdaptationFlag(media: AnimeDetail): Promise<void> {
   try {
-    const hasAdaptation = media.relations.edges.some((e) => e.relationType === "ADAPTATION");
+    const hasAdaptation = media.relations.edges.some(
+      (e) => e.relationType === "ADAPTATION" && e.node.type === "ANIME"
+    );
     await prisma.anime.upsert({
       where: { id: media.id },
       create: { ...toDbAnime(media), hasAnimeAdaptation: hasAdaptation },
