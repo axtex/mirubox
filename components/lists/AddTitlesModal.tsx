@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import { useToast } from "@/context/ToastContext";
+import type { ToastNotification } from "@/lib/xp";
 
 type MediaType = "ANIME" | "MANGA";
 
@@ -57,6 +59,7 @@ export function AddTitlesModal({
   const [addingId, setAddingId] = useState<number | null>(null);
   const [addedIds, setAddedIds] = useState<Set<number>>(() => new Set(existingMediaIds));
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     setMounted(true);
@@ -121,6 +124,8 @@ export function AddTitlesModal({
         setError(data.error ?? "Could not add title.");
         return;
       }
+      const data = (await res.json()) as { notifications?: ToastNotification[] };
+      data.notifications?.forEach((n) => showToast(n));
       setAddedIds((prev) => new Set(prev).add(result.id));
       onAdded({
         id: result.id,

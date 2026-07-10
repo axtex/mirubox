@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { createNotification } from "@/lib/notifications";
 
 interface RouteContext {
   params: Promise<{ slug: string }>;
@@ -15,7 +16,7 @@ export async function POST(_req: NextRequest, ctx: RouteContext): Promise<NextRe
   const { slug } = await ctx.params;
   const list = await prisma.list.findUnique({
     where: { slug },
-    select: { id: true, isPublic: true, userId: true },
+    select: { id: true, isPublic: true, userId: true, title: true },
   });
 
   if (!list) {
@@ -40,6 +41,21 @@ export async function POST(_req: NextRequest, ctx: RouteContext): Promise<NextRe
     await prisma.listLike.create({
       data: { userId: session.user.id, listId: list.id },
     });
+
+    if (list.userId) {
+      const liker = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { displayName: true, username: true },
+      });
+      await createNotification({
+        userId: list.userId,
+        type: "LIST_LIKED",
+        title: `${liker?.displayName ?? liker?.username ?? "Someone"} liked your list`,
+        body: list.title,
+        listId: list.id,
+        fromUserId: session.user.id,
+      });
+    }
   }
 
   const count = await prisma.listLike.count({ where: { listId: list.id } });

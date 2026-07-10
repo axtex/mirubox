@@ -26,7 +26,7 @@ export function ProfileTabs({ activeTab }: ProfileTabsProps): React.JSX.Element 
   return (
     <nav
       style={{
-        margin: "0 20px",
+        margin: 0,
         borderTop: "1px solid var(--bg-card)",
         borderBottom: "1px solid var(--bg-card)",
         overflowX: "auto",

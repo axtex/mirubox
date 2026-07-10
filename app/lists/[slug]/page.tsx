@@ -120,7 +120,7 @@ export default async function ListDetailPage({ params }: PageProps) {
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-      <div className="page-container py-8">
+      <div className="py-8">
         <ListsBackLink />
 
         <ListDetailClient

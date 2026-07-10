@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { NavbarLinks } from "./NavbarLinks";
 import { NavbarSearch } from "./NavbarSearch";
 import { NavbarClient } from "./NavbarClient";
+import { NotificationBell } from "./NotificationBell";
 
 export async function Navbar() {
   const session = await auth();
@@ -33,6 +34,7 @@ export async function Navbar() {
         {/* Search + auth */}
         <div className="flex items-center shrink-0 gap-2">
           <NavbarSearch />
+          <NotificationBell session={session} />
           <NavbarClient session={session} />
         </div>
       </div>

@@ -41,7 +41,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
 
   if (tab !== "lists") {
     return (
-      <div className="page-container py-8">
+      <div className="py-8">
         <h1 className="text-headline-lg font-display uppercase">{TAB_TITLES[tab]}</h1>
         <p
           style={{
@@ -68,7 +68,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
   ];
 
   return (
-    <div className="page-container py-8">
+    <div className="py-8">
       <div
         style={{
           display: "flex",

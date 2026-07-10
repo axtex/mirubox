@@ -59,7 +59,7 @@ const BADGE_EMOJI: Partial<Record<BadgeKey, string>> = {
   BOOKWORM: "📚",
 };
 
-function badgeEmoji(key: BadgeKey, name: string): string {
+export function badgeEmoji(key: BadgeKey, name: string): string {
   return BADGE_EMOJI[key] ?? name.charAt(0).toUpperCase();
 }
 
@@ -302,6 +302,8 @@ export async function getProfileData(opts: {
     { activity, hasMore },
     weekTx,
     lists,
+    watchedCount,
+    readCount,
   ] = await Promise.all([
     prisma.favouriteAnime.findMany({
       where: { userId: user.id },
@@ -346,6 +348,12 @@ export async function getProfileData(opts: {
       select: { createdAt: true },
     }),
     loadLists(user.id, { publicOnly }),
+    prisma.trackerEntry.count({
+      where: { userId: user.id, status: "COMPLETED", mediaType: "ANIME" },
+    }),
+    prisma.trackerEntry.count({
+      where: { userId: user.id, status: "COMPLETED", mediaType: "MANGA" },
+    }),
   ]);
 
   const genreSorted = countGenres(trackerForGenres);
@@ -445,6 +453,12 @@ export async function getProfileData(opts: {
     tasteGenres: genreSorted.slice(0, 5),
     statsGenres: genreSorted.slice(0, 8),
     ratingDistribution: ratingDistributionFilled,
+    stats: {
+      watched: watchedCount,
+      read: readCount,
+      rated: ratings.length,
+      lists: lists.yourLists.length,
+    },
     streak: {
       current: user.userStreak?.currentStreak ?? 0,
       longest: user.userStreak?.longestStreak ?? 0,

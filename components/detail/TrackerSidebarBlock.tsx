@@ -11,6 +11,7 @@ import {
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import { ReviewModal } from "@/components/detail/ReviewModal";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { trackerProgressPct } from "@/lib/tracker-progress";
 
 interface ReviewData {
   content: string;
@@ -72,7 +73,7 @@ export function TrackerSidebarBlock({
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const unit = mediaType === "MANGA" ? "CH" : "EP";
-  const progressPct = total && total > 0 ? Math.min((progress / total) * 100, 100) : 0;
+  const progressPct = trackerProgressPct(progress, total, mediaType);
   const sc = status ? (STATUS_COLORS[status] ?? STATUS_COLORS.PLANNED) : null;
   const hasReview = savedReview !== null;
   const displayRating = hoverRating ?? rating ?? 0;

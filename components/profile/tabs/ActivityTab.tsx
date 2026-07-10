@@ -167,7 +167,7 @@ export function ActivityTab({ activity }: ActivityTabProps): React.JSX.Element {
 
   if (activity.length === 0) {
     return (
-      <div style={{ padding: "16px 20px" }}>
+      <div style={{ padding: "16px 0" }}>
         <p
           style={{
             fontFamily: "var(--font-space-mono)",
@@ -199,7 +199,7 @@ export function ActivityTab({ activity }: ActivityTabProps): React.JSX.Element {
   }
 
   return (
-    <div style={{ padding: "16px 20px" }}>
+    <div style={{ padding: "16px 0" }}>
       {BUCKET_ORDER.filter((b) => groups.has(b)).map((bucket, gi) => {
         const items = groups.get(bucket)!;
         return (

@@ -18,7 +18,7 @@ const BODY_STYLE: React.CSSProperties = {
 export default function AboutPage() {
   return (
     <div style={{ background: "#0f0f12", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 520, margin: "0 auto", padding: "40px 20px" }}>
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "40px 0" }}>
         <div
           style={{
             fontFamily: "var(--font-anybody)",

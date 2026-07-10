@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { getMediaById } from "@/lib/anilist";
-import { awardXP, checkAndAwardSeasonChallenge } from "@/lib/xp";
+import { awardXP, checkAndAwardSeasonChallenge, type ToastNotification } from "@/lib/xp";
 import { embedAnimeIfNeeded } from "@/lib/embed-on-cache";
 
 const SHORT_FORMATS = ["MOVIE", "OVA", "SPECIAL", "MUSIC"];
@@ -135,17 +135,22 @@ export async function POST(req: Request) {
     },
   });
 
+  const notifications: ToastNotification[] = [];
+
   if (statusStr !== "FAVOURITE") {
     if (!existing) {
       const totalEntries = await prisma.trackerEntry.count({ where: { userId: session.user.id } });
       if (totalEntries === 1) {
-        await awardXP(session.user.id, "FIRST_TITLE");
+        const result = await awardXP(session.user.id, "FIRST_TITLE");
+        if (result) notifications.push(...result.notifications);
       }
 
       if (statusStr === "COMPLETED") {
-        await awardXP(session.user.id, "MARK_COMPLETED_DIRECT", { mediaId: animeId });
+        const result = await awardXP(session.user.id, "MARK_COMPLETED_DIRECT", { mediaId: animeId });
+        if (result) notifications.push(...result.notifications);
       } else {
-        await awardXP(session.user.id, "ADD_TO_TRACKER", { mediaId: animeId });
+        const result = await awardXP(session.user.id, "ADD_TO_TRACKER", { mediaId: animeId });
+        if (result) notifications.push(...result.notifications);
       }
 
       await checkAndAwardSeasonChallenge(session.user.id, {
@@ -159,14 +164,16 @@ export async function POST(req: Request) {
       const nowCompleted = statusStr === "COMPLETED";
 
       if (wasPlanned && nowWatching) {
-        await awardXP(session.user.id, "MARK_IN_PROGRESS", { mediaId: animeId });
+        const result = await awardXP(session.user.id, "MARK_IN_PROGRESS", { mediaId: animeId });
+        if (result) notifications.push(...result.notifications);
       }
 
       if (wasWatching && nowCompleted) {
         const isShortFormat = cached?.format ? SHORT_FORMATS.includes(cached.format) : false;
-        await awardXP(session.user.id, isShortFormat ? "COMPLETE_MOVIE_OVA" : "MARK_COMPLETED", {
+        const result = await awardXP(session.user.id, isShortFormat ? "COMPLETE_MOVIE_OVA" : "MARK_COMPLETED", {
           mediaId: animeId,
         });
+        if (result) notifications.push(...result.notifications);
         await checkAndAwardSeasonChallenge(session.user.id, {
           season: cached?.season ?? null,
           seasonYear: cached?.seasonYear ?? null,
@@ -177,7 +184,7 @@ export async function POST(req: Request) {
 
   void embedAnimeIfNeeded(animeId);
 
-  return NextResponse.json({ entry });
+  return NextResponse.json({ entry, notifications });
 }
 
 export async function DELETE(req: Request) {

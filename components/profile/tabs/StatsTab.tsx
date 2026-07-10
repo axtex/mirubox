@@ -90,7 +90,7 @@ export function StatsTab({
   const maxRating = Math.max(...ratingDistribution.map((r) => r.count), 1);
 
   return (
-    <div style={{ padding: "16px 20px" }}>
+    <div style={{ padding: "16px 0" }}>
       <StatCard label="WEEKLY STREAK">
         <div style={{ display: "flex", gap: 4 }}>
           {streak.days.map((day, i) => (

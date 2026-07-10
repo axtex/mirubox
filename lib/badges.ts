@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { BadgeKey } from "@prisma/client";
 import { awardXP } from "@/lib/xp";
+import { createNotification } from "@/lib/notifications";
 
 export const BADGE_DEFINITIONS: Record<
   BadgeKey,
@@ -104,6 +105,14 @@ export async function evaluateBadges(userId: string): Promise<BadgeKey[]> {
 
     await prisma.userBadge.create({
       data: { userId, badge: badgeKey, xpAwarded: def.xp },
+    });
+
+    await createNotification({
+      userId,
+      type: "BADGE_EARNED",
+      title: def.name,
+      body: def.xp > 0 ? `+${def.xp} XP · ${def.name} unlocked` : `${def.name} unlocked`,
+      badgeKey,
     });
 
     if (def.xp > 0) {

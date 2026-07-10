@@ -35,7 +35,7 @@ export function ListsTab({
   const router = useRouter();
 
   return (
-    <div style={{ padding: "16px 20px" }}>
+    <div style={{ padding: "16px 0" }}>
       <section>
         <div
           style={{

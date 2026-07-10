@@ -9,6 +9,12 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { useToast, type Toast } from "@/context/ToastContext";
+import type { ToastNotification } from "@/lib/xp";
+
+function fireToasts(showToast: (t: Omit<Toast, "id">) => void, notifications?: ToastNotification[]) {
+  notifications?.forEach((n) => showToast(n));
+}
 
 export interface TrackerMapEntry {
   status: string;
@@ -49,6 +55,7 @@ export function TrackerProvider({
   isLoggedIn: boolean;
   children: ReactNode;
 }) {
+  const { showToast } = useToast();
   const [trackerMap, setTrackerMap] = useState<Map<number, TrackerMapEntry>>(new Map());
   const [favouriteIds, setFavouriteIds] = useState<Set<number>>(new Set());
 
@@ -86,6 +93,8 @@ export function TrackerProvider({
           body: JSON.stringify({ animeId: mediaId, status, mediaType }),
         });
         if (!res.ok) throw new Error("api error");
+        const data = (await res.json()) as { notifications?: ToastNotification[] };
+        fireToasts(showToast, data.notifications);
       } catch {
         setTrackerMap((m) => {
           const next = new Map(m);
@@ -95,7 +104,7 @@ export function TrackerProvider({
         });
       }
     },
-    []
+    [showToast]
   );
 
   const updateStatus = useCallback(async (mediaId: number, status: string) => {
@@ -110,6 +119,8 @@ export function TrackerProvider({
         body: JSON.stringify({ animeId: mediaId, status }),
       });
       if (!res.ok) throw new Error("api error");
+      const data = (await res.json()) as { notifications?: ToastNotification[] };
+      fireToasts(showToast, data.notifications);
     } catch {
       setTrackerMap((m) => {
         const next = new Map(m);
@@ -118,7 +129,7 @@ export function TrackerProvider({
         return next;
       });
     }
-  }, []);
+  }, [showToast]);
 
   const removeFromTracker = useCallback(async (mediaId: number) => {
     const prev = mapRef.current.get(mediaId);

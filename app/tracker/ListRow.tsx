@@ -9,6 +9,7 @@ import { RatingBadge } from "@/components/tracker/RatingBadge";
 import { formatEntryMetadata } from "./types";
 import type { EntryData } from "./types";
 import { TRACKER_BADGE } from "@/components/tracker/badgeStyles";
+import { trackerProgressPct } from "@/lib/tracker-progress";
 
 interface Props {
   entry: EntryData;
@@ -103,7 +104,7 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
     }
   }
 
-  const progressPct = total ? Math.round((localProgress / total) * 100) : 0;
+  const progressPct = trackerProgressPct(localProgress, total, isManga ? "MANGA" : "ANIME");
   const activeRating = ratingHover ?? localScore;
 
   return (

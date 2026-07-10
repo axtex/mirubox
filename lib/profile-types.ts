@@ -112,6 +112,12 @@ export interface ProfileData {
   tasteGenres: GenreCount[];
   statsGenres: GenreCount[];
   ratingDistribution: { rating: number; count: number }[];
+  stats: {
+    watched: number;
+    read: number;
+    rated: number;
+    lists: number;
+  };
   streak: {
     current: number;
     longest: number;

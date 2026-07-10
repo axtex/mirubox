@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Share } from "lucide-react";
+import { IdCard, Pencil, Share } from "lucide-react";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { IconButton, outlineBtnBase } from "@/components/ui/IconButton";
 import type { RankProgress } from "@/lib/xp";
@@ -18,33 +18,42 @@ interface ProfileHeaderProps {
   isOwnProfile: boolean;
   sharePath: string;
   rank: RankProgress;
+  onOpenPassport?: () => void;
 }
 
-function isCustomAvatarUrl(url: string | null): boolean {
-  return Boolean(url && !url.includes("api.dicebear.com"));
-}
+const canNativeShare = typeof navigator !== "undefined" && !!navigator.share;
 
 export function ProfileHeader({
   user,
   isOwnProfile,
   sharePath,
   rank,
+  onOpenPassport,
 }: ProfileHeaderProps): React.JSX.Element {
   async function handleShare(): Promise<void> {
-    const url =
-      typeof window !== "undefined"
-        ? `${window.location.origin}${sharePath}`
-        : sharePath;
-    const title = `${user.displayName} on mirubox`;
+    const url = user.username
+      ? `https://mirubox.vercel.app/u/${user.username}`
+      : `${window.location.origin}${sharePath}`;
 
-    if (navigator.share) {
+    if (canNativeShare) {
       try {
-        await navigator.share({ title, url });
+        await navigator.share({
+          title: `${user.displayName} on mirubox`,
+          text: "my ranked and rated",
+          url,
+        });
         return;
-      } catch {
-        // cancelled
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        try {
+          await navigator.clipboard.writeText(url);
+        } catch {
+          // clipboard unavailable
+        }
       }
+      return;
     }
+
     try {
       await navigator.clipboard.writeText(url);
     } catch {
@@ -56,7 +65,7 @@ export function ProfileHeader({
     <header
       style={{
         background: "var(--bg)",
-        padding: "20px 20px 16px",
+        padding: "20px 0 16px",
       }}
     >
       <div
@@ -74,37 +83,15 @@ export function ProfileHeader({
             minWidth: 0,
           }}
         >
-          {isCustomAvatarUrl(user.avatarUrl) ? (
-            <div
-              style={{
-                width: 68,
-                height: 68,
-                borderRadius: 2,
-                overflow: "hidden",
-                border: "2px solid var(--bg-card-high)",
-                background: "var(--bg-elevated)",
-                flexShrink: 0,
-                position: "relative",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- uploaded avatar url */}
-              <img
-                src={user.avatarUrl!}
-                alt=""
-                width={68}
-                height={68}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            </div>
-          ) : (
-            <UserAvatar
-              userId={user.id}
-              username={user.username}
-              displayName={user.displayName}
-              size={68}
-              borderColor="var(--bg-card-high)"
-            />
-          )}
+          <UserAvatar
+            userId={user.id}
+            username={user.username}
+            displayName={user.displayName}
+            avatarUrl={user.avatarUrl}
+            size={68}
+            borderColor="var(--bg-card-high)"
+            borderWidth={2}
+          />
 
           <div style={{ paddingTop: 2, minWidth: 0 }}>
             {user.username ? (
@@ -196,9 +183,17 @@ export function ProfileHeader({
           }}
         >
           {isOwnProfile ? (
-            <IconButton href="/settings" aria-label="Edit profile">
-              <Pencil size={13} strokeWidth={2} aria-hidden />
-            </IconButton>
+            <>
+              <IconButton href="/settings" aria-label="Edit profile">
+                <Pencil size={13} strokeWidth={2} aria-hidden />
+              </IconButton>
+              <IconButton
+                aria-label="View passport"
+                onClick={() => onOpenPassport?.()}
+              >
+                <IdCard size={13} strokeWidth={2} aria-hidden />
+              </IconButton>
+            </>
           ) : (
             <button
               type="button"

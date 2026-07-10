@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import type { EntryData } from "./types";
+import { trackerProgressPct } from "@/lib/tracker-progress";
 
 interface Props {
   entry: EntryData;
@@ -18,7 +19,7 @@ export function GridCard({ entry, onUpdate, onRemove, onFavouriteChange }: Props
   const isManga = mediaType === "MANGA";
   const href = isManga ? `/manga/${animeId}` : `/anime/${animeId}`;
   const total = entry.total ?? (isManga ? anime.chapters : anime.episodes);
-  const progressPct = total ? Math.round((progress / total) * 100) : 0;
+  const progressPct = trackerProgressPct(progress, total, isManga ? "MANGA" : "ANIME");
 
   return (
     <div
@@ -62,7 +63,7 @@ export function GridCard({ entry, onUpdate, onRemove, onFavouriteChange }: Props
           />
         </div>
 
-        {status === "IN_PROGRESS" && total !== null && (
+        {status === "IN_PROGRESS" && progress > 0 && (
           <div
             className="absolute bottom-0 left-0 right-0 z-[2] pointer-events-none"
             style={{ height: 3, background: "rgba(0,0,0,0.45)" }}

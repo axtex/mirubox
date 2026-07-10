@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { XPAction, Prisma, type BadgeKey } from "@prisma/client";
-import { evaluateBadges } from "@/lib/badges";
+import { evaluateBadges, BADGE_DEFINITIONS } from "@/lib/badges";
+import { createNotification } from "@/lib/notifications";
 
 // XP values — single source of truth
 export const XP_VALUES: Record<XPAction, number> = {
@@ -70,12 +71,37 @@ export function getRankProgress(totalXP: number): RankProgress {
   };
 }
 
+export interface ToastNotification {
+  type: "BADGE_EARNED" | "RANK_UP" | "XP";
+  title: string;
+  body: string;
+}
+
+const XP_TOAST_BODY: Partial<Record<XPAction, string>> = {
+  ADD_TO_TRACKER: "Added to archive",
+  MARK_IN_PROGRESS: "Started watching",
+  MARK_COMPLETED: "Completed a series",
+  MARK_COMPLETED_DIRECT: "Marked completed",
+  COMPLETE_MOVIE_OVA: "Completed a film or OVA",
+  RATE_TITLE: "Rated a title",
+  WRITE_REVIEW: "Wrote a review",
+  ADD_TO_LIST: "Added to a list",
+  CREATE_LIST: "Created a list",
+  DAILY_LOGIN: "Daily login",
+  LOGIN_STREAK_7: "Login streak bonus",
+  ADD_FRIEND: "Added a friend",
+  INVITE_FRIEND: "Invited a friend",
+  FIRST_TITLE: "First title bonus",
+  SEASON_CHALLENGE: "Season challenge",
+};
+
 export interface AwardXPResult {
   awarded: number;
   newTotal: number;
   newRank: string;
   rankChanged: boolean;
   badgesEarned: BadgeKey[];
+  notifications: ToastNotification[];
 }
 
 export interface AwardXPOptions {
@@ -125,6 +151,16 @@ export async function awardXP(
 
   const newRank = computeRank(user.totalXP);
   let rankChanged = false;
+  const notifications: ToastNotification[] = [];
+
+  // XP toast for the award itself (badge unlocks already toast via BADGE_EARNED)
+  if (amount > 0 && action !== "BADGE_UNLOCKED") {
+    notifications.push({
+      type: "XP",
+      title: `+${amount} XP`,
+      body: XP_TOAST_BODY[action] ?? "XP earned",
+    });
+  }
 
   if (newRank !== user.rank) {
     await prisma.user.update({
@@ -132,11 +168,34 @@ export async function awardXP(
       data: { rank: newRank },
     });
     rankChanged = true;
+
+    const rankDef = RANKS.find((r) => r.name === newRank);
+    const rankBody = `${rankDef?.emoji ?? ""} ${newRank} unlocked`.trim();
+
+    await createNotification({
+      userId,
+      type: "RANK_UP",
+      title: `You're now a ${newRank}`,
+      body: rankBody,
+    });
+    notifications.push({
+      type: "RANK_UP",
+      title: `You're now a ${newRank}`,
+      body: rankBody,
+    });
   }
 
   await updateActivityStreak(userId);
 
   const badgesEarned = await evaluateBadges(userId);
+  for (const badgeKey of badgesEarned) {
+    const def = BADGE_DEFINITIONS[badgeKey];
+    notifications.push({
+      type: "BADGE_EARNED",
+      title: def.name,
+      body: def.xp > 0 ? `+${def.xp} XP · ${def.name} unlocked` : `${def.name} unlocked`,
+    });
+  }
 
   return {
     awarded: amount,
@@ -144,6 +203,7 @@ export async function awardXP(
     newRank,
     rankChanged,
     badgesEarned,
+    notifications,
   };
 }
 

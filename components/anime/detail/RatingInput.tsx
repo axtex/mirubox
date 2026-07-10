@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from "@/context/ToastContext";
+import type { ToastNotification } from "@/lib/xp";
 
 interface RatingInputProps {
   animeId: number;
@@ -12,6 +14,7 @@ export function RatingInput({ animeId, initialRating, isLoggedIn }: RatingInputP
   const [rating, setRating] = useState<number | null>(initialRating);
   const [hover, setHover] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   if (!isLoggedIn) return null;
 
@@ -19,11 +22,13 @@ export function RatingInput({ animeId, initialRating, isLoggedIn }: RatingInputP
     if (loading) return;
     setLoading(true);
     try {
-      await fetch("/api/ratings", {
+      const res = await fetch("/api/ratings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ animeId, score }),
       });
+      const data = (await res.json()) as { notifications?: ToastNotification[] };
+      data.notifications?.forEach((n) => showToast(n));
       setRating(score);
     } finally {
       setLoading(false);

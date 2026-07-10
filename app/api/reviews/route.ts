@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { awardXP } from "@/lib/xp";
+import { awardXP, type ToastNotification } from "@/lib/xp";
 
 const MAX_CONTENT_LENGTH = 10_000;
 
@@ -74,11 +74,13 @@ export async function POST(req: Request) {
     update: { content, containsSpoilers },
   });
 
+  let notifications: ToastNotification[] = [];
   if (!existing) {
-    await awardXP(session.user.id, "WRITE_REVIEW", { mediaId: animeId });
+    const result = await awardXP(session.user.id, "WRITE_REVIEW", { mediaId: animeId });
+    if (result) notifications = result.notifications;
   }
 
-  return NextResponse.json({ review });
+  return NextResponse.json({ review, notifications });
 }
 
 export async function DELETE(req: Request) {

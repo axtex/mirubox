@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ChevronRight, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { useToast } from "@/context/ToastContext";
+import type { ToastNotification } from "@/lib/xp";
 
 interface UserList {
   id: string;
@@ -100,6 +102,7 @@ function AddToListModal({
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const { showToast } = useToast();
 
   const fetchLists = useCallback(async () => {
     setLoading(true);
@@ -162,11 +165,15 @@ function AddToListModal({
           )
         );
       } else {
-        await fetch(`/api/lists/${list.slug}/entries`, {
+        const res = await fetch(`/api/lists/${list.slug}/entries`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mediaId, mediaType }),
         });
+        if (res.ok) {
+          const data = (await res.json()) as { notifications?: ToastNotification[] };
+          data.notifications?.forEach((n) => showToast(n));
+        }
         setLists((prev) =>
           prev.map((l) =>
             l.slug === list.slug

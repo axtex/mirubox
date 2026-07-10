@@ -173,7 +173,7 @@ export function ProfileTab({
   const unlocked = badges.filter((b) => b.earned);
 
   return (
-    <div style={{ padding: "18px 20px" }}>
+    <div style={{ padding: "18px 0" }}>
       <div
         style={{
           display: "grid",

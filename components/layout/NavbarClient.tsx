@@ -77,6 +77,7 @@ export function NavbarClient({ session: initialSession }: NavbarClientProps) {
           username={session.user.username}
           userId={session.user.id}
           displayName={displayName}
+          avatarUrl={session.user.avatarUrl}
           size={32}
           borderColor={hovered || open ? "var(--primary)" : "var(--bg-card-high)"}
         />

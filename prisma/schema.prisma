@@ -22,21 +22,24 @@ model User {
   displayName   String?
   avatarUrl     String?
   onboarded     Boolean   @default(false)
+  pushToken     String? // stub for mobile push later
 
-  accounts         Account[]
-  sessions         Session[]
-  trackerEntries   TrackerEntry[]
-  ratings          Rating[]
-  reviews          Review[]
-  xpTransactions   XPTransaction[]
-  userBadges       UserBadge[]
-  userStreak       UserStreak?
-  seasonalProgress SeasonalProgress[]
-  favourites       Favourite[]
-  favouriteAnime   FavouriteAnime[]
-  favouriteManga   FavouriteManga[]
-  lists            List[]
-  listLikes        ListLike[]
+  accounts             Account[]
+  sessions             Session[]
+  trackerEntries       TrackerEntry[]
+  ratings              Rating[]
+  reviews              Review[]
+  xpTransactions       XPTransaction[]
+  userBadges           UserBadge[]
+  userStreak           UserStreak?
+  seasonalProgress     SeasonalProgress[]
+  favourites           Favourite[]
+  favouriteAnime       FavouriteAnime[]
+  favouriteManga       FavouriteManga[]
+  lists                List[]
+  listLikes            ListLike[]
+  notifications        Notification[] @relation("UserNotifications")
+  notificationsTriggered Notification[] @relation("NotificationSender")
 }
 
 model List {
@@ -52,6 +55,7 @@ model List {
   user        User?       @relation(fields: [userId], references: [id])
   entries     ListEntry[]
   likes       ListLike[]
+  notifications Notification[]
 }
 
 model ListEntry {
@@ -286,6 +290,34 @@ model SeasonalProgress {
 
   @@unique([userId, season])
   @@index([userId])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  type       NotifType
+  title      String
+  body       String?
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  listId     String?
+  mediaId    Int?
+  badgeKey   String?
+  fromUserId String?
+
+  user     User  @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  fromUser User? @relation("NotificationSender", fields: [fromUserId], references: [id], onDelete: SetNull)
+  list     List? @relation(fields: [listId], references: [id], onDelete: SetNull)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+enum NotifType {
+  BADGE_EARNED
+  RANK_UP
+  LIST_LIKED
+  NEW_FOLLOWER
 }
 
 enum XPAction {

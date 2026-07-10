@@ -37,7 +37,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function LegalPage() {
   return (
     <div style={{ background: "#0f0f12", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 20px" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 0" }}>
         <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 13, fontWeight: 600, color: "#e4e1e6", marginBottom: 4 }}>
           LEGAL
         </p>

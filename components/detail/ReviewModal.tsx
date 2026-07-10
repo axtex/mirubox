@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
+import { useToast } from "@/context/ToastContext";
+import type { ToastNotification } from "@/lib/xp";
 
 interface ReviewData {
   content: string;
@@ -25,6 +27,7 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const { showToast } = useToast();
 
   const overlayRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -88,6 +91,8 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
         setError("Failed to save. Try again.");
         return;
       }
+      const data = (await res.json()) as { notifications?: ToastNotification[] };
+      data.notifications?.forEach((n) => showToast(n));
       onSave({ content: trimmed, containsSpoilers });
     } catch {
       setError("Failed to save. Try again.");

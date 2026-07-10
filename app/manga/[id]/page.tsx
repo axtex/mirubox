@@ -210,7 +210,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
         </div>
 
         {/* HERO CONTENT */}
-        <div className="page-container">
+        <div>
 
           {/* ── Mobile ───────────────────────────────────────────────── */}
           <div className="md:hidden flex flex-col items-center text-center">
@@ -339,7 +339,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
       </div>
 
       {/* ═══ MAIN LAYOUT ═════════════════════════════════════════════════════ */}
-      <div className="page-container">
+      <div>
         <div className="flex gap-7 py-8" style={{ alignItems: "flex-start" }}>
 
           {/* MAIN COLUMN */}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { awardXP } from "@/lib/xp";
+import { awardXP, type ToastNotification } from "@/lib/xp";
 
 function toSlug(title: string): string {
   return title
@@ -157,10 +157,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return created;
   });
 
-  await awardXP(session.user.id, "CREATE_LIST", { listId: list.id });
+  const notifications: ToastNotification[] = [];
+  const createResult = await awardXP(session.user.id, "CREATE_LIST", { listId: list.id });
+  if (createResult) notifications.push(...createResult.notifications);
   for (const entry of entries) {
-    await awardXP(session.user.id, "ADD_TO_LIST", { mediaId: entry.mediaId, listId: list.id });
+    const entryResult = await awardXP(session.user.id, "ADD_TO_LIST", {
+      mediaId: entry.mediaId,
+      listId: list.id,
+    });
+    if (entryResult) notifications.push(...entryResult.notifications);
   }
 
-  return NextResponse.json(list, { status: 201 });
+  return NextResponse.json({ ...list, notifications }, { status: 201 });
 }

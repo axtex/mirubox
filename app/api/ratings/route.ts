@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { awardXP } from "@/lib/xp";
+import { awardXP, type ToastNotification } from "@/lib/xp";
 
 function isValidId(n: unknown): n is number {
   return (
@@ -68,9 +68,11 @@ export async function POST(req: Request) {
   });
 
   // Only award XP on first rating
+  let notifications: ToastNotification[] = [];
   if (!existing) {
-    await awardXP(session.user.id, "RATE_TITLE", { mediaId: animeId });
+    const result = await awardXP(session.user.id, "RATE_TITLE", { mediaId: animeId });
+    if (result) notifications = result.notifications;
   }
 
-  return NextResponse.json({ rating });
+  return NextResponse.json({ rating, notifications });
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { awardXP } from "@/lib/xp";
+import { awardXP, type ToastNotification } from "@/lib/xp";
 
 export async function POST(): Promise<NextResponse> {
   const session = await auth();
@@ -12,6 +12,7 @@ export async function POST(): Promise<NextResponse> {
   const userId = session.user.id;
 
   const result = await awardXP(userId, "DAILY_LOGIN");
+  const notifications: ToastNotification[] = result ? [...result.notifications] : [];
 
   const streak = await prisma.userStreak.findUnique({ where: { userId } });
   if (streak) {
@@ -33,9 +34,10 @@ export async function POST(): Promise<NextResponse> {
     });
 
     if (newLoginStreak === 7) {
-      await awardXP(userId, "LOGIN_STREAK_7", { skipDuplicateCheck: true });
+      const streakResult = await awardXP(userId, "LOGIN_STREAK_7", { skipDuplicateCheck: true });
+      if (streakResult) notifications.push(...streakResult.notifications);
     }
   }
 
-  return NextResponse.json({ result });
+  return NextResponse.json({ result, notifications });
 }

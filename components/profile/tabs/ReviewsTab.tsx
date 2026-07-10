@@ -37,7 +37,7 @@ export function ReviewsTab({ reviews }: ReviewsTabProps): React.JSX.Element {
 
   if (reviews.length === 0) {
     return (
-      <div style={{ padding: "16px 20px" }}>
+      <div style={{ padding: "16px 0" }}>
         <p
           style={{
             fontFamily: "var(--font-space-mono)",
@@ -60,7 +60,7 @@ export function ReviewsTab({ reviews }: ReviewsTabProps): React.JSX.Element {
   const visible = reviews.slice(start, start + PAGE_SIZE);
 
   return (
-    <div style={{ padding: "16px 20px" }}>
+    <div style={{ padding: "16px 0" }}>
       {visible.map((item) => {
         const title = item.media.titleEnglish ?? item.media.title;
         const href =

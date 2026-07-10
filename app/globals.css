@@ -1091,3 +1091,115 @@ span.detail-sidebar-genre-link:hover {
   color: var(--fg-subtle);
   cursor: not-allowed;
 }
+
+/* ── Toast notifications ─────────────────────────────────────────────────── */
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toast-out-manual {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+
+@keyframes toast-out-auto {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(0); }
+}
+
+@keyframes toast-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+.toast-container {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100vw - 32px);
+  max-width: 340px;
+}
+
+@media (min-width: 640px) {
+  .toast-container {
+    left: auto;
+    right: 20px;
+    transform: none;
+    width: auto;
+    align-items: flex-end;
+  }
+}
+
+.toast-item {
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 280px;
+  max-width: 340px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-card-high);
+  border-radius: 2px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  animation: toast-in 150ms ease-out;
+  touch-action: pan-y;
+}
+
+.toast-item[data-dismissing="manual"] {
+  animation: toast-out-manual 150ms ease-in forwards;
+}
+
+.toast-item[data-dismissing="auto"] {
+  animation: toast-out-auto 150ms ease-in forwards;
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--primary);
+  animation: toast-progress 4000ms linear forwards;
+}
+
+.toast-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 14px;
+  line-height: 1;
+  color: #5a5a65;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.toast-close:hover {
+  color: #9e9ea8;
+}
+
+/* ── Notification bell dropdown ──────────────────────────────────────────── */
+
+.notif-footer {
+  transition: background 0.1s ease;
+}
+
+.notif-footer:hover {
+  background: var(--bg-surface);
+}

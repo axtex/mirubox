@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, X } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
+import type { ToastNotification } from "@/lib/xp";
 
 type Visibility = "public" | "private";
 type MediaType = "ANIME" | "MANGA";
@@ -27,6 +29,7 @@ interface SelectedTitle {
 
 export default function NewListPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("public");
@@ -115,7 +118,8 @@ export default function NewListPage() {
         setError(data.error ?? "Something went wrong.");
         return;
       }
-      const created = (await res.json()) as { slug: string };
+      const created = (await res.json()) as { slug: string; notifications?: ToastNotification[] };
+      created.notifications?.forEach((n) => showToast(n));
       router.push(`/lists/${created.slug}`);
     } catch {
       setError("Something went wrong. Please try again.");
@@ -148,7 +152,7 @@ export default function NewListPage() {
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-      <div className="page-container py-8" style={{ maxWidth: 560 }}>
+      <div className="py-8" style={{ maxWidth: 560 }}>
         <Link
           href="/lists"
           className="mb-5 flex w-fit items-center gap-1.5"

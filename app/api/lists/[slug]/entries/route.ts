@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getMediaById } from "@/lib/anilist";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
-import { awardXP } from "@/lib/xp";
+import { awardXP, type ToastNotification } from "@/lib/xp";
 
 interface RouteContext {
   params: Promise<{ slug: string }>;
@@ -67,9 +67,10 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
     },
   });
 
-  await awardXP(session.user.id, "ADD_TO_LIST", { mediaId: body.mediaId, listId: list.id });
+  const result = await awardXP(session.user.id, "ADD_TO_LIST", { mediaId: body.mediaId, listId: list.id });
+  const notifications: ToastNotification[] = result?.notifications ?? [];
 
-  return NextResponse.json(entry, { status: 201 });
+  return NextResponse.json({ ...entry, notifications }, { status: 201 });
 }
 
 export async function DELETE(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {

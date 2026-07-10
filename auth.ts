@@ -33,10 +33,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      if (user?.id) {
-        token.sub = user.id;
+      const userId = user?.id ?? token.sub;
+      // Refresh when signing in, or when profile fields are still missing (null/undefined).
+      // Important: older sessions may have username: null permanently if we only check undefined.
+      const needsProfile =
+        Boolean(userId) &&
+        (Boolean(user?.id) ||
+          !token.username ||
+          token.avatarUrl === undefined ||
+          token.displayName === undefined ||
+          token.onboarded === undefined);
+
+      if (userId && needsProfile) {
+        if (user?.id) token.sub = user.id;
         const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
+          where: { id: userId },
           select: {
             username: true,
             displayName: true,

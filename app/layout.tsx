@@ -9,6 +9,8 @@ import { LoginXPTracker } from "@/components/layout/LoginXPTracker";
 import { TrackerProvider } from "@/lib/tracker-context";
 import { AuthModalProvider } from "@/context/AuthModalContext";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { ToastProvider } from "@/context/ToastContext";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 import { SessionProviderWrapper } from "@/components/providers/SessionProviderWrapper";
 import { auth } from "@/auth";
 const anybody = Anybody({
@@ -59,18 +61,21 @@ export default async function RootLayout({
         `}
       >
         <SessionProviderWrapper session={session}>
-          <TrackerProvider isLoggedIn={!!session?.user}>
-            <AuthModalProvider>
-              <LoginXPTracker isLoggedIn={!!session?.user} />
-              <Navbar />
-              <MobileNav />
-              <main className="flex flex-1 flex-col min-h-0 pb-[56px] md:pb-0">
-                <PageContainer className="flex flex-1 flex-col min-h-0">{children}</PageContainer>
-              </main>
-              <Footer />
-              <AuthModal />
-            </AuthModalProvider>
-          </TrackerProvider>
+          <ToastProvider>
+            <TrackerProvider isLoggedIn={!!session?.user}>
+              <AuthModalProvider>
+                <LoginXPTracker isLoggedIn={!!session?.user} />
+                <Navbar />
+                <MobileNav />
+                <main className="flex flex-1 flex-col min-h-0 pb-[56px] md:pb-0">
+                  <PageContainer className="flex flex-1 flex-col min-h-0">{children}</PageContainer>
+                </main>
+                <Footer />
+                <AuthModal />
+                <ToastContainer />
+              </AuthModalProvider>
+            </TrackerProvider>
+          </ToastProvider>
         </SessionProviderWrapper>
       </body>
     </html>

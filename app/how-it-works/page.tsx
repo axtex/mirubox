@@ -236,7 +236,7 @@ const BADGE_CATEGORIES: Array<{ title: string; note?: string; badges: BadgeRow[]
 export default function HowItWorksPage() {
   return (
     <div style={{ background: "#0f0f12", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 20px" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 0" }}>
         <p style={{ ...PROSE_STYLE, marginBottom: 32 }}>
           mirubox is an anime and manga tracking platform. Add titles, track progress, rate and
           review what you&apos;ve watched, and build lists to share with others.
