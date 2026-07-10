@@ -5,11 +5,11 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Heart } from "lucide-react";
 import {
-  useArchive,
+  useTracker,
   STATUS_COLORS,
   STATUS_LABELS,
   isTrackedEntry,
-} from "@/lib/archive-context";
+} from "@/lib/tracker-context";
 import { LIST_STATUS_BUTTON_WIDTH } from "@/components/tracker/badgeStyles";
 import { useAuthModal } from "@/context/AuthModalContext";
 
@@ -19,7 +19,7 @@ interface AnimeCardActionsProps {
   /** "sm" = 24 px mobile row, "md" = 28 px desktop hover bar */
   iconSize?: "sm" | "md";
   /** Fired after a successful tracker add, status change, or remove (null = removed). */
-  onArchiveChange?: (status: string | null) => void;
+  onTrackerChange?: (status: string | null) => void;
   /** Fired after a successful favourite toggle. */
   onFavouriteChange?: (isFavourite: boolean) => void;
   /** Solid button backgrounds — for tracker poster overlays. */
@@ -44,7 +44,7 @@ export function AnimeCardActions({
   mediaId,
   mediaType,
   iconSize = "md",
-  onArchiveChange,
+  onTrackerChange,
   onFavouriteChange,
   opaque = false,
   sidebar = false,
@@ -53,10 +53,10 @@ export function AnimeCardActions({
 }: AnimeCardActionsProps) {
   const pathname = usePathname();
   const { openAuthModal } = useAuthModal();
-  const { isLoggedIn, archiveMap, favouriteIds, addToArchive, updateStatus, removeFromArchive, toggleFavourite } =
-    useArchive();
+  const { isLoggedIn, trackerMap, favouriteIds, addToTracker, updateStatus, removeFromTracker, toggleFavourite } =
+    useTracker();
 
-  const entry = archiveMap.get(mediaId) ?? null;
+  const entry = trackerMap.get(mediaId) ?? null;
   const isTracked = isTrackedEntry(entry);
   const status = isTracked ? entry!.status : null;
   const isFavourite = favouriteIds.has(mediaId);
@@ -110,7 +110,7 @@ export function AnimeCardActions({
       e.stopPropagation();
       if (!isLoggedIn) {
         openAuthModal({
-          reason: sidebar ? "track your progress on this title" : "add this to your archive",
+          reason: sidebar ? "track your progress on this title" : "add this to your tracker",
           callbackUrl: pathname,
         });
         return;
@@ -145,18 +145,18 @@ export function AnimeCardActions({
     async (value: string) => {
       setShowPicker(false);
       if (value === "__remove__") {
-        await removeFromArchive(mediaId);
-        onArchiveChange?.(null);
+        await removeFromTracker(mediaId);
+        onTrackerChange?.(null);
         return;
       }
       if (!isTracked) {
-        await addToArchive(mediaId, mediaType, value);
+        await addToTracker(mediaId, mediaType, value);
       } else {
         await updateStatus(mediaId, value);
       }
-      onArchiveChange?.(value);
+      onTrackerChange?.(value);
     },
-    [isTracked, mediaId, mediaType, addToArchive, updateStatus, removeFromArchive, onArchiveChange]
+    [isTracked, mediaId, mediaType, addToTracker, updateStatus, removeFromTracker, onTrackerChange]
   );
 
   const handleHeart = useCallback(

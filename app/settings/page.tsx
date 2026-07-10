@@ -26,7 +26,7 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 
 export default async function SettingsPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/settings");
+  if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/profile");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },

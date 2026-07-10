@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 // "/lists/new" is this project's actual create-list route (spec refers to it as "/lists/create").
-const protectedRoutes = ["/watchlist", "/archive", "/profile", "/settings", "/lists/new"];
+const protectedRoutes = ["/profile", "/settings", "/lists/new"];
 const onboardingExemptRoutes = ["/onboarding", "/auth"];
 
 export default auth((req) => {
@@ -15,7 +15,10 @@ export default auth((req) => {
 
   if (isProtected && !isLoggedIn) {
     const signInUrl = new URL("/auth/signin", nextUrl.origin);
-    signInUrl.searchParams.set("callbackUrl", nextUrl.pathname);
+    const callbackPath = nextUrl.pathname.startsWith("/settings")
+      ? "/profile"
+      : nextUrl.pathname;
+    signInUrl.searchParams.set("callbackUrl", callbackPath);
     return NextResponse.redirect(signInUrl);
   }
 

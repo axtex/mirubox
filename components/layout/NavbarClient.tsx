@@ -42,7 +42,7 @@ export function NavbarClient({ session: initialSession }: NavbarClientProps) {
       <button
         type="button"
         onClick={() =>
-          openAuthModal({ reason: "access your profile and archive", callbackUrl: pathname })
+          openAuthModal({ reason: "access your profile and tracker", callbackUrl: pathname })
         }
         className="btn-ghost"
         style={{ height: 32, minHeight: 32, padding: "0 14px", fontSize: 10 }}
@@ -111,7 +111,6 @@ export function NavbarClient({ session: initialSession }: NavbarClientProps) {
           {/* Nav items */}
           {[
             { href: "/profile",   label: "PROFILE" },
-            { href: "/archive",   label: "TRACKER" },
             { href: "/settings",  label: "SETTINGS" },
           ].map(({ href, label }) => (
             <DropdownLink key={href} href={href} onNavigate={() => setOpen(false)}>

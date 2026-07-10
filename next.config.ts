@@ -5,12 +5,22 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/watchlist",
-        destination: "/archive",
+        destination: "/tracker",
         permanent: true,
       },
       {
         source: "/watchlist/:path*",
-        destination: "/archive/:path*",
+        destination: "/tracker/:path*",
+        permanent: true,
+      },
+      {
+        source: "/archive",
+        destination: "/tracker",
+        permanent: true,
+      },
+      {
+        source: "/archive/:path*",
+        destination: "/tracker/:path*",
         permanent: true,
       },
     ];

@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { href: "/",          icon: Home,       label: "HOME",    active: (p: string) => p === "/" },
   { href: "/anime",     icon: Play,       label: "ANIME",   active: (p: string) => p.startsWith("/anime") },
   { href: "/search",    icon: Search,     label: "SEARCH",  active: (p: string) => p.startsWith("/search") },
-  { href: "/archive",   icon: BookMarked, label: "TRACKER", active: (p: string) => p.startsWith("/archive") },
+  { href: "/tracker",   icon: BookMarked, label: "TRACKER", active: (p: string) => p.startsWith("/tracker") },
   { href: "/profile",   icon: User,       label: "PROFILE", active: (p: string) => p.startsWith("/profile") },
 ];
 

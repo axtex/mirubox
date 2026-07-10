@@ -64,7 +64,7 @@ const XP_GROUPS: Array<{ title: string; note?: string; rows: XPRow[] }> = [
   {
     title: "TRACKING",
     rows: [
-      { name: "Add to archive", description: "Adding any title to your archive for the first time." },
+      { name: "Add to tracker", description: "Adding any title to your tracker for the first time." },
       { name: "Start watching", description: "Moving a title from Planned to In Progress." },
       {
         name: "Complete a series",

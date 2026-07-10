@@ -71,28 +71,26 @@ export function DiscoverCarousel({ picks, maxItems = 7 }: DiscoverCarouselProps)
       <div className="section-header">
         <div className="section-header-row">
           <h2 className="text-headline-md font-display uppercase">Discover</h2>
-          {canScroll && (
-            <div className="flex" style={{ gap: 4 }}>
-              <button
-                type="button"
-                onClick={handlePrev}
-                disabled={atStart}
-                aria-label="Scroll left"
-                className="scroll-row-arrow"
-              >
-                <ChevronLeft size={12} strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={atEnd}
-                aria-label="Scroll right"
-                className="scroll-row-arrow"
-              >
-                <ChevronRight size={12} strokeWidth={2} />
-              </button>
-            </div>
-          )}
+          <div className="hidden md:flex" style={{ gap: 4 }}>
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={atStart || !canScroll}
+              aria-label="Scroll left"
+              className="scroll-row-arrow"
+            >
+              <ChevronLeft size={12} strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={atEnd || !canScroll}
+              aria-label="Scroll right"
+              className="scroll-row-arrow"
+            >
+              <ChevronRight size={12} strokeWidth={2} />
+            </button>
+          </div>
         </div>
         <div className="section-underline" />
       </div>

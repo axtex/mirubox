@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { getLists } from "@/lib/list-queries";
-import { ListCard, CreateListCard, CreateListButton } from "@/components/lists/ListCard";
+import { ListCard, CreateListButton } from "@/components/lists/ListCard";
 
 export const metadata: Metadata = {
   title: "Lists — mirubox",
@@ -59,6 +59,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
 
   const isLoggedIn = !!session?.user?.id;
   const lists = await getLists(listType, session?.user?.id ?? null);
+  const canCreateList = listType === "community" || listType === "mine";
 
   const LIST_TABS = [
     { value: "official", label: "OFFICIAL" },
@@ -71,7 +72,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
       <div
         style={{
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: "center",
           justifyContent: "space-between",
           marginBottom: 24,
           gap: 16,
@@ -79,7 +80,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
       >
         <h1 className="text-headline-lg font-display uppercase">LISTS</h1>
 
-        <CreateListButton />
+        {canCreateList ? <CreateListButton /> : null}
       </div>
 
       <div
@@ -139,7 +140,6 @@ export default async function CommunityPage({ searchParams }: PageProps) {
           {lists.map((list) => (
             <ListCard key={list.id} list={list} />
           ))}
-          <CreateListCard />
         </div>
       )}
     </div>

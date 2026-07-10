@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { ChevronLeft, X } from "lucide-react";
 
 type Visibility = "public" | "private";
 type MediaType = "ANIME" | "MANGA";
@@ -151,17 +151,17 @@ export default function NewListPage() {
       <div className="page-container py-8" style={{ maxWidth: 560 }}>
         <Link
           href="/lists"
+          className="mb-5 flex w-fit items-center gap-1.5"
           style={{
             fontFamily: "var(--font-space-mono)",
             fontSize: 10,
             color: "var(--fg-muted)",
             textDecoration: "none",
             letterSpacing: "0.06em",
-            display: "inline-block",
-            marginBottom: 20,
           }}
         >
-          ← LISTS
+          <ChevronLeft className="w-3.5 h-3.5 shrink-0 -ml-[5px]" strokeWidth={2} />
+          LISTS
         </Link>
 
         <h1

@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useTransition, useRef, useEffect, type ReactNode } from "react";
-import { Search, X } from "lucide-react";
+import { ChevronRight, Search, X } from "lucide-react";
 import { FilterSelect } from "@/components/FilterSelect";
 import { SearchSkeletonGrid } from "@/components/search/SearchSkeletonGrid";
 
@@ -285,6 +285,7 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
             <div>
               {showHint && (
                 <p
+                  className="inline-flex items-center gap-1"
                   style={{
                     fontFamily: "var(--font-space-mono)",
                     fontSize: 9,
@@ -292,7 +293,8 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
                     marginBottom: 10,
                   }}
                 >
-                  Describe what you&apos;re in the mood for, then press →
+                  Describe what you&apos;re in the mood for, then press
+                  <ChevronRight className="w-3 h-3 shrink-0" strokeWidth={2} />
                 </p>
               )}
               <p

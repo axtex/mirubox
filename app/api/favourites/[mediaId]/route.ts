@@ -17,9 +17,17 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid mediaId" }, { status: 400 });
   }
 
-  await prisma.favourite.deleteMany({
-    where: { userId: session.user.id, mediaId },
-  });
+  await prisma.$transaction([
+    prisma.favourite.deleteMany({
+      where: { userId: session.user.id, mediaId },
+    }),
+    prisma.favouriteAnime.deleteMany({
+      where: { userId: session.user.id, mediaId },
+    }),
+    prisma.favouriteManga.deleteMany({
+      where: { userId: session.user.id, mediaId },
+    }),
+  ]);
 
   return NextResponse.json({ success: true });
 }

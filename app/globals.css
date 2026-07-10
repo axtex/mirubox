@@ -73,6 +73,7 @@
 html {
   background: var(--bg);
   color: var(--fg);
+  color-scheme: dark;
   font-family: var(--font-geist), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -109,6 +110,14 @@ h1, h2, h3 {
 }
 
 .font-body { font-family: var(--font-geist), system-ui, sans-serif; }
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
 
 .text-display {
   font-family: var(--font-anybody), system-ui, sans-serif;
@@ -548,6 +557,12 @@ span.detail-sidebar-genre-link:hover {
     width: 100%;
     max-width: none;
   }
+
+  .section-cards > * > .anime-card,
+  .section-cards > * > div > .anime-card {
+    width: 100%;
+    max-width: none;
+  }
 }
 
 /* ── Homepage section card row (single row, responsive) ─────────────────── */
@@ -672,81 +687,34 @@ span.detail-sidebar-genre-link:hover {
 /* ── Themed vertical scrollbar ──────────────────────────────────────────── */
 
 .scrollbar-theme {
+  color-scheme: dark;
   scrollbar-width: thin;
-  scrollbar-color: var(--fg-subtle) transparent;
+  scrollbar-color: var(--fg-muted) var(--bg-card);
   scrollbar-gutter: stable;
 }
 
 .scrollbar-theme::-webkit-scrollbar {
-  width: 5px;
+  -webkit-appearance: none;
+  width: 6px;
+  background: transparent;
 }
 
 .scrollbar-theme::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--bg-card);
   border-radius: 2px;
 }
 
 .scrollbar-theme::-webkit-scrollbar-thumb {
-  background: var(--fg-subtle);
+  background-color: var(--fg-muted);
   border-radius: 2px;
 }
 
 .scrollbar-theme::-webkit-scrollbar-thumb:hover {
-  background: var(--fg-muted);
+  background-color: var(--fg);
 }
 
-/* ── Archive folder cards ───────────────────────────────────────────────── */
-
-.archive-folder {
-  position: relative;
-  display: block;
-  min-height: 7.5rem;
-  padding: 1.85rem 1rem 1rem;
-  background: linear-gradient(180deg, var(--bg-card-high) 0%, var(--bg-card) 38%);
-  border: 1px solid var(--border);
-  border-radius: 0 6px 6px 6px;
-  overflow: hidden;
-  transition: border-color var(--transition), box-shadow var(--transition);
-}
-
-.archive-folder:hover {
-  border-color: var(--border-bright);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-}
-
-.archive-folder-tab {
-  position: absolute;
-  top: -1px;
-  left: -1px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.6rem;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-family: var(--font-space-mono), ui-monospace, monospace;
-  color: var(--fg-muted);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
-}
-
-.archive-folder-watermark {
-  position: absolute;
-  top: 0.65rem;
-  right: 0.5rem;
-  width: 2.75rem;
-  height: 2.75rem;
-  opacity: 0.14;
-  pointer-events: none;
-  transition: opacity var(--transition), transform var(--transition);
-}
-
-.archive-folder:hover .archive-folder-watermark {
-  opacity: 0.22;
-  transform: scale(1.05);
+.scrollbar-theme::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* ── Anime card hover glow ──────────────────────────────────────────────── */
@@ -1028,7 +996,7 @@ span.detail-sidebar-genre-link:hover {
   width: 22px;
   height: 22px;
   flex-shrink: 0;
-  margin-left: 12px;
+  margin-left: 0;
   padding: 0;
   font-size: 13px;
   line-height: 1;
@@ -1037,6 +1005,9 @@ span.detail-sidebar-genre-link:hover {
   border: 1px solid var(--bg-card-high);
   border-radius: 2px;
   cursor: pointer;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 

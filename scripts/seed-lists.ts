@@ -247,6 +247,26 @@ const OFFICIAL_LISTS: OfficialList[] = [
       30072,  // Homunculus
     ],
   },
+  {
+    slug: "comfort-rewatches",
+    title: "Comfort Rewatches",
+    description:
+      "Soft, warm, and endlessly rewatchable. The ones you put on when you need something familiar.",
+    mediaType: "ANIME",
+    ids: [
+      10165,  // Nichijou
+      20812,  // Shirobako
+      2167,   // Clannad
+      4224,   // Toradora!
+      12189,  // Hyouka
+      111762, // Fruits Basket Season 2
+      5680,   // K-On!
+      21827,  // Violet Evergarden
+      98444,  // Laid-Back Camp
+      21284,  // Flying Witch
+      20722,  // Barakamon
+    ],
+  },
 ];
 
 let requestCount = 0;

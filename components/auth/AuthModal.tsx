@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Mail } from "lucide-react";
+import { ChevronRight, Mail } from "lucide-react";
 import { useAuthModalState } from "@/context/AuthModalContext";
 
 type ModalState = "default" | "sent";
@@ -327,6 +327,7 @@ function SentState({ email, onTryAnother }: { email: string; onTryAnother: () =>
         <button
           type="button"
           onClick={onTryAnother}
+          className="inline-flex items-center gap-1"
           style={{
             background: "none",
             border: "none",
@@ -338,7 +339,8 @@ function SentState({ email, onTryAnother }: { email: string; onTryAnother: () =>
             cursor: "pointer",
           }}
         >
-          try another email →
+          try another email
+          <ChevronRight className="w-3 h-3 shrink-0" strokeWidth={2} />
         </button>
       </p>
     </div>

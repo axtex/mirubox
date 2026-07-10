@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ChevronLeft, Clock } from "lucide-react";
 import { auth } from "@/auth";
 import { getRecentActivity, timeAgo, xpIcon } from "@/lib/profile";
 
@@ -14,10 +14,10 @@ export default async function ProfileXpPage() {
     <div className="py-8" style={{ background: "var(--bg)", minHeight: "100vh" }}>
       <Link
         href="/profile"
-        className="inline-flex items-center gap-2 text-label mb-6 link-subtle"
+        className="mb-6 flex w-fit items-center gap-1.5 text-label link-subtle"
         style={{ color: "var(--fg-subtle)" }}
       >
-        <ArrowLeft className="w-3.5 h-3.5" />
+        <ChevronLeft className="w-3.5 h-3.5 shrink-0 -ml-[5px]" strokeWidth={2} />
         BACK TO PROFILE
       </Link>
 

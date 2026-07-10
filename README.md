@@ -12,7 +12,7 @@ Live at [mirubox.vercel.app](https://mirubox.vercel.app)
 
 ## What it does
 
-- **Track** — Add anime and manga to your archive with
+- **Track** — Add anime and manga to your tracker with
   status, episode/chapter progress, and ratings
 - **Discover** — Describe a mood or feeling and find titles
   that match using semantic search

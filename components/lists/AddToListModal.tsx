@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuthModal } from "@/context/AuthModalContext";
 
@@ -276,6 +276,7 @@ function AddToListModal({
                 href="/lists/new"
                 target="_blank"
                 rel="noopener noreferrer"
+                className="inline-flex items-center gap-1"
                 style={{
                   fontFamily: "var(--font-space-mono)",
                   fontSize: 10,
@@ -284,7 +285,8 @@ function AddToListModal({
                   textDecoration: "none",
                 }}
               >
-                + Create your first list →
+                + Create your first list
+                <ChevronRight className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
               </Link>
             </div>
           ) : (

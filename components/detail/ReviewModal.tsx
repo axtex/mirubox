@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
 
 interface ReviewData {
   content: string;
@@ -23,12 +24,18 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
   const [containsSpoilers, setContainsSpoilers] = useState(initialReview?.containsSpoilers ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const overlayRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const checkboxRef = useRef<HTMLInputElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const saveRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -41,9 +48,13 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
         return;
       }
       if (e.key === "Tab") {
-        const focusables = [textareaRef.current, checkboxRef.current, cancelRef.current, saveRef.current].filter(
-          (el): el is HTMLTextAreaElement | HTMLInputElement | HTMLButtonElement => el !== null
-        );
+        const focusables = [
+          closeRef.current,
+          textareaRef.current,
+          checkboxRef.current,
+          cancelRef.current,
+          saveRef.current,
+        ].filter((el): el is HTMLTextAreaElement | HTMLInputElement | HTMLButtonElement => el !== null);
         if (focusables.length === 0) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
@@ -85,16 +96,23 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
     }
   }
 
+  function handleDismiss(e?: MouseEvent) {
+    e?.stopPropagation();
+    onClose();
+  }
+
   const displayTitle = title.length > TITLE_TRUNCATE_LENGTH ? `${title.slice(0, TITLE_TRUNCATE_LENGTH)}…` : title;
   const isEmpty = content.trim().length === 0;
   const countColor =
     content.length >= MAX_LENGTH ? "var(--primary)" : content.length >= 900 ? "var(--warning)" : "var(--fg-faint)";
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       ref={overlayRef}
       onClick={(e) => {
-        if (e.target === overlayRef.current) onClose();
+        if (e.target === overlayRef.current) handleDismiss();
       }}
       style={{
         position: "fixed",
@@ -124,7 +142,7 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
           position: "relative",
         }}
       >
-        <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 14, gap: 12 }}>
           <span
             title={title}
             style={{
@@ -138,15 +156,16 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
               minWidth: 0,
+              flex: 1,
             }}
           >
             {displayTitle}
           </span>
           <button
+            ref={closeRef}
             type="button"
-            onClick={onClose}
+            onClick={handleDismiss}
             aria-label="Close"
-            tabIndex={-1}
             className="review-modal-close"
           >
             ×
@@ -227,7 +246,7 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
             <button
               ref={cancelRef}
               type="button"
-              onClick={onClose}
+              onClick={handleDismiss}
               className="review-modal-cancel"
             >
               CANCEL
@@ -244,6 +263,7 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

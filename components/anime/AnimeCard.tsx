@@ -5,18 +5,20 @@ import Image from "next/image";
 import { getDisplayTitle } from "@/lib/anilist";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 import { AnimeCardActions } from "./AnimeCardActions";
-import { useArchive, STATUS_COLORS, isTrackedEntry } from "@/lib/archive-context";
+import { useTracker, STATUS_COLORS, isTrackedEntry } from "@/lib/tracker-context";
 
 interface AnimeCardProps {
   anime: AnimeCardType;
   size?: "sm" | "md" | "lg";
   /** Kept for backward compat — context is now the source of truth */
-  watchlistStatus?: string | null;
+  trackerStatus?: string | null;
   userRating?: number | null;
-  similarity?: number | null;
-  /** Show the numeric match % badge. Only meaningful for taste-vector scores (e.g. FOR YOU) — leave off for noisy discover-search similarity. */
-  showMatchScore?: boolean;
   hideTitle?: boolean;
+  /** When set, poster click selects instead of navigating; hides tracker actions */
+  onSelect?: () => void;
+  /** 1-based rank badge shown when selected in a picker */
+  selectionRank?: number | null;
+  selectDisabled?: boolean;
 }
 
 const IMAGE_SIZES = {
@@ -28,16 +30,19 @@ const IMAGE_SIZES = {
 export function AnimeCard({
   anime,
   size = "md",
-  similarity,
-  showMatchScore = false,
   hideTitle = false,
+  onSelect,
+  selectionRank = null,
+  selectDisabled = false,
 }: AnimeCardProps) {
-  const { isLoggedIn, archiveMap } = useArchive();
+  const { isLoggedIn, trackerMap } = useTracker();
+  const selectMode = Boolean(onSelect);
 
-  const entry = archiveMap.get(anime.id) ?? null;
+  const entry = trackerMap.get(anime.id) ?? null;
   const isTracked = isTrackedEntry(entry);
   const status = isTracked ? entry!.status : null;
   const sc = status ? (STATUS_COLORS[status] ?? null) : null;
+  const selected = selectionRank != null && selectionRank > 0;
 
   const title = getDisplayTitle(anime.title);
   const score = anime.averageScore;
@@ -45,13 +50,18 @@ export function AnimeCard({
 
   return (
     <div
-      tabIndex={0}
+      tabIndex={selectMode ? -1 : 0}
       className={`anime-card anime-card--${size} group relative`}
       style={{
         borderRadius: 4,
-        border: sc ? `1px solid ${sc.border}` : "1px solid #1f1f22",
+        border: selected
+          ? "1.5px solid var(--primary)"
+          : sc
+            ? `1px solid ${sc.border}`
+            : "1px solid #1f1f22",
         transition: "border-color 0.2s ease",
         overflow: "hidden",
+        opacity: selectDisabled ? 0.45 : 1,
       }}
     >
       {/* ── Poster ── */}
@@ -74,12 +84,51 @@ export function AnimeCard({
           </div>
         )}
 
-        {/* Transparent link covering the whole poster */}
-        <Link
-          href={detailHref}
-          className="absolute inset-0 z-[1]"
-          aria-label={`View ${title}`}
-        />
+        {selectMode ? (
+          <button
+            type="button"
+            onClick={onSelect}
+            disabled={selectDisabled}
+            aria-pressed={selected}
+            aria-label={
+              selected ? `Remove ${title} from top 3` : `Add ${title} to top 3`
+            }
+            className="absolute inset-0 z-[1]"
+            style={{
+              cursor: selectDisabled ? "not-allowed" : "pointer",
+              background: "transparent",
+              border: "none",
+              padding: 0,
+            }}
+          />
+        ) : (
+          <Link
+            href={detailHref}
+            className="absolute inset-0 z-[1]"
+            aria-label={`View ${title}`}
+          />
+        )}
+
+        {selected ? (
+          <div
+            className="absolute top-1.5 left-1.5 z-[2] pointer-events-none"
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: 2,
+              background: "var(--primary)",
+              color: "#fff",
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 10,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {selectionRank}
+          </div>
+        ) : null}
 
         {/* Score pill — top right, always visible */}
         {score !== null && (
@@ -100,25 +149,27 @@ export function AnimeCard({
 
         {/* Desktop hover bar — gradient + action buttons, bottom of poster */}
         {/* pointer-events-none on the bar so clicks on the gradient fall through to the Link */}
-        <div
-          className="absolute bottom-0 left-0 right-0 z-[3] opacity-0 pointer-events-none
-                     group-hover:opacity-100
-                     transition-opacity duration-200"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)",
-            padding: "20px 7px 7px",
-          }}
-        >
-          {/* Re-enable pointer events only for the button row */}
-          <div className="pointer-events-auto w-full">
-            <AnimeCardActions mediaId={anime.id} mediaType={anime.type} iconSize="md" />
+        {!selectMode ? (
+          <div
+            className="absolute bottom-0 left-0 right-0 z-[3] opacity-0 pointer-events-none
+                       group-hover:opacity-100
+                       transition-opacity duration-200"
+            style={{
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)",
+              padding: "20px 7px 7px",
+            }}
+          >
+            {/* Re-enable pointer events only for the button row */}
+            <div className="pointer-events-auto w-full">
+              <AnimeCardActions mediaId={anime.id} mediaType={anime.type} iconSize="md" />
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       {/* ── Mobile icon row — permanent, below poster, logged-in only ── */}
-      {isLoggedIn && (
+      {isLoggedIn && !selectMode && (
         <div
           className="md:hidden flex justify-center py-1.5 w-full px-1.5"
           style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
@@ -136,6 +187,7 @@ export function AnimeCard({
               fontWeight: 500,
               color: "var(--fg)",
               lineHeight: 1.3,
+              minHeight: "2.6em",
               overflow: "hidden",
               display: "-webkit-box",
               WebkitLineClamp: 2,
@@ -145,33 +197,20 @@ export function AnimeCard({
           >
             {title}
           </p>
-          {(anime.format || anime.seasonYear) && (
-            <p
-              style={{
-                fontSize: 10,
-                color: "var(--fg-subtle)",
-                fontFamily: "var(--font-space-mono)",
-                marginTop: 3,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {[anime.format?.replace(/_/g, " "), anime.seasonYear].filter(Boolean).join(" · ")}
-            </p>
-          )}
-          {showMatchScore && similarity != null && (
-            <p
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-space-mono)",
-                color: "var(--primary)",
-                marginTop: 3,
-              }}
-            >
-              {Math.round(similarity * 100)}% MATCH
-            </p>
-          )}
+          <p
+            style={{
+              fontSize: 10,
+              color: "var(--fg-subtle)",
+              fontFamily: "var(--font-space-mono)",
+              marginTop: 3,
+              minHeight: 13,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {[anime.format?.replace(/_/g, " "), anime.seasonYear].filter(Boolean).join(" · ") || "\u00A0"}
+          </p>
         </div>
       )}
     </div>

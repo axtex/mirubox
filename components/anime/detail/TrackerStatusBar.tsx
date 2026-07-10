@@ -46,7 +46,7 @@ export function TrackerStatusBar({
   async function handleStatusChange(newStatus: string) {
     setSaving(true);
     try {
-      await fetch("/api/watchlist", {
+      await fetch("/api/tracker", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ animeId, status: newStatus, mediaType }),

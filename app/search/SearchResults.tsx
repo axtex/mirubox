@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { searchMedia } from "@/lib/anilist";
 import { AnimeCard } from "@/components/anime/AnimeCard";
 import { hybridSearch } from "@/lib/hybrid-search";
@@ -133,9 +134,10 @@ export async function SearchResults({ params }: SearchResultsProps) {
                 ),
                 page: String(page - 1),
               })}`}
-              className="btn-ghost"
+              className="btn-ghost inline-flex items-center gap-1.5"
             >
-              ← PREV
+              <ChevronLeft className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+              PREV
             </a>
           )}
           <span className="flex items-center px-4 text-label" style={{ color: "var(--fg-muted)" }}>
@@ -149,9 +151,10 @@ export async function SearchResults({ params }: SearchResultsProps) {
                 ),
                 page: String(page + 1),
               })}`}
-              className="btn-ghost"
+              className="btn-ghost inline-flex items-center gap-1.5"
             >
-              NEXT →
+              NEXT
+              <ChevronRight className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
             </a>
           )}
         </div>

@@ -6,7 +6,7 @@ import { MobileNav } from "@/components/layout/MobileNav";
 import { Footer } from "@/components/layout/Footer";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { LoginXPTracker } from "@/components/layout/LoginXPTracker";
-import { ArchiveProvider } from "@/lib/archive-context";
+import { TrackerProvider } from "@/lib/tracker-context";
 import { AuthModalProvider } from "@/context/AuthModalContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { SessionProviderWrapper } from "@/components/providers/SessionProviderWrapper";
@@ -59,7 +59,7 @@ export default async function RootLayout({
         `}
       >
         <SessionProviderWrapper session={session}>
-          <ArchiveProvider isLoggedIn={!!session?.user}>
+          <TrackerProvider isLoggedIn={!!session?.user}>
             <AuthModalProvider>
               <LoginXPTracker isLoggedIn={!!session?.user} />
               <Navbar />
@@ -70,7 +70,7 @@ export default async function RootLayout({
               <Footer />
               <AuthModal />
             </AuthModalProvider>
-          </ArchiveProvider>
+          </TrackerProvider>
         </SessionProviderWrapper>
       </body>
     </html>

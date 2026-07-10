@@ -123,31 +123,31 @@ export async function evaluateBadges(userId: string): Promise<BadgeKey[]> {
 // ─── Helper query functions ────────────────────────────────────────────────
 
 async function countCompleted(userId: string): Promise<number> {
-  return prisma.watchlistEntry.count({
+  return prisma.trackerEntry.count({
     where: { userId, status: "COMPLETED", anime: { type: "ANIME" } },
   });
 }
 
 async function countCompletedManga(userId: string): Promise<number> {
-  return prisma.watchlistEntry.count({
+  return prisma.trackerEntry.count({
     where: { userId, status: "COMPLETED", anime: { type: "MANGA" } },
   });
 }
 
 async function countCompletedByFormat(userId: string, formats: string[]): Promise<number> {
-  return prisma.watchlistEntry.count({
+  return prisma.trackerEntry.count({
     where: { userId, status: "COMPLETED", anime: { format: { in: formats } } },
   });
 }
 
 async function countByGenre(userId: string, genre: string): Promise<number> {
-  return prisma.watchlistEntry.count({
+  return prisma.trackerEntry.count({
     where: { userId, status: "COMPLETED", anime: { genres: { has: genre } } },
   });
 }
 
 async function countByDemographic(userId: string, demographic: string): Promise<number> {
-  return prisma.watchlistEntry.count({
+  return prisma.trackerEntry.count({
     where: { userId, status: "COMPLETED", anime: { demographic } },
   });
 }
@@ -167,7 +167,7 @@ async function getStreak(userId: string, type: "current" | "longest"): Promise<n
 }
 
 async function countUniqueGenres(userId: string): Promise<number> {
-  const entries = await prisma.watchlistEntry.findMany({
+  const entries = await prisma.trackerEntry.findMany({
     where: { userId, status: "COMPLETED" },
     include: { anime: { select: { genres: true } } },
   });
@@ -177,14 +177,14 @@ async function countUniqueGenres(userId: string): Promise<number> {
 
 // No `startDate` field is cached from AniList — seasonYear is used as the pre-Y2K signal instead.
 async function hasPreY2KTitle(userId: string): Promise<boolean> {
-  const entry = await prisma.watchlistEntry.findFirst({
+  const entry = await prisma.trackerEntry.findFirst({
     where: { userId, status: "COMPLETED", anime: { seasonYear: { lt: 2000 } } },
   });
   return !!entry;
 }
 
 async function countHiddenGems(userId: string): Promise<number> {
-  return prisma.watchlistEntry.count({
+  return prisma.trackerEntry.count({
     where: { userId, status: "COMPLETED", anime: { popularity: { lt: 10000 } } },
   });
 }
@@ -192,7 +192,7 @@ async function countHiddenGems(userId: string): Promise<number> {
 async function hasAllFormats(userId: string): Promise<boolean> {
   const formats = ["TV", "MANGA", "MOVIE", "OVA"];
   for (const format of formats) {
-    const entry = await prisma.watchlistEntry.findFirst({
+    const entry = await prisma.trackerEntry.findFirst({
       where: { userId, status: "COMPLETED", anime: { format } },
     });
     if (!entry) return false;
@@ -213,13 +213,13 @@ async function hasCompletedFranchise(): Promise<boolean> {
 }
 
 async function countMangaWithAnimeAdaptation(userId: string): Promise<number> {
-  return prisma.watchlistEntry.count({
+  return prisma.trackerEntry.count({
     where: { userId, status: "COMPLETED", anime: { type: "MANGA", hasAnimeAdaptation: true } },
   });
 }
 
 async function hasCompletedPublishingManga(userId: string): Promise<boolean> {
-  const entry = await prisma.watchlistEntry.findFirst({
+  const entry = await prisma.trackerEntry.findFirst({
     where: { userId, status: "COMPLETED", anime: { type: "MANGA", status: "RELEASING" } },
   });
   return !!entry;
@@ -266,13 +266,13 @@ async function countInvited(): Promise<number> {
 }
 
 async function countTop100Completed(userId: string): Promise<number> {
-  return prisma.watchlistEntry.count({
+  return prisma.trackerEntry.count({
     where: { userId, status: "COMPLETED", anime: { isTop100: true } },
   });
 }
 
 async function countHighScoreCompleted(userId: string, minScore: number): Promise<number> {
-  return prisma.watchlistEntry.count({
+  return prisma.trackerEntry.count({
     where: { userId, status: "COMPLETED", anime: { averageScore: { gte: minScore * 10 } } },
   });
 }

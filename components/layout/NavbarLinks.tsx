@@ -8,7 +8,7 @@ import { ChevronDown } from "lucide-react";
 const NAV_LINKS = [
   { href: "/anime",     label: "ANIME",     active: (p: string) => p.startsWith("/anime") },
   { href: "/manga",     label: "MANGA",     active: (p: string) => p.startsWith("/manga") },
-  { href: "/archive",   label: "TRACKER",   active: (p: string) => p.startsWith("/archive") },
+  { href: "/tracker",   label: "TRACKER",   active: (p: string) => p.startsWith("/tracker") },
 ];
 
 const COMMUNITY_LINKS = [

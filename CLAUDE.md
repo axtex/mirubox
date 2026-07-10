@@ -30,7 +30,7 @@ Document:
 3. What's next
 
 ## XP System
-- +5 XP for adding to watchlist
+- +5 XP for adding to tracker
 - +10 XP for marking completed
 - +10 XP for rating
 - Every 100 XP = 1 level up

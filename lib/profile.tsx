@@ -4,6 +4,9 @@ import { XPAction, type BadgeKey } from "@prisma/client";
 import { ReviewIcon } from "@/components/icons/ReviewIcon";
 import { prisma } from "@/lib/prisma";
 import { BADGE_DEFINITIONS } from "@/lib/badges";
+import { timeAgo } from "@/lib/time-ago";
+
+export { timeAgo };
 
 const ACTIVITY_MEDIA_SELECT = {
   id: true,
@@ -29,7 +32,7 @@ export type ActivityEvent = {
 };
 
 const ACTION_LABELS: Record<XPAction, string> = {
-  ADD_TO_ARCHIVE: "Added to archive",
+  ADD_TO_TRACKER: "Added to tracker",
   MARK_IN_PROGRESS: "Started watching",
   MARK_COMPLETED: "Marked as completed",
   MARK_COMPLETED_DIRECT: "Added as completed",
@@ -86,15 +89,6 @@ export async function getRecentActivity(userId: string, limit: number): Promise<
     createdAt: e.createdAt,
     anime: e.mediaId != null ? (animeMap.get(e.mediaId) ?? null) : null,
   }));
-}
-
-export function timeAgo(date: Date): string {
-  const diff = Date.now() - date.getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
 }
 
 export function xpIcon(action: XPAction): ReactNode {

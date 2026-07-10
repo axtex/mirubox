@@ -4,13 +4,13 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { List, LayoutGrid } from "lucide-react";
+import { ChevronRight, List, LayoutGrid } from "lucide-react";
 import { FilterSelect } from "@/components/FilterSelect";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
-import { STATUS_TABS, TYPE_TABS, statusToSlug, slugToStatus } from "@/app/archive/types";
-import { ListRow } from "@/app/archive/ListRow";
-import { GridCard } from "@/app/archive/GridCard";
-import type { EntryData, WatchlistStatus, MediaType, SortKey, MediaCounts } from "@/app/archive/types";
+import { STATUS_TABS, TYPE_TABS, statusToSlug, slugToStatus } from "@/app/tracker/types";
+import { ListRow } from "@/app/tracker/ListRow";
+import { GridCard } from "@/app/tracker/GridCard";
+import type { EntryData, TrackerStatus, MediaType, SortKey, MediaCounts } from "@/app/tracker/types";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "recent",  label: "RECENTLY ADDED ↓" },
@@ -25,7 +25,7 @@ interface Props {
   counts: Record<string, number>;
   mediaCounts: MediaCounts;
   mediaType: MediaType;
-  activeStatus: WatchlistStatus;
+  activeStatus: TrackerStatus;
   sort: SortKey;
   baseUrl?: string;
   showFavourites?: boolean;
@@ -39,7 +39,7 @@ export function TrackerList({
   mediaType,
   activeStatus,
   sort,
-  baseUrl = "/archive",
+  baseUrl = "/tracker",
   showFavourites = false,
   favouriteCount = 0,
 }: Props) {
@@ -59,7 +59,7 @@ export function TrackerList({
     localStorage.setItem("mirubox-tracker-view", v);
   }
 
-  function buildHref(type: MediaType, status: WatchlistStatus, s: SortKey): string {
+  function buildHref(type: MediaType, status: TrackerStatus, s: SortKey): string {
     const url = new URL(baseUrl, "http://x");
     if (type !== "ALL") url.searchParams.set("type", type.toLowerCase());
     else url.searchParams.delete("type");
@@ -95,7 +95,7 @@ export function TrackerList({
     if (!isFavourite) handleEntryRemove(animeId);
   }
 
-  function handleFavouriteOnlyArchive(animeId: number, status: string) {
+  function handleFavouriteOnlyTrack(animeId: number, status: string) {
     handleEntryUpdate(animeId, { isFavouriteOnly: false, status });
   }
 
@@ -109,8 +109,8 @@ export function TrackerList({
     ? `${mediaCounts.anime} titles`
     : `${mediaCounts.manga} titles`;
 
-  // In favourites view, separate archived vs favourite-only entries
-  const archivedEntries = localEntries.filter((e) => !e.isFavouriteOnly);
+  // In favourites view, separate tracked vs favourite-only entries
+  const trackedEntries = localEntries.filter((e) => !e.isFavouriteOnly);
   const favouriteOnlyEntries = localEntries.filter((e) => e.isFavouriteOnly);
 
   return (
@@ -266,8 +266,9 @@ export function TrackerList({
               <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)" }}>
                 No anime tracked yet.
               </p>
-              <Link href="/" className="btn-primary" style={{ minHeight: 36, padding: "7px 16px", fontSize: 10 }}>
-                BROWSE ANIME →
+              <Link href="/" className="btn-primary inline-flex items-center gap-1.5" style={{ minHeight: 36, padding: "7px 16px", fontSize: 10 }}>
+                BROWSE ANIME
+                <ChevronRight className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
               </Link>
             </>
           ) : mediaType === "MANGA" ? (
@@ -275,8 +276,9 @@ export function TrackerList({
               <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)" }}>
                 No manga tracked yet.
               </p>
-              <Link href="/manga" className="btn-primary" style={{ minHeight: 36, padding: "7px 16px", fontSize: 10 }}>
-                BROWSE MANGA →
+              <Link href="/manga" className="btn-primary inline-flex items-center gap-1.5" style={{ minHeight: 36, padding: "7px 16px", fontSize: 10 }}>
+                BROWSE MANGA
+                <ChevronRight className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
               </Link>
             </>
           ) : (
@@ -295,7 +297,7 @@ export function TrackerList({
       {/* ── Favourites view: list ────────────────────────────────────────── */}
       {showFavourites && localEntries.length > 0 && view === "list" && (
         <div className="flex flex-col relative" style={{ borderTop: "1px solid var(--border)" }}>
-          {archivedEntries.map((entry) => (
+          {trackedEntries.map((entry) => (
             <ListRow
               key={entry.animeId}
               entry={entry}
@@ -308,7 +310,7 @@ export function TrackerList({
             <FavouriteOnlyRow
               key={entry.animeId}
               entry={entry}
-              onArchive={handleFavouriteOnlyArchive}
+              onTrack={handleFavouriteOnlyTrack}
               onUnfavourite={handleFavouriteChange}
             />
           ))}
@@ -318,7 +320,7 @@ export function TrackerList({
       {/* ── Favourites view: grid ────────────────────────────────────────── */}
       {showFavourites && localEntries.length > 0 && view === "grid" && (
         <div className="grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-3">
-          {archivedEntries.map((entry) => (
+          {trackedEntries.map((entry) => (
             <GridCard
               key={entry.animeId}
               entry={entry}
@@ -331,7 +333,7 @@ export function TrackerList({
             <FavouriteOnlyCard
               key={entry.animeId}
               entry={entry}
-              onArchive={handleFavouriteOnlyArchive}
+              onTrack={handleFavouriteOnlyTrack}
               onUnfavourite={handleFavouriteChange}
             />
           ))}
@@ -373,11 +375,11 @@ export function TrackerList({
 
 function FavouriteOnlyRow({
   entry,
-  onArchive,
+  onTrack,
   onUnfavourite,
 }: {
   entry: EntryData;
-  onArchive: (animeId: number, status: string) => void;
+  onTrack: (animeId: number, status: string) => void;
   onUnfavourite: (animeId: number, isFavourite: boolean) => void;
 }) {
   const title = entry.anime.titleEnglish ?? entry.anime.title;
@@ -413,7 +415,7 @@ function FavouriteOnlyRow({
           mediaType={entry.mediaType}
           iconSize="sm"
           opaque
-          onArchiveChange={(status) => { if (status) onArchive(entry.animeId, status); }}
+          onTrackerChange={(status) => { if (status) onTrack(entry.animeId, status); }}
           onFavouriteChange={(isFavourite) => onUnfavourite(entry.animeId, isFavourite)}
         />
       </div>
@@ -423,11 +425,11 @@ function FavouriteOnlyRow({
 
 function FavouriteOnlyCard({
   entry,
-  onArchive,
+  onTrack,
   onUnfavourite,
 }: {
   entry: EntryData;
-  onArchive: (animeId: number, status: string) => void;
+  onTrack: (animeId: number, status: string) => void;
   onUnfavourite: (animeId: number, isFavourite: boolean) => void;
 }) {
   const title = entry.anime.titleEnglish ?? entry.anime.title;
@@ -464,7 +466,7 @@ function FavouriteOnlyCard({
             mediaType={entry.mediaType}
             iconSize="sm"
             opaque
-            onArchiveChange={(status) => { if (status) onArchive(entry.animeId, status); }}
+            onTrackerChange={(status) => { if (status) onTrack(entry.animeId, status); }}
             onFavouriteChange={(isFavourite) => onUnfavourite(entry.animeId, isFavourite)}
           />
         </div>

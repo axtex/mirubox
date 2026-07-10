@@ -88,7 +88,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
 
   if (session?.user?.id) {
     const [entry, rating, review] = await Promise.all([
-      prisma.watchlistEntry
+      prisma.trackerEntry
         .findUnique({
           where: { userId_animeId: { userId: session.user.id, animeId: numId } },
           select: { progress: true },

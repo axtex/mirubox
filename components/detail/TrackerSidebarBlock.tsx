@@ -4,10 +4,10 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Star } from "lucide-react";
 import {
-  useArchive,
+  useTracker,
   STATUS_COLORS,
   isTrackedEntry,
-} from "@/lib/archive-context";
+} from "@/lib/tracker-context";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import { ReviewModal } from "@/components/detail/ReviewModal";
 import { useAuthModal } from "@/context/AuthModalContext";
@@ -56,11 +56,11 @@ export function TrackerSidebarBlock({
   initialRating,
   initialReview,
 }: TrackerSidebarBlockProps) {
-  const { archiveMap, isLoggedIn } = useArchive();
+  const { trackerMap, isLoggedIn } = useTracker();
   const pathname = usePathname();
   const { openAuthModal } = useAuthModal();
 
-  const entry = archiveMap.get(mediaId) ?? null;
+  const entry = trackerMap.get(mediaId) ?? null;
   const isTracked = isTrackedEntry(entry);
   const status = isTracked ? entry!.status : null;
 
@@ -78,7 +78,7 @@ export function TrackerSidebarBlock({
   const displayRating = hoverRating ?? rating ?? 0;
 
   async function patchProgress(next: number, currentStatus: string) {
-    await fetch("/api/watchlist", {
+    await fetch("/api/tracker", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

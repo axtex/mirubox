@@ -10,9 +10,17 @@ interface Props {
   initialLiked: boolean;
   initialCount: number;
   isLoggedIn: boolean;
+  /** When true, show count only — no toggle (e.g. own list). */
+  canLike?: boolean;
 }
 
-export function LikeButton({ slug, initialLiked, initialCount, isLoggedIn }: Props) {
+export function LikeButton({
+  slug,
+  initialLiked,
+  initialCount,
+  isLoggedIn,
+  canLike = true,
+}: Props) {
   const pathname = usePathname();
   const { openAuthModal } = useAuthModal();
   const [liked, setLiked] = useState(initialLiked);
@@ -20,6 +28,7 @@ export function LikeButton({ slug, initialLiked, initialCount, isLoggedIn }: Pro
   const [pending, setPending] = useState(false);
 
   async function toggle() {
+    if (!canLike) return;
     if (!isLoggedIn) {
       openAuthModal({ reason: "like and save lists", callbackUrl: pathname });
       return;
@@ -30,6 +39,11 @@ export function LikeButton({ slug, initialLiked, initialCount, isLoggedIn }: Pro
     setCount((p) => (liked ? p - 1 : p + 1));
     try {
       const res = await fetch(`/api/lists/${slug}/like`, { method: "POST" });
+      if (!res.ok) {
+        setLiked((p) => !p);
+        setCount((p) => (liked ? p + 1 : p - 1));
+        return;
+      }
       const data = (await res.json()) as { liked: boolean; count: number };
       setLiked(data.liked);
       setCount(data.count);
@@ -41,32 +55,54 @@ export function LikeButton({ slug, initialLiked, initialCount, isLoggedIn }: Pro
     }
   }
 
+  const heart = (
+    <Heart
+      size={10}
+      fill={liked ? "#e8173f" : "none"}
+      stroke={liked ? "#e8173f" : "currentColor"}
+      aria-hidden
+    />
+  );
+
+  if (!canLike) {
+    return (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 3,
+          fontFamily: "var(--font-space-mono)",
+          fontSize: 10,
+          color: "var(--fg-muted)",
+        }}
+      >
+        {heart}
+        {count}
+      </span>
+    );
+  }
+
   return (
     <button
+      type="button"
       onClick={toggle}
       disabled={pending}
+      aria-label={liked ? "Unlike list" : "Like list"}
       style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3,
+        padding: 0,
+        border: "none",
+        background: "transparent",
         fontFamily: "var(--font-space-mono)",
         fontSize: 10,
-        letterSpacing: "0.06em",
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "5px 12px",
-        border: liked ? "1px solid #e8173f" : "1px solid #2a2a2d",
-        borderRadius: 2,
-        background: liked ? "rgba(232,23,63,0.08)" : "transparent",
         color: liked ? "#e8173f" : "var(--fg-muted)",
         cursor: pending ? "default" : "pointer",
-        transition: "all 0.15s ease",
+        transition: "color 0.15s ease",
       }}
     >
-      <Heart
-        size={10}
-        fill={liked ? "#e8173f" : "none"}
-        stroke={liked ? "#e8173f" : "currentColor"}
-        aria-hidden
-      />
+      {heart}
       {count}
     </button>
   );

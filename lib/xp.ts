@@ -4,7 +4,7 @@ import { evaluateBadges } from "@/lib/badges";
 
 // XP values — single source of truth
 export const XP_VALUES: Record<XPAction, number> = {
-  ADD_TO_ARCHIVE: 5,
+  ADD_TO_TRACKER: 5,
   MARK_IN_PROGRESS: 5,
   MARK_COMPLETED: 20,
   MARK_COMPLETED_DIRECT: 5,
@@ -24,18 +24,50 @@ export const XP_VALUES: Record<XPAction, number> = {
 
 // Rank thresholds
 export const RANKS = [
-  { name: "WATCHER", min: 0 },
-  { name: "TRACKER", min: 100 },
-  { name: "ARCHIVIST", min: 500 },
-  { name: "CURATOR", min: 1000 },
-  { name: "SCHOLAR", min: 2000 },
-  { name: "SAGE", min: 3500 },
-  { name: "LEGEND", min: 5000 },
+  { name: "WATCHER", min: 0, emoji: "👁" },
+  { name: "TRACKER", min: 100, emoji: "📌" },
+  { name: "ARCHIVIST", min: 500, emoji: "📂" },
+  { name: "CURATOR", min: 1000, emoji: "🎯" },
+  { name: "SCHOLAR", min: 2000, emoji: "⚡" },
+  { name: "SAGE", min: 3500, emoji: "🔮" },
+  { name: "LEGEND", min: 5000, emoji: "👑" },
 ] as const;
 
-export function computeRank(totalXP: number): string {
+export type RankName = (typeof RANKS)[number]["name"];
+
+export function computeRank(totalXP: number): RankName {
   const rank = [...RANKS].reverse().find((r) => totalXP >= r.min);
   return rank?.name ?? "WATCHER";
+}
+
+export interface RankProgress {
+  name: RankName;
+  emoji: string;
+  minXP: number;
+  nextName: RankName | null;
+  nextMinXP: number | null;
+  progressPct: number;
+  isMax: boolean;
+}
+
+export function getRankProgress(totalXP: number): RankProgress {
+  const index = [...RANKS].reverse().findIndex((r) => totalXP >= r.min);
+  const rankIndex = index === -1 ? 0 : RANKS.length - 1 - index;
+  const current = RANKS[rankIndex] ?? RANKS[0];
+  const next = RANKS[rankIndex + 1] ?? null;
+  const progressPct = next
+    ? Math.min(100, Math.max(0, ((totalXP - current.min) / (next.min - current.min)) * 100))
+    : 100;
+
+  return {
+    name: current.name,
+    emoji: current.emoji,
+    minXP: current.min,
+    nextName: next?.name ?? null,
+    nextMinXP: next?.min ?? null,
+    progressPct,
+    isMax: !next,
+  };
 }
 
 export interface AwardXPResult {
@@ -65,9 +97,9 @@ export async function awardXP(
     if (isDuplicate) return null;
   }
 
-  // Daily cap on ADD_TO_ARCHIVE — fair play, see /how-it-works
-  if (action === "ADD_TO_ARCHIVE") {
-    const todayCount = await countTodayActions(userId, "ADD_TO_ARCHIVE");
+  // Daily cap on ADD_TO_TRACKER — fair play, see /how-it-works
+  if (action === "ADD_TO_TRACKER") {
+    const todayCount = await countTodayActions(userId, "ADD_TO_TRACKER");
     if (todayCount >= 5) return null;
   }
 

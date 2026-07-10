@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { Heart, Plus } from "lucide-react";
-import { useArchive } from "@/lib/archive-context";
+import { useTracker } from "@/lib/tracker-context";
 import { useAuthModal } from "@/context/AuthModalContext";
 
 export interface ListCardData {
@@ -148,14 +148,14 @@ export function ListCard({ list }: { list: ListCardData }) {
             color: "var(--fg-muted)",
           }}
         >
-          {!list.isOfficial && list.username && (
-            <span>by {list.username}</span>
-          )}
           <span>{list.entryCount} titles</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
             <Heart size={10} fill="none" stroke="currentColor" aria-hidden />
             {list.likeCount}
           </span>
+          {!list.isOfficial && list.username && (
+            <span>by {list.username}</span>
+          )}
         </div>
       </div>
     </Link>
@@ -165,7 +165,7 @@ export function ListCard({ list }: { list: ListCardData }) {
 export function CreateListButton() {
   const router = useRouter();
   const pathname = usePathname();
-  const { isLoggedIn } = useArchive();
+  const { isLoggedIn } = useTracker();
   const { openAuthModal } = useAuthModal();
 
   function handleClick() {
@@ -181,7 +181,7 @@ export function CreateListButton() {
       type="button"
       onClick={handleClick}
       className="btn-primary shrink-0"
-      style={{ fontSize: 10, letterSpacing: "0.08em" }}
+      style={{ minHeight: 32, padding: "6px 12px", fontSize: 10, letterSpacing: "0.08em" }}
     >
       + CREATE LIST
     </button>
@@ -191,7 +191,7 @@ export function CreateListButton() {
 export function CreateListCard() {
   const router = useRouter();
   const pathname = usePathname();
-  const { isLoggedIn } = useArchive();
+  const { isLoggedIn } = useTracker();
   const { openAuthModal } = useAuthModal();
 
   function handleClick() {

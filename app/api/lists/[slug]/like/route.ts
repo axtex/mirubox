@@ -24,6 +24,9 @@ export async function POST(_req: NextRequest, ctx: RouteContext): Promise<NextRe
   if (!list.isPublic && list.userId !== session.user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  if (list.userId === session.user.id) {
+    return NextResponse.json({ error: "Cannot like your own list" }, { status: 403 });
+  }
 
   const existing = await prisma.listLike.findUnique({
     where: { userId_listId: { userId: session.user.id, listId: list.id } },

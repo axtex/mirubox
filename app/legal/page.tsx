@@ -64,7 +64,7 @@ export default function LegalPage() {
 
         <Section title="PRIVACY">
           <p style={BODY_STYLE}>
-            mirubox stores your email address and the content you create — archive entries,
+            mirubox stores your email address and the content you create — tracker entries,
             ratings, reviews, and lists. We do not sell your data or share it with advertisers.
           </p>
           <p style={BODY_STYLE}>
