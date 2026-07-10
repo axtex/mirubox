@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getMediaById, getDisplayTitle, splitLastWord } from "@/lib/anilist";
+import { cleanDescription } from "@/lib/clean-description";
 import { cacheAnimeAdaptationFlag } from "@/lib/anilist-cache";
 import { embedIfMissing } from "@/lib/embed-if-missing";
 import { auth } from "@/auth";
@@ -21,18 +22,51 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const media = await getMediaById(Number(id));
+  const numId = Number(id);
+  if (isNaN(numId)) return {};
+
+  const media = await getMediaById(numId);
   if (!media) return { title: "Not Found — mirubox" };
+
   const title = getDisplayTitle(media.title);
+  const year = media.seasonYear ? ` (${media.seasonYear})` : "";
+  const pageTitle = `${title}${year} — mirubox`;
+
+  const description =
+    cleanDescription(media.description, 160) ||
+    `${title} on mirubox — track, rate, and discover anime and manga.`;
+
+  const ogImage = media.bannerImage ?? media.coverImage.extraLarge ?? media.coverImage.large ?? null;
+  const url = `https://mirubox.vercel.app/manga/${numId}`;
+
   return {
-    title: `${title} — mirubox`,
-    description: media.description?.replace(/<[^>]*>/g, "").slice(0, 160) ?? undefined,
+    title: pageTitle,
+    description,
     openGraph: {
-      images: media.bannerImage
-        ? [media.bannerImage]
-        : media.coverImage.extraLarge
-          ? [media.coverImage.extraLarge]
-          : [],
+      title: pageTitle,
+      description,
+      type: "website",
+      url,
+      siteName: "mirubox",
+      ...(ogImage && {
+        images: [
+          {
+            url: ogImage,
+            width: media.bannerImage ? 1920 : 460,
+            height: media.bannerImage ? 400 : 650,
+            alt: title,
+          },
+        ],
+      }),
+    },
+    twitter: {
+      card: ogImage ? "summary_large_image" : "summary",
+      title: pageTitle,
+      description,
+      ...(ogImage && { images: [ogImage] }),
+    },
+    alternates: {
+      canonical: url,
     },
   };
 }

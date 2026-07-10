@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { GraphQLClient, gql } from "graphql-request";
 import type {
   AnimeCard,
@@ -268,7 +269,7 @@ export async function getMediaCardsByIds(ids: number[]): Promise<AnimeCard[]> {
   return results;
 }
 
-export async function getMediaById(id: number): Promise<AnimeDetail | null> {
+export const getMediaById = cache(async (id: number): Promise<AnimeDetail | null> => {
   const query = gql`
     ${ANIME_CARD_FRAGMENT}
     query GetMedia($id: Int) {
@@ -365,7 +366,7 @@ export async function getMediaById(id: number): Promise<AnimeDetail | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function getTopRated(
   type: "ANIME" | "MANGA" = "ANIME",

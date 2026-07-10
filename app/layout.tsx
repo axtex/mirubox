@@ -36,6 +36,19 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: "mirubox — Track. Discover. Explore.",
   description: "Intelligent anime & manga discovery platform",
+  metadataBase: new URL("https://mirubox.vercel.app"),
+  openGraph: {
+    siteName: "mirubox",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function RootLayout({

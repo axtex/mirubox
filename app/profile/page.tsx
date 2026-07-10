@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { ProfileView } from "@/components/profile/ProfileView";
 import { getProfileData, parseProfileTab } from "@/lib/profile-data";
+
+export const metadata: Metadata = {
+  title: "My Profile — mirubox",
+  robots: { index: false },
+};
 
 interface PageProps {
   searchParams: Promise<{ tab?: string }>;
