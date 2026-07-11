@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, X } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
+import { StatusMessage } from "@/components/ui/StatusMessage";
+import { StatusNotice } from "@/components/ui/StatusNotice";
 import type { ToastNotification } from "@/lib/xp";
 
 type Visibility = "public" | "private";
@@ -281,27 +283,13 @@ export default function NewListPage() {
                   }}
                 >
                   {searching ? (
-                    <p
-                      style={{
-                        fontFamily: "var(--font-space-mono)",
-                        fontSize: 10,
-                        color: "var(--fg-subtle)",
-                        padding: "10px 12px",
-                      }}
-                    >
+                    <StatusNotice pulse style={{ padding: "10px 12px" }}>
                       Searching…
-                    </p>
+                    </StatusNotice>
                   ) : results.length === 0 ? (
-                    <p
-                      style={{
-                        fontFamily: "var(--font-space-mono)",
-                        fontSize: 10,
-                        color: "var(--fg-subtle)",
-                        padding: "10px 12px",
-                      }}
-                    >
+                    <StatusMessage style={{ padding: "10px 12px" }}>
                       No results.
-                    </p>
+                    </StatusMessage>
                   ) : (
                     results.map((r) => (
                       <button
@@ -441,15 +429,9 @@ export default function NewListPage() {
 
           {/* Error */}
           {error && (
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 11,
-                color: "var(--primary)",
-              }}
-            >
+            <StatusMessage variant="error">
               {error}
-            </p>
+            </StatusMessage>
           )}
 
           {/* Buttons */}

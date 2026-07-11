@@ -53,8 +53,16 @@ export function OnboardingForm({ userId, initialDisplayName, callbackUrl }: Prop
     setUsernameStatus("checking");
     checkTimer.current = window.setTimeout(() => {
       fetch(`/api/users/check-username?username=${encodeURIComponent(username)}`)
-        .then((r) => r.json() as Promise<{ available: boolean }>)
-        .then((data) => setUsernameStatus(data.available ? "available" : "taken"))
+        .then((r) => {
+          if (r.status === 429) {
+            setUsernameStatus("idle");
+            return null;
+          }
+          return r.json() as Promise<{ available: boolean }>;
+        })
+        .then((data) => {
+          if (data) setUsernameStatus(data.available ? "available" : "taken");
+        })
         .catch(() => setUsernameStatus("idle"));
     }, 500);
 

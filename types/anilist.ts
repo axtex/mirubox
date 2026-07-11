@@ -87,9 +87,13 @@ export interface ExternalLink {
   id: number;
   url: string;
   site: string;
+  siteId: number | null;
   type: string | null;
+  language: string | null;
   icon: string | null;
   color: string | null;
+  notes: string | null;
+  isDisabled: boolean | null;
 }
 
 export interface NextAiringEpisode {

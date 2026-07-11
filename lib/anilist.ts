@@ -17,20 +17,29 @@ function isRateLimitError(err: unknown): boolean {
   return msg.includes("429") || msg.includes("Too Many");
 }
 
+const REQUEST_TIMEOUT_MS = 8000;
+
 async function anilistRequest<T>(
   query: string,
   variables?: Record<string, unknown>,
 ): Promise<T> {
   const maxAttempts = 4;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
-      return await client.request<T>(query, variables);
+      return await client.request<T>({ document: query, variables, signal: controller.signal });
     } catch (err) {
       if (isRateLimitError(err) && attempt < maxAttempts - 1) {
         await sleep(2000 * (attempt + 1));
         continue;
       }
-      throw err;
+      if (controller.signal.aborted) {
+        throw new Error("AniList request timed out", { cause: err });
+      }
+      throw new Error("Failed to fetch data from AniList", { cause: err });
+    } finally {
+      clearTimeout(timeout);
     }
   }
   throw new Error("AniList request failed");
@@ -340,9 +349,13 @@ export const getMediaById = cache(async (id: number): Promise<AnimeDetail | null
           id
           url
           site
+          siteId
           type
+          language
           icon
           color
+          notes
+          isDisabled
         }
         nextAiringEpisode {
           episode

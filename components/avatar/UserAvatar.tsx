@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AvatarGlyph } from "@/components/avatar/AvatarGlyph";
 import { getAvatarSeed } from "@/lib/avatar";
 
@@ -29,7 +30,8 @@ export function UserAvatar({
   borderWidth = 1,
 }: UserAvatarProps): React.JSX.Element {
   const seed = getAvatarSeed(username, userId);
-  const custom = isCustomUpload(avatarUrl);
+  const [imgFailed, setImgFailed] = useState(false);
+  const custom = isCustomUpload(avatarUrl) && !imgFailed;
 
   return (
     <div
@@ -53,8 +55,16 @@ export function UserAvatar({
           width={size}
           height={size}
           draggable={false}
+          onError={() => setImgFailed(true)}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
+      ) : isCustomUpload(avatarUrl) ? (
+        <div
+          className="flex items-center justify-center w-full h-full"
+          style={{ fontFamily: "var(--font-space-mono)", fontSize: size * 0.4, color: "var(--fg-subtle)" }}
+        >
+          {(displayName || "?")[0].toUpperCase()}
+        </div>
       ) : (
         <AvatarGlyph seed={seed} size={size} fill />
       )}

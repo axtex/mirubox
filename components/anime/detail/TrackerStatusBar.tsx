@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 
 const UNIFIED_STATUSES = [
   { value: "PLANNED",     label: "PLANNED",     dot: "#e4e1e6" },
@@ -29,6 +30,7 @@ export function TrackerStatusBar({
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { showToast } = useToast();
 
   const current = UNIFIED_STATUSES.find((s) => s.value === status);
 
@@ -46,12 +48,15 @@ export function TrackerStatusBar({
   async function handleStatusChange(newStatus: string) {
     setSaving(true);
     try {
-      await fetch("/api/tracker", {
+      const res = await fetch("/api/tracker", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ animeId, status: newStatus, mediaType }),
       });
+      if (!res.ok) throw new Error("Failed to update tracker");
       setStatus(newStatus);
+    } catch {
+      showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     } finally {
       setSaving(false);
     }
@@ -61,20 +66,22 @@ export function TrackerStatusBar({
     const next = rating === score ? null : score;
     setSaving(true);
     try {
-      if (next === null) {
-        await fetch("/api/ratings", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ animeId }),
-        });
-      } else {
-        await fetch("/api/ratings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ animeId, score: next }),
-        });
-      }
+      const res =
+        next === null
+          ? await fetch("/api/ratings", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ animeId }),
+            })
+          : await fetch("/api/ratings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ animeId, score: next }),
+            });
+      if (!res.ok) throw new Error("Failed to update rating");
       setRating(next);
+    } catch {
+      showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     } finally {
       setSaving(false);
     }

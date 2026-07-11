@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Mail } from "lucide-react";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 
 const MONO = "var(--font-space-mono)";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -156,9 +157,9 @@ export function SignInForm() {
 
               <div style={{ opacity: 0.4, pointerEvents: "none", userSelect: "none" }}>
                 {error && (
-                  <p style={{ fontFamily: MONO, fontSize: 9, color: "var(--primary)", marginBottom: 10 }}>
+                  <StatusMessage variant="error" style={{ marginBottom: 10 }}>
                     {error}
-                  </p>
+                  </StatusMessage>
                 )}
 
                 <button

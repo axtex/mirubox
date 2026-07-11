@@ -81,7 +81,8 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
   const hasQuery = q.length >= 2;
   const hasFilter = !!(genre || status || format || year || sort || season);
-  const showResults = tab === "browse" ? (hasFilter || hasQuery) : hasQuery;
+  // Browse keyword search is handled client-side (local DB). Server results only for filters.
+  const showResults = tab === "browse" ? hasFilter : hasQuery;
 
   return (
     <div className="py-12 min-h-screen" style={{ background: "var(--bg)" }}>

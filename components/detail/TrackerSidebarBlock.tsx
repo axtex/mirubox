@@ -12,6 +12,7 @@ import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import { AddToListButton } from "@/components/lists/AddToListModal";
 import { ReviewModal } from "@/components/detail/ReviewModal";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { useToast } from "@/context/ToastContext";
 import { trackerProgressPct } from "@/lib/tracker-progress";
 
 interface ReviewData {
@@ -61,6 +62,7 @@ export function TrackerSidebarBlock({
   const { trackerMap, isLoggedIn } = useTracker();
   const pathname = usePathname();
   const { openAuthModal } = useAuthModal();
+  const { showToast } = useToast();
 
   const entry = trackerMap.get(mediaId) ?? null;
   const isTracked = isTrackedEntry(entry);
@@ -79,8 +81,8 @@ export function TrackerSidebarBlock({
   const hasReview = savedReview !== null;
   const displayRating = hoverRating ?? rating ?? 0;
 
-  async function patchProgress(next: number, currentStatus: string) {
-    await fetch("/api/tracker", {
+  async function patchProgress(next: number, currentStatus: string): Promise<boolean> {
+    const res = await fetch("/api/tracker", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -90,31 +92,45 @@ export function TrackerSidebarBlock({
         mediaType,
       }),
     });
+    return res.ok;
   }
 
   async function handleProgress(delta: number) {
     if (!status) return;
+    const prev = progress;
     const next = Math.max(0, progress + delta);
     if (total !== null && next > total) return;
     setProgress(next);
-    await patchProgress(next, status);
+    try {
+      const ok = await patchProgress(next, status);
+      if (!ok) throw new Error("Failed to update progress");
+    } catch {
+      setProgress(prev);
+      showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
+    }
   }
 
   async function handleRating(score: number) {
+    const prev = rating;
     const next = rating === score ? null : score;
     setRating(next);
-    if (next === null) {
-      await fetch("/api/ratings", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ animeId: mediaId }),
-      });
-    } else {
-      await fetch("/api/ratings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ animeId: mediaId, score: next }),
-      });
+    try {
+      const res =
+        next === null
+          ? await fetch("/api/ratings", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ animeId: mediaId }),
+            })
+          : await fetch("/api/ratings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ animeId: mediaId, score: next }),
+            });
+      if (!res.ok) throw new Error("Failed to update rating");
+    } catch {
+      setRating(prev);
+      showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     }
   }
 

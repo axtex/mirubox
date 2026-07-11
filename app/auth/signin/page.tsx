@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { SignInForm } from "./SignInForm";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 
 export default function SignInPage() {
   return (
@@ -7,7 +8,7 @@ export default function SignInPage() {
       className="min-h-dvh flex items-center justify-center px-4"
       style={{ background: "var(--bg)" }}
     >
-      <Suspense fallback={<div style={{ color: "var(--fg-muted)" }} className="text-sm">Loading…</div>}>
+      <Suspense fallback={<StatusMessage block variant="muted">Loading…</StatusMessage>}>
         <SignInForm />
       </Suspense>
     </div>

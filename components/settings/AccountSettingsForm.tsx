@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 
 const MONO = "var(--font-space-mono)";
 
@@ -110,9 +111,9 @@ export function AccountSettingsForm({
           onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
         />
         {error && (
-          <p style={{ fontFamily: MONO, fontSize: 9, color: "var(--primary)", marginTop: 5 }}>
+          <StatusMessage variant="error" style={{ marginTop: 5 }}>
             {error}
-          </p>
+          </StatusMessage>
         )}
         {dirty && (
           <button

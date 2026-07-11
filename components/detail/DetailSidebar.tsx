@@ -1,15 +1,9 @@
-import { ExternalLink } from "lucide-react";
 import { TrackerSidebarBlock } from "@/components/detail/TrackerSidebarBlock";
+import type { StreamingLink } from "@/lib/streaming-links";
 
 interface SidebarDetailsRow {
   label: string;
   value: string | null | undefined;
-}
-
-interface SidebarExternalLink {
-  id: number;
-  url: string;
-  site: string;
 }
 
 interface TrackerSidebarProps {
@@ -27,8 +21,9 @@ interface DetailSidebarProps {
   details: SidebarDetailsRow[];
   watchSection?: {
     title: string;
-    links: SidebarExternalLink[];
-    emptyMessage: string;
+    links: StreamingLink[];
+    isFallback: boolean;
+    fallbackNote: string;
   };
   nextEpisodeLabel?: string | null;
 }
@@ -126,27 +121,26 @@ export function DetailSidebar({
         );
       })()}
 
-      {watchSection && (
+      {watchSection && watchSection.links.length > 0 && (
         <div className="detail-sidebar-section">
           <p className="detail-sidebar-section-title">{watchSection.title}</p>
-          <div className="detail-sidebar-block detail-sidebar-block--links">
-            {watchSection.links.length > 0 ? (
-              watchSection.links.map((link) => (
-                <a
-                  key={link.id}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="detail-sidebar-watch-link"
-                >
-                  <span>{link.site}</span>
-                  <ExternalLink size={10} className="detail-sidebar-watch-link-icon" aria-hidden />
-                </a>
-              ))
-            ) : (
-              <p className="detail-sidebar-empty">{watchSection.emptyMessage}</p>
-            )}
+          <div className="detail-watch-links">
+            {watchSection.links.map((link) => (
+              <a
+                key={link.url}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="detail-watch-link"
+                style={link.color ? { borderLeft: `2px solid ${link.color}` } : undefined}
+              >
+                <span>{link.site}</span>
+              </a>
+            ))}
           </div>
+          {watchSection.isFallback && (
+            <p className="detail-watch-fallback-note">{watchSection.fallbackNote}</p>
+          )}
         </div>
       )}
 

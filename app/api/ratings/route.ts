@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { awardXP, type ToastNotification } from "@/lib/xp";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 function isValidId(n: unknown): n is number {
   return (
@@ -38,6 +39,9 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { success } = await rateLimit(`ratings:${session.user.id}`, 30, 60000);
+  if (!success) return rateLimitResponse();
 
   let body: { animeId?: unknown; score?: unknown };
   try {

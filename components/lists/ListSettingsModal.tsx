@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 
 type Visibility = "public" | "private";
 
@@ -237,9 +238,9 @@ export function ListSettingsModal({
           </div>
 
           {error && (
-            <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--primary)" }}>
+            <StatusMessage variant="error">
               {error}
-            </p>
+            </StatusMessage>
           )}
 
           <div className="flex items-center justify-between" style={{ gap: 8, paddingTop: 2 }}>

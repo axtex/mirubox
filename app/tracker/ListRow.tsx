@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import { ReviewBadge } from "@/components/tracker/ReviewBadge";
 import { RatingBadge } from "@/components/tracker/RatingBadge";
@@ -122,7 +122,7 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
       <Link href={href} className="shrink-0">
         <div className="relative overflow-hidden" style={{ width: 40, height: 56, borderRadius: 2 }}>
           {anime.coverImage ? (
-            <Image src={anime.coverImage} alt={title} fill sizes="40px" className="object-cover" />
+            <ImageWithFallback src={anime.coverImage} alt={title} fill sizes="40px" className="object-cover" />
           ) : (
             <div className="w-full h-full" style={{ background: "var(--bg-elevated)" }} />
           )}

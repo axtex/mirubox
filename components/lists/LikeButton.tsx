@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Heart } from "lucide-react";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { useToast } from "@/context/ToastContext";
 
 interface Props {
   slug: string;
@@ -23,6 +24,7 @@ export function LikeButton({
 }: Props) {
   const pathname = usePathname();
   const { openAuthModal } = useAuthModal();
+  const { showToast } = useToast();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [pending, setPending] = useState(false);
@@ -42,6 +44,7 @@ export function LikeButton({
       if (!res.ok) {
         setLiked((p) => !p);
         setCount((p) => (liked ? p + 1 : p - 1));
+        showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
         return;
       }
       const data = (await res.json()) as { liked: boolean; count: number };
@@ -50,6 +53,7 @@ export function LikeButton({
     } catch {
       setLiked((p) => !p);
       setCount((p) => (liked ? p + 1 : p - 1));
+      showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     } finally {
       setPending(false);
     }

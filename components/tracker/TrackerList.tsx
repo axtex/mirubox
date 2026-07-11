@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { useRouter } from "next/navigation";
 import { ChevronRight, List, LayoutGrid } from "lucide-react";
 import { FilterSelect } from "@/components/FilterSelect";
@@ -11,6 +11,7 @@ import { STATUS_TABS, TYPE_TABS, statusToSlug, slugToStatus } from "@/app/tracke
 import { ListRow } from "@/app/tracker/ListRow";
 import { GridCard } from "@/app/tracker/GridCard";
 import type { EntryData, TrackerStatus, MediaType, SortKey, MediaCounts } from "@/app/tracker/types";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "recent",  label: "RECENTLY ADDED ↓" },
@@ -245,12 +246,10 @@ export function TrackerList({
       {/* ── Favourites view: empty state ────────────────────────────────── */}
       {showFavourites && localEntries.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-          <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)" }}>
-            No favourites yet.
-          </p>
-          <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-subtle)" }}>
+          <StatusMessage block variant="muted">No favourites yet.</StatusMessage>
+          <StatusMessage block style={{ fontSize: 10, letterSpacing: "0.04em" }}>
             Tap the heart icon on any title to save it here.
-          </p>
+          </StatusMessage>
         </div>
       )}
 
@@ -258,14 +257,10 @@ export function TrackerList({
       {!showFavourites && localEntries.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
           {activeStatus !== "ALL" ? (
-            <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)" }}>
-              Nothing here.
-            </p>
+            <StatusMessage block variant="muted">Nothing here.</StatusMessage>
           ) : mediaType === "ANIME" ? (
             <>
-              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)" }}>
-                No anime tracked yet.
-              </p>
+              <StatusMessage block variant="muted">No anime tracked yet.</StatusMessage>
               <Link href="/" className="btn-primary inline-flex items-center gap-1.5" style={{ minHeight: 36, padding: "7px 16px", fontSize: 10 }}>
                 BROWSE ANIME
                 <ChevronRight className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
@@ -273,9 +268,7 @@ export function TrackerList({
             </>
           ) : mediaType === "MANGA" ? (
             <>
-              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)" }}>
-                No manga tracked yet.
-              </p>
+              <StatusMessage block variant="muted">No manga tracked yet.</StatusMessage>
               <Link href="/manga" className="btn-primary inline-flex items-center gap-1.5" style={{ minHeight: 36, padding: "7px 16px", fontSize: 10 }}>
                 BROWSE MANGA
                 <ChevronRight className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
@@ -283,12 +276,10 @@ export function TrackerList({
             </>
           ) : (
             <>
-              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "var(--fg-muted)" }}>
-                Your tracker is empty.
-              </p>
-              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-subtle)" }}>
+              <StatusMessage block variant="muted">Your tracker is empty.</StatusMessage>
+              <StatusMessage block style={{ fontSize: 10, letterSpacing: "0.04em" }}>
                 Add anime and manga from their detail pages.
-              </p>
+              </StatusMessage>
             </>
           )}
         </div>
@@ -393,7 +384,7 @@ function FavouriteOnlyRow({
       <Link href={href} className="shrink-0">
         <div className="relative overflow-hidden" style={{ width: 40, height: 56, borderRadius: 2 }}>
           {entry.anime.coverImage ? (
-            <Image src={entry.anime.coverImage} alt={title} fill sizes="40px" className="object-cover" />
+            <ImageWithFallback src={entry.anime.coverImage} alt={title} fill sizes="40px" className="object-cover" />
           ) : (
             <div className="w-full h-full" style={{ background: "var(--bg-elevated)" }} />
           )}
@@ -442,7 +433,7 @@ function FavouriteOnlyCard({
     >
       <div className="relative aspect-[2/3] overflow-hidden">
         {entry.anime.coverImage ? (
-          <Image
+          <ImageWithFallback
             src={entry.anime.coverImage}
             alt={title}
             fill

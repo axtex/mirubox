@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useCallback, useState, type ReactNode } from "react";
 
-export type ToastType = "BADGE_EARNED" | "RANK_UP" | "LIST_LIKED" | "XP";
+export type ToastType = "BADGE_EARNED" | "RANK_UP" | "LIST_LIKED" | "XP" | "ERROR";
 
 export interface Toast {
   id: string;

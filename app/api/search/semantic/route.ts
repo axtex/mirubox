@@ -1,11 +1,15 @@
 import { auth } from "@/auth";
 import { hybridSearch } from "@/lib/hybrid-search";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { success } = await rateLimit(`semantic:${session.user.id}`, 20, 60000);
+  if (!success) return rateLimitResponse();
 
   let body: { query?: unknown; limit?: unknown };
   try {

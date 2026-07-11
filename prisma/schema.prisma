@@ -313,6 +313,12 @@ model Notification {
   @@index([userId, createdAt])
 }
 
+model RateLimit {
+  key         String   @id
+  count       Int      @default(1)
+  windowStart DateTime @default(now())
+}
+
 enum NotifType {
   BADGE_EARNED
   RANK_UP

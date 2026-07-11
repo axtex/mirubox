@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import type { EntryData } from "./types";
 import { trackerProgressPct } from "@/lib/tracker-progress";
@@ -28,7 +28,7 @@ export function GridCard({ entry, onUpdate, onRemove, onFavouriteChange }: Props
     >
       <div className="relative aspect-[2/3] overflow-hidden">
         {anime.coverImage ? (
-          <Image
+          <ImageWithFallback
             src={anime.coverImage}
             alt={title}
             fill

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { awardXP, type ToastNotification } from "@/lib/xp";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 function toSlug(title: string): string {
   return title
@@ -119,6 +120,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { success } = await rateLimit(`lists:${session.user.id}`, 10, 60000);
+  if (!success) return rateLimitResponse();
 
   let body: {
     title?: string;

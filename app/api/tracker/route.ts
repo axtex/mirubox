@@ -5,6 +5,7 @@ import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { getMediaById } from "@/lib/anilist";
 import { awardXP, checkAndAwardSeasonChallenge, type ToastNotification } from "@/lib/xp";
 import { embedAnimeIfNeeded } from "@/lib/embed-on-cache";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const SHORT_FORMATS = ["MOVIE", "OVA", "SPECIAL", "MUSIC"];
 
@@ -52,6 +53,9 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { success } = await rateLimit(`watchlist:${session.user.id}`, 30, 60000);
+  if (!success) return rateLimitResponse();
 
   let body: {
     animeId?: unknown;
@@ -192,6 +196,9 @@ export async function DELETE(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { success } = await rateLimit(`watchlist:${session.user.id}`, 30, 60000);
+  if (!success) return rateLimitResponse();
 
   let body: { animeId?: unknown };
   try {

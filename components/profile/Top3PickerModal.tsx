@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AnimeCard } from "@/components/anime/AnimeCard";
 import type { ProfileMedia } from "@/lib/profile-types";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 
 const MAX_TOP = 3;
 
@@ -252,30 +253,14 @@ export function Top3PickerModal({
           }}
         >
           {loading ? (
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 10,
-                color: "var(--fg-faint)",
-                margin: "24px 0",
-                textAlign: "center",
-              }}
-            >
+            <StatusMessage block variant="faint" style={{ margin: "24px 0" }}>
               Loading…
-            </p>
+            </StatusMessage>
           ) : pool.length === 0 ? (
             <div style={{ textAlign: "center", padding: "28px 8px" }}>
-              <p
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  color: "var(--fg-muted)",
-                  margin: "0 0 12px",
-                  lineHeight: 1.5,
-                }}
-              >
+              <StatusMessage block variant="muted" style={{ margin: "0 0 12px", lineHeight: 1.5, textTransform: "none", letterSpacing: "0.02em" }}>
                 Heart {type} in Tracker first, then pick your Top 3 here.
-              </p>
+              </StatusMessage>
               <Link
                 href="/tracker?favourites=true"
                 style={{
@@ -319,16 +304,9 @@ export function Top3PickerModal({
         </div>
 
         {error ? (
-          <p
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 9,
-              color: "var(--primary)",
-              margin: "0 16px 8px",
-            }}
-          >
+          <StatusMessage variant="error" style={{ margin: "0 16px 8px" }}>
             {error}
-          </p>
+          </StatusMessage>
         ) : null}
 
         <div

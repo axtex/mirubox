@@ -2,6 +2,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { searchMedia } from "@/lib/anilist";
 import { AnimeCard } from "@/components/anime/AnimeCard";
 import { hybridSearch } from "@/lib/hybrid-search";
+import { ANIME_DISCOVER, MANGA_DISCOVER } from "@/lib/discover-entries";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 import type { SearchFilters } from "@/lib/anilist";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 import type { HybridResult } from "@/lib/hybrid-search";
@@ -47,13 +49,13 @@ function ResultsLabel({ query, count, mode }: { query: string; count: number; mo
           fontFamily: "var(--font-space-mono)",
           fontSize: 9,
           letterSpacing: "0.08em",
-          color: "#5a5a65",
+          color: "var(--fg-subtle)",
           textTransform: "uppercase",
         }}
       >
         {left}
       </span>
-      <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "#3a3a45" }}>
+      <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "var(--fg-faint)" }}>
         {count} found
       </span>
     </div>
@@ -74,16 +76,16 @@ export async function SearchResults({ params }: SearchResultsProps) {
   const isBrowseMode = str(params.tab) === "browse";
 
   /* ── Hybrid semantic search ──────────────────────────────────────── */
-  if (query.length >= 2 && type === "ANIME" && !isBrowseMode) {
+  if (query.length >= 2 && !isBrowseMode) {
     let results: HybridResult[] = [];
     try {
-      results = await hybridSearch(query, { type: "ANIME" });
+      results = await hybridSearch(query, { type });
     } catch {
       return <EmptyState message="SEARCH UNAVAILABLE — TRY AGAIN" />;
     }
 
     if (results.length === 0) {
-      return <DiscoverEmptyState />;
+      return <DiscoverEmptyState type={type} />;
     }
 
     return (
@@ -166,12 +168,8 @@ export async function SearchResults({ params }: SearchResultsProps) {
 function BrowseEmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-24 gap-2 text-center">
-      <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65" }}>
-        No results.
-      </p>
-      <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65" }}>
-        Try adjusting your filters.
-      </p>
+      <StatusMessage block>No results.</StatusMessage>
+      <StatusMessage block>Try adjusting your filters.</StatusMessage>
     </div>
   );
 }
@@ -179,42 +177,37 @@ function BrowseEmptyState() {
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 gap-2 text-center">
-      <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65" }}>
-        {message}
-      </p>
+      <StatusMessage block>{message}</StatusMessage>
     </div>
   );
 }
 
-const DISCOVER_EMPTY_PROMPTS = [
-  "cozy witches",
-  "found family in a broken world",
-  "slow burn that wrecks you",
-  "psychological thriller with a twist",
-];
+function DiscoverEmptyState({ type }: { type: "ANIME" | "MANGA" }) {
+  const prompts = (type === "MANGA" ? MANGA_DISCOVER : ANIME_DISCOVER)
+    .slice(0, 4)
+    .map((entry) => entry.label);
 
-function DiscoverEmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <p style={{ fontSize: 14, fontWeight: 500, color: "#e4e1e6", marginBottom: 6 }}>
+      <p style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)", marginBottom: 6 }}>
         No matches found
       </p>
-      <p
+      <StatusMessage
+        block
         style={{
-          fontFamily: "var(--font-space-mono)",
-          fontSize: 11,
-          color: "#5a5a65",
           lineHeight: 1.7,
           maxWidth: 360,
+          textTransform: "none",
+          letterSpacing: "0.02em",
         }}
       >
         Try describing a mood, theme, or feeling — like &quot;slow burn romance&quot; or &quot;dark fantasy with good world-building&quot;.
-      </p>
+      </StatusMessage>
       <div className="flex flex-wrap justify-center gap-2 mt-4">
-        {DISCOVER_EMPTY_PROMPTS.map((prompt) => (
+        {prompts.map((prompt) => (
           <a
             key={prompt}
-            href={`?${new URLSearchParams({ tab: "ai", q: prompt })}`}
+            href={`?${new URLSearchParams({ tab: "ai", q: prompt, type })}`}
             style={{
               fontFamily: "var(--font-space-mono)",
               fontSize: 11,

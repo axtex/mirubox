@@ -8,6 +8,7 @@ import { LikeButton } from "@/components/lists/LikeButton";
 import { AddTitlesModal, type AddedTitle } from "@/components/lists/AddTitlesModal";
 import { ListSettingsModal } from "@/components/lists/ListSettingsModal";
 import { IconButton, outlineBtnBase } from "@/components/ui/IconButton";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 
 interface ListEntryView {
@@ -295,34 +296,20 @@ export function ListDetailClient({
         </p>
 
         {removeError && (
-          <p
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 11,
-              color: "var(--primary)",
-              marginTop: 10,
-            }}
-          >
+          <StatusMessage variant="error" style={{ marginTop: 10 }}>
             {removeError}
-          </p>
+          </StatusMessage>
         )}
 
         <div style={{ height: 1, background: "var(--border)", marginTop: 16 }} />
       </div>
 
       {entries.length === 0 ? (
-        <p
-          style={{
-            fontFamily: "var(--font-space-mono)",
-            fontSize: 12,
-            color: "var(--fg-muted)",
-            padding: "32px 0",
-          }}
-        >
+        <StatusMessage variant="muted" style={{ padding: "32px 0", fontSize: 12, textTransform: "none", letterSpacing: "0.02em" }}>
           {isOwner
             ? "Add titles with the + button, or from any anime or manga detail page."
             : "This list is empty."}
-        </p>
+        </StatusMessage>
       ) : (
         <div className="section-cards md:grid md:grid-cols-6 lg:grid-cols-7">
           {entries.map(({ card, note }) => {

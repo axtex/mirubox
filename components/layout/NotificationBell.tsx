@@ -8,6 +8,7 @@ import type { Session } from "next-auth";
 import { useNotificationPolling } from "@/hooks/useNotificationPolling";
 import { getNotifVisual, type NotifVisualType } from "@/lib/notification-visuals";
 import { timeAgo } from "@/lib/time-ago";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 
 interface NotificationItem {
   id: string;
@@ -146,29 +147,13 @@ export function NotificationBell({ session: initialSession }: { session: Session
         >
           <div style={{ maxHeight: 400, overflowY: "auto" }}>
             {loading && notifications.length === 0 ? (
-              <p
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  color: "var(--fg-faint)",
-                  padding: "28px 14px",
-                  textAlign: "center",
-                }}
-              >
+              <StatusMessage block variant="faint" style={{ padding: "28px 14px" }}>
                 Loading…
-              </p>
+              </StatusMessage>
             ) : notifications.length === 0 ? (
-              <p
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  color: "var(--fg-faint)",
-                  padding: "28px 14px",
-                  textAlign: "center",
-                }}
-              >
+              <StatusMessage block variant="faint" style={{ padding: "28px 14px" }}>
                 No notifications yet
-              </p>
+              </StatusMessage>
             ) : (
               notifications.map((n) => (
                 <NotificationRow key={n.id} notification={n} onClick={() => handleRowClick(n)} />

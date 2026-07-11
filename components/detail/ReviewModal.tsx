@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { useToast } from "@/context/ToastContext";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 import type { ToastNotification } from "@/lib/xp";
 
 interface ReviewData {
@@ -87,6 +88,10 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ animeId: mediaId, content: trimmed, containsSpoilers }),
       });
+      if (res.status === 429) {
+        setError("Too many requests. Please wait a moment.");
+        return;
+      }
       if (!res.ok) {
         setError("Failed to save. Try again.");
         return;
@@ -204,16 +209,9 @@ export function ReviewModal({ mediaId, title, initialReview, onClose, onSave }: 
         />
 
         {error && (
-          <p
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 10,
-              color: "var(--primary)",
-              marginBottom: 10,
-            }}
-          >
+          <StatusMessage variant="error" style={{ marginBottom: 10 }}>
             {error}
-          </p>
+          </StatusMessage>
         )}
 
         <div className="flex items-center justify-between" style={{ gap: 10 }}>

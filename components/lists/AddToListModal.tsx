@@ -6,6 +6,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { IconButton } from "@/components/ui/IconButton";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { useToast } from "@/context/ToastContext";
 import type { ToastNotification } from "@/lib/xp";
@@ -107,11 +108,11 @@ export function AddToListButton({ mediaId, mediaType, isLoggedIn, sidebar = fals
     setOpen(true);
   }
 
-  function handleListsChange(lists: UserList[]) {
+  const handleListsChange = useCallback((lists: UserList[]) => {
     setContainingLists(
       lists.filter((l) => l.hasMedia).map((l) => ({ slug: l.slug, title: l.title }))
     );
-  }
+  }, []);
 
   return (
     <>
@@ -220,7 +221,12 @@ function AddToListModal({
   const [pending, setPending] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const onListsChangeRef = useRef(onListsChange);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    onListsChangeRef.current = onListsChange;
+  }, [onListsChange]);
 
   useEffect(() => {
     setMounted(true);
@@ -231,14 +237,14 @@ function AddToListModal({
     try {
       const enriched = await fetchMineListsForMedia(mediaId);
       setLists(enriched);
-      onListsChange?.(enriched);
+      onListsChangeRef.current?.(enriched);
     } catch {
       setLists([]);
-      onListsChange?.([]);
+      onListsChangeRef.current?.([]);
     } finally {
       setLoading(false);
     }
-  }, [mediaId, onListsChange]);
+  }, [mediaId]);
 
   useEffect(() => {
     fetchLists();
@@ -268,7 +274,7 @@ function AddToListModal({
               ? { ...l, hasMedia: false, entryCount: l.entryCount - 1 }
               : l
           );
-          onListsChange?.(next);
+          onListsChangeRef.current?.(next);
           return next;
         });
       } else {
@@ -286,7 +292,7 @@ function AddToListModal({
                 ? { ...l, hasMedia: true, entryCount: l.entryCount + 1 }
                 : l
             );
-            onListsChange?.(next);
+            onListsChangeRef.current?.(next);
             return next;
           });
         }
@@ -360,29 +366,14 @@ function AddToListModal({
         {/* List rows */}
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           {loading ? (
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 11,
-                color: "var(--fg-muted)",
-                padding: "16px",
-                textAlign: "center",
-              }}
-            >
+            <StatusMessage block variant="muted" style={{ padding: "16px" }}>
               Loading…
-            </p>
+            </StatusMessage>
           ) : lists.length === 0 ? (
             <div style={{ padding: 16, textAlign: "center" }}>
-              <p
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 11,
-                  color: "var(--fg-muted)",
-                  marginBottom: 12,
-                }}
-              >
+              <StatusMessage block variant="muted" style={{ marginBottom: 12 }}>
                 You haven&apos;t created any lists yet.
-              </p>
+              </StatusMessage>
               <Link
                 href="/lists/new"
                 target="_blank"

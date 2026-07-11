@@ -1,13 +1,14 @@
 import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getMediaById, getDisplayTitle, splitLastWord } from "@/lib/anilist";
 import { cleanDescription } from "@/lib/clean-description";
 import { embedIfMissing } from "@/lib/embed-if-missing";
+import { filterStreamingLinks, buildSearchFallbacks } from "@/lib/streaming-links";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { DescriptionToggle } from "@/components/anime/detail/DescriptionToggle";
 import { AnimeCard } from "@/components/anime/AnimeCard";
 import { DetailHeroScore } from "@/components/detail/DetailHeroScore";
@@ -73,11 +74,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const VALID_RELATION_TYPES = new Set([
   "SEQUEL", "PREQUEL", "ALTERNATIVE_VERSION", "ADAPTATION", "PARENT",
-]);
-
-const ANIME_STREAMING_SITES = new Set([
-  "Crunchyroll", "Netflix", "HiDive", "Amazon Prime Video",
-  "Funimation", "Disney+", "ADN", "Wakanim", "Bilibili", "YouTube",
 ]);
 
 function relationToCard(node: Relation): AnimeCardType {
@@ -152,7 +148,10 @@ export default async function AnimeDetailPage({ params }: PageProps) {
     VALID_RELATION_TYPES.has(e.relationType)
   );
 
-  const streamingLinks = media.externalLinks.filter((l) => ANIME_STREAMING_SITES.has(l.site));
+  const streamingLinks = filterStreamingLinks(media.externalLinks, "ANIME");
+  const displayLinks = streamingLinks.length > 0
+    ? streamingLinks
+    : buildSearchFallbacks(title, "ANIME");
 
   const recs = media.recommendations.nodes
     .map((n) => n.mediaRecommendation)
@@ -221,8 +220,9 @@ export default async function AnimeDetailPage({ params }: PageProps) {
       details={sidebarDetails}
       watchSection={{
         title: "WHERE TO WATCH",
-        links: streamingLinks,
-        emptyMessage: "No official streaming links found.",
+        links: displayLinks,
+        isFallback: streamingLinks.length === 0,
+        fallbackNote: "No direct streaming links found. Search on:",
       }}
       nextEpisodeLabel={airingLabel}
     />
@@ -237,7 +237,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
         {/* BANNER */}
         <div className="relative w-full overflow-hidden detail-banner-h">
           {media.bannerImage ? (
-            <Image
+            <ImageWithFallback
               src={media.bannerImage}
               alt=""
               fill
@@ -276,7 +276,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
               }}
             >
               {media.coverImage.extraLarge ? (
-                <Image src={media.coverImage.extraLarge} alt={title} fill sizes="100px" className="object-cover" />
+                <ImageWithFallback src={media.coverImage.extraLarge} alt={title} fill sizes="100px" className="object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: "#1b1b1e" }}>
                   <span style={{ fontSize: 20, color: "#5a5a65", fontFamily: "var(--font-space-mono)" }}>{title[0]}</span>
@@ -338,7 +338,7 @@ export default async function AnimeDetailPage({ params }: PageProps) {
               }}
             >
               {media.coverImage.extraLarge ? (
-                <Image src={media.coverImage.extraLarge} alt={title} fill sizes="110px" className="object-cover" />
+                <ImageWithFallback src={media.coverImage.extraLarge} alt={title} fill sizes="110px" className="object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: "#1b1b1e" }}>
                   <span style={{ fontSize: 24, color: "#5a5a65", fontFamily: "var(--font-space-mono)" }}>

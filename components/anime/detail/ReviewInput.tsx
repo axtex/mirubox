@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StatusMessage } from "@/components/ui/StatusMessage";
 
 interface ReviewInputProps {
   animeId: number;
@@ -112,9 +113,9 @@ export function ReviewInput({ animeId, initialReview, isLoggedIn }: ReviewInputP
 
         <div className="flex items-center gap-3">
           {error && (
-            <span className="text-label" style={{ color: "var(--primary)" }}>
+            <StatusMessage as="span" variant="error">
               {error}
-            </span>
+            </StatusMessage>
           )}
           {hasReview && !hasChanges && (
             <span className="text-label" style={{ color: "var(--fg-subtle)" }}>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { getDisplayTitle } from "@/lib/anilist";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 import { AnimeCardActions } from "./AnimeCardActions";
@@ -67,7 +67,7 @@ export function AnimeCard({
       {/* ── Poster ── */}
       <div className="relative w-full aspect-[2/3] overflow-hidden">
         {anime.coverImage.extraLarge || anime.coverImage.large ? (
-          <Image
+          <ImageWithFallback
             src={(anime.coverImage.extraLarge ?? anime.coverImage.large)!}
             alt={title}
             fill

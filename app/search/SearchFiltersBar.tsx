@@ -5,25 +5,12 @@ import { useState, useTransition, useRef, useEffect, type ReactNode } from "reac
 import { ChevronRight, Search, X } from "lucide-react";
 import { FilterSelect } from "@/components/FilterSelect";
 import { SearchSkeletonGrid } from "@/components/search/SearchSkeletonGrid";
-
-const EXAMPLE_PROMPTS = [
-  "cozy witches",
-  "found family in a broken world",
-  "killers with a conscience",
-  "psychological thriller with a twist",
-  "slow burn that wrecks you",
-  "brain rot but make it art",
-  "enemies to lovers with real stakes",
-  "melancholy seaside town vibes",
-  "isekai but actually good",
-  "mind-bending time loops",
-  "gritty underdog sports story",
-  "dark academia and buried secrets",
-  "wholesome comfort watch",
-  "mecha with real consequences",
-  "absurd comedy that goes hard",
-  "grief and moving on done right",
-];
+import { StatusNotice } from "@/components/ui/StatusNotice";
+import { StatusMessage } from "@/components/ui/StatusMessage";
+import { ANIME_DISCOVER, MANGA_DISCOVER } from "@/lib/discover-entries";
+import { AnimeCard } from "@/components/anime/AnimeCard";
+import type { TitleSearchResult } from "@/app/api/search/titles/route";
+import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 
 const GENRES = [
   "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror",
@@ -39,7 +26,29 @@ const SORTS = [
   { value: "POPULARITY_DESC", label: "POPULAR" },
 ];
 
-const BROWSE_DEBOUNCE_MS = 350;
+const BROWSE_DEBOUNCE_MS = 300;
+const GRID = "grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-3";
+
+function titleResultToCard(r: TitleSearchResult): AnimeCardType {
+  return {
+    id: r.id,
+    title: { romaji: r.title, english: r.titleEnglish, native: null },
+    coverImage: { large: r.coverImage, extraLarge: r.coverImage },
+    bannerImage: null,
+    genres: [],
+    episodes: null,
+    chapters: null,
+    status: null,
+    season: null,
+    seasonYear: null,
+    averageScore: r.averageScore,
+    popularity: r.popularity,
+    format: null,
+    type: r.type,
+    tags: [],
+    rankings: [],
+  };
+}
 
 interface SearchFiltersBarProps {
   params: Record<string, string | string[] | undefined>;
@@ -62,6 +71,8 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
   const [focused, setFocused] = useState(false);
 
   const type = str(params.type) || "ANIME";
+  const [titleResults, setTitleResults] = useState<TitleSearchResult[]>([]);
+  const [titlesLoading, setTitlesLoading] = useState(false);
   const genre = str(params.genre);
   const status = str(params.status);
   const year = str(params.year);
@@ -101,6 +112,38 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
   useEffect(() => () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
   }, []);
+
+  // Local title lookup (BROWSE only) — fills the results grid with instant matches
+  // while the server-rendered results are still catching up to a partial word,
+  // e.g. "haik" before "haikyu" completes.
+  useEffect(() => {
+    const q = query.trim();
+    if (tab !== "browse" || q.length < 2) {
+      setTitleResults([]);
+      setTitlesLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setTitlesLoading(true);
+    const timer = setTimeout(() => {
+      fetch(`/api/search/titles?q=${encodeURIComponent(q)}&type=${type}`, { signal: controller.signal })
+        .then((r) => r.json())
+        .then((data) => {
+          setTitleResults(data.results ?? []);
+          setTitlesLoading(false);
+        })
+        .catch((err) => {
+          if (err.name === "AbortError") return;
+          setTitlesLoading(false);
+        });
+    }, BROWSE_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, type, tab]);
 
   function buildHref(overrides: Record<string, string | undefined>): string {
     const current: Record<string, string> = {};
@@ -145,7 +188,7 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
 
   function handleChipClick(prompt: string): void {
     setQuery(prompt);
-    navigate({ q: prompt, tab: "ai" });
+    navigate({ q: prompt, tab: "ai", type });
   }
 
   function clearFilters(): void {
@@ -198,6 +241,30 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
 
   const showHint = tab === "ai" && query.trim().length >= 1 && !hasBrowseQuery;
   const placeholder = tab === "ai" ? "describe a mood, theme, or feeling..." : "search by title...";
+  const discoverEntries = type === "MANGA" ? MANGA_DISCOVER : ANIME_DISCOVER;
+
+  // Browse keyword-only search uses the local DB for instant results. When filters are
+  // active, show local matches until the URL and server round-trip catch up.
+  const trimmedQuery = query.trim();
+  const isQueryOnlyBrowse = tab === "browse" && activeFilterCount === 0;
+  const queryAwaitingServer =
+    trimmedQuery.length >= 2 && (trimmedQuery !== str(params.q) || isPending);
+  const showClientTitleResults =
+    tab === "browse" &&
+    trimmedQuery.length >= 2 &&
+    titleResults.length > 0 &&
+    (isQueryOnlyBrowse || queryAwaitingServer);
+  const showClientTitleLoading =
+    tab === "browse" &&
+    trimmedQuery.length >= 2 &&
+    isQueryOnlyBrowse &&
+    (titlesLoading || (trimmedQuery !== str(params.q) && !titleResults.length));
+  const showClientTitleEmpty =
+    tab === "browse" &&
+    trimmedQuery.length >= 2 &&
+    isQueryOnlyBrowse &&
+    !titlesLoading &&
+    titleResults.length === 0;
 
   return (
     <>
@@ -254,6 +321,21 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
                 padding: tab === "ai" ? "0 16px 0 8px" : "0 16px 0 14px",
               }}
             />
+            <span
+              aria-hidden="true"
+              style={{
+                width: 12,
+                height: 12,
+                flexShrink: 0,
+                marginRight: 10,
+                borderRadius: "50%",
+                border: "1.5px solid var(--bg-card-high)",
+                borderTopColor: "var(--primary)",
+                opacity: isPending ? 1 : 0,
+                transition: "opacity 0.15s ease",
+                animation: isPending ? "search-spin 0.6s linear infinite" : "none",
+              }}
+            />
             <button
               type="button"
               onClick={handleSubmit}
@@ -280,39 +362,49 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
             <FlatTab label="✦ DISCOVER" active={tab === "ai"} onClick={() => handleTabChange("ai")} />
           </div>
 
-          {/* 4a. DESCRIBE: hint + prompt chips when no submitted query */}
-          {tab === "ai" && !hasBrowseQuery && (
+          {/* 4a. DISCOVER: type toggle + hint + prompt chips when no submitted query */}
+          {tab === "ai" && (
             <div>
-              {showHint && (
-                <p
-                  className="inline-flex items-center gap-1"
-                  style={{
-                    fontFamily: "var(--font-space-mono)",
-                    fontSize: 9,
-                    color: "#3a3a45",
-                    marginBottom: 10,
-                  }}
-                >
-                  Describe what you&apos;re in the mood for, then press
-                  <ChevronRight className="w-3 h-3 shrink-0" strokeWidth={2} />
-                </p>
-              )}
-              <p
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 11,
-                  letterSpacing: "0.06em",
-                  color: "var(--fg-muted)",
-                  marginBottom: 12,
-                }}
-              >
-                WHAT ARE YOU IN THE MOOD FOR?
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {EXAMPLE_PROMPTS.map((prompt) => (
-                  <PromptChip key={prompt} label={prompt} onClick={() => handleChipClick(prompt)} />
-                ))}
+              {/* ANIME / MANGA toggle — same flat tab style */}
+              <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 16 }}>
+                <FlatTab label="ANIME" active={type === "ANIME"} onClick={() => navigate({ type: "ANIME" })} flushStart />
+                <FlatTab label="MANGA" active={type === "MANGA"} onClick={() => navigate({ type: "MANGA" })} />
               </div>
+
+              {!hasBrowseQuery && (
+                <div>
+                  {showHint && (
+                    <p
+                      className="inline-flex items-center gap-1"
+                      style={{
+                        fontFamily: "var(--font-space-mono)",
+                        fontSize: 9,
+                        color: "#3a3a45",
+                        marginBottom: 10,
+                      }}
+                    >
+                      Describe what you&apos;re in the mood for, then press
+                      <ChevronRight className="w-3 h-3 shrink-0" strokeWidth={2} />
+                    </p>
+                  )}
+                  <p
+                    style={{
+                      fontFamily: "var(--font-space-mono)",
+                      fontSize: 11,
+                      letterSpacing: "0.06em",
+                      color: "var(--fg-muted)",
+                      marginBottom: 12,
+                    }}
+                  >
+                    WHAT ARE YOU IN THE MOOD FOR?
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {discoverEntries.map((entry) => (
+                      <PromptChip key={entry.label} label={entry.label} onClick={() => handleChipClick(entry.label)} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -388,42 +480,11 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
                 </div>
               </div>
 
-              {/* Debounced live-search loading indicator */}
-              {isPending && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "8px 0",
-                    fontFamily: "var(--font-space-mono)",
-                    fontSize: 9,
-                    color: "#5a5a65",
-                  }}
-                >
-                  <span className="dot-pulse">
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                  Searching...
-                </div>
-              )}
-
               {/* Empty state: no filters, no keyword */}
               {activeFilterCount === 0 && !hasBrowseQuery && (
-                <p
-                  style={{
-                    fontFamily: "var(--font-space-mono)",
-                    fontSize: 11,
-                    letterSpacing: "0.06em",
-                    color: "var(--fg-muted)",
-                    textAlign: "center",
-                    padding: "32px 0",
-                  }}
-                >
+                <StatusMessage block style={{ padding: "32px 0" }}>
                   Select a filter or type to browse.
-                </p>
+                </StatusMessage>
               )}
             </div>
           )}
@@ -432,12 +493,58 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
 
       {/* Results — full page-container width */}
       <div style={{ position: "relative" }}>
-        <div style={{ opacity: isPending && hadResultsBefore ? 0.5 : 1, transition: "opacity 0.15s ease" }}>
-          {children}
-        </div>
-        {isPending && !hadResultsBefore && <SearchSkeletonGrid />}
+        {isPending && hasBrowseQuery && activeFilterCount > 0 && !showClientTitleResults && (
+          <StatusNotice pulse style={{ marginBottom: 12 }}>
+            Searching…
+          </StatusNotice>
+        )}
+        {showClientTitleResults ? (
+          <div>
+            <BrowseResultsLabel query={trimmedQuery} count={titleResults.length} />
+            <div className={GRID}>
+              {titleResults.map((r) => (
+                <AnimeCard key={r.id} anime={titleResultToCard(r)} size="md" />
+              ))}
+            </div>
+          </div>
+        ) : showClientTitleLoading ? (
+          <SearchSkeletonGrid />
+        ) : showClientTitleEmpty ? (
+          <StatusMessage block style={{ padding: "48px 0", textAlign: "center" }}>
+            No results.
+          </StatusMessage>
+        ) : (
+          <>
+            <div style={{ opacity: isPending && hadResultsBefore ? 0.5 : 1, transition: "opacity 0.15s ease" }}>
+              {children}
+            </div>
+            {isPending && !hadResultsBefore && <SearchSkeletonGrid />}
+          </>
+        )}
       </div>
     </>
+  );
+}
+
+function BrowseResultsLabel({ query, count }: { query: string; count: number }) {
+  const truncated = query.length > 30 ? `${query.slice(0, 30)}…` : query;
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 0 8px 0", marginTop: 4 }}>
+      <span
+        style={{
+          fontFamily: "var(--font-space-mono)",
+          fontSize: 9,
+          letterSpacing: "0.08em",
+          color: "var(--fg-subtle)",
+          textTransform: "uppercase",
+        }}
+      >
+        {`RESULTS FOR "${truncated.toUpperCase()}"`}
+      </span>
+      <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "var(--fg-faint)" }}>
+        {count} found
+      </span>
+    </div>
   );
 }
 

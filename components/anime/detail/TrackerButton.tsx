@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, Check } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 
 const STATUSES = [
   { value: "PLANNED",     label: "PLANNED",     dot: "#e4e1e6" },
@@ -21,6 +22,7 @@ export function TrackerButton({ animeId, initialStatus, isLoggedIn }: TrackerBut
   const [status, setStatus] = useState<string | null>(initialStatus);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   if (!isLoggedIn) {
     return (
@@ -34,12 +36,15 @@ export function TrackerButton({ animeId, initialStatus, isLoggedIn }: TrackerBut
     setLoading(true);
     setOpen(false);
     try {
-      await fetch("/api/tracker", {
+      const res = await fetch("/api/tracker", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ animeId, status: value, mediaType: "ANIME" }),
       });
+      if (!res.ok) throw new Error("Failed to update tracker");
       setStatus(value);
+    } catch {
+      showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     } finally {
       setLoading(false);
     }
@@ -49,12 +54,15 @@ export function TrackerButton({ animeId, initialStatus, isLoggedIn }: TrackerBut
     setLoading(true);
     setOpen(false);
     try {
-      await fetch("/api/tracker", {
+      const res = await fetch("/api/tracker", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ animeId }),
       });
+      if (!res.ok) throw new Error("Failed to remove from tracker");
       setStatus(null);
+    } catch {
+      showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useToast } from "@/context/ToastContext";
+import { StatusMessage } from "@/components/ui/StatusMessage";
+import { StatusNotice } from "@/components/ui/StatusNotice";
 import type { ToastNotification } from "@/lib/xp";
 
 type MediaType = "ANIME" | "MANGA";
@@ -216,38 +218,17 @@ export function AddTitlesModal({
           }}
         >
           {query.trim().length < 2 ? (
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 10,
-                color: "var(--fg-subtle)",
-                padding: "10px 12px",
-              }}
-            >
+            <StatusMessage style={{ padding: "10px 12px" }}>
               Type at least 2 characters to search.
-            </p>
+            </StatusMessage>
           ) : searching && results.length === 0 ? (
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 10,
-                color: "var(--fg-subtle)",
-                padding: "10px 12px",
-              }}
-            >
+            <StatusNotice pulse style={{ padding: "10px 12px" }}>
               Searching…
-            </p>
+            </StatusNotice>
           ) : results.length === 0 ? (
-            <p
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 10,
-                color: "var(--fg-subtle)",
-                padding: "10px 12px",
-              }}
-            >
+            <StatusMessage style={{ padding: "10px 12px" }}>
               No results.
-            </p>
+            </StatusMessage>
           ) : (
             results.map((r) => {
               const inList = addedIds.has(r.id);
@@ -317,16 +298,9 @@ export function AddTitlesModal({
         </div>
 
         {error && (
-          <p
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 11,
-              color: "var(--primary)",
-              marginTop: 10,
-            }}
-          >
+          <StatusMessage variant="error" style={{ marginTop: 10 }}>
             {error}
-          </p>
+          </StatusMessage>
         )}
 
         <div className="flex justify-end" style={{ marginTop: 14 }}>

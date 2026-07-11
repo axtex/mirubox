@@ -1,4 +1,4 @@
-export type NotifVisualType = "BADGE_EARNED" | "RANK_UP" | "LIST_LIKED" | "NEW_FOLLOWER" | "XP";
+export type NotifVisualType = "BADGE_EARNED" | "RANK_UP" | "LIST_LIKED" | "NEW_FOLLOWER" | "XP" | "ERROR";
 
 interface NotifVisual {
   bg: string;
@@ -11,6 +11,7 @@ const BASE: Record<Exclude<NotifVisualType, "RANK_UP">, NotifVisual> = {
   LIST_LIKED: { bg: "rgba(232,23,63,0.1)", border: "rgba(232,23,63,0.2)", emoji: "♥" },
   NEW_FOLLOWER: { bg: "rgba(100,180,230,0.1)", border: "rgba(100,180,230,0.2)", emoji: "👤" },
   XP: { bg: "rgba(83,74,183,0.1)", border: "rgba(83,74,183,0.2)", emoji: "⚡" },
+  ERROR: { bg: "rgba(232,23,63,0.1)", border: "rgba(232,23,63,0.3)", emoji: "✕" },
 };
 
 // RANK_UP body is stored as "<emoji> <rankName> unlocked" — the emoji is read back out of it

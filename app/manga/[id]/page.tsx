@@ -1,14 +1,15 @@
 import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getMediaById, getDisplayTitle, splitLastWord } from "@/lib/anilist";
 import { cleanDescription } from "@/lib/clean-description";
 import { cacheAnimeAdaptationFlag } from "@/lib/anilist-cache";
 import { embedIfMissing } from "@/lib/embed-if-missing";
+import { filterStreamingLinks, buildSearchFallbacks } from "@/lib/streaming-links";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { DescriptionToggle } from "@/components/anime/detail/DescriptionToggle";
 import { AnimeCard } from "@/components/anime/AnimeCard";
 import { DetailHeroScore } from "@/components/detail/DetailHeroScore";
@@ -73,11 +74,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const VALID_RELATION_TYPES = new Set([
   "SEQUEL", "PREQUEL", "ALTERNATIVE_VERSION", "ADAPTATION", "PARENT",
-]);
-
-const MANGA_READING_SITES = new Set([
-  "MangaPlus", "Viz", "Comikey", "Tapas", "ComicWalker",
-  "K Manga", "Official Site",
 ]);
 
 function relationToCard(node: Relation): AnimeCardType {
@@ -154,7 +150,10 @@ export default async function MangaDetailPage({ params }: PageProps) {
     VALID_RELATION_TYPES.has(e.relationType)
   );
 
-  const readingLinks = media.externalLinks.filter((l) => MANGA_READING_SITES.has(l.site));
+  const readingLinks = filterStreamingLinks(media.externalLinks, "MANGA");
+  const displayLinks = readingLinks.length > 0
+    ? readingLinks
+    : buildSearchFallbacks(title, "MANGA");
 
   const recs = media.recommendations.nodes
     .map((n) => n.mediaRecommendation)
@@ -204,8 +203,9 @@ export default async function MangaDetailPage({ params }: PageProps) {
       details={sidebarDetails}
       watchSection={{
         title: "WHERE TO READ",
-        links: readingLinks,
-        emptyMessage: "No official reading links found.",
+        links: displayLinks,
+        isFallback: readingLinks.length === 0,
+        fallbackNote: "No direct reading links found. Search on:",
       }}
     />
   );
@@ -219,7 +219,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
         {/* BANNER */}
         <div className="relative w-full overflow-hidden detail-banner-h">
           {media.bannerImage ? (
-            <Image
+            <ImageWithFallback
               src={media.bannerImage}
               alt=""
               fill
@@ -258,7 +258,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
               }}
             >
               {media.coverImage.extraLarge ? (
-                <Image src={media.coverImage.extraLarge} alt={title} fill sizes="100px" className="object-cover" />
+                <ImageWithFallback src={media.coverImage.extraLarge} alt={title} fill sizes="100px" className="object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: "#1b1b1e" }}>
                   <span style={{ fontSize: 20, color: "#5a5a65", fontFamily: "var(--font-space-mono)" }}>{title[0]}</span>
@@ -320,7 +320,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
               }}
             >
               {media.coverImage.extraLarge ? (
-                <Image src={media.coverImage.extraLarge} alt={title} fill sizes="110px" className="object-cover" />
+                <ImageWithFallback src={media.coverImage.extraLarge} alt={title} fill sizes="110px" className="object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: "#1b1b1e" }}>
                   <span style={{ fontSize: 24, color: "#5a5a65", fontFamily: "var(--font-space-mono)" }}>{title[0]}</span>

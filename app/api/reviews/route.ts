@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { awardXP, type ToastNotification } from "@/lib/xp";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const MAX_CONTENT_LENGTH = 10_000;
 
@@ -40,6 +41,9 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { success } = await rateLimit(`reviews:${session.user.id}`, 10, 60000);
+  if (!success) return rateLimitResponse();
 
   let body: { animeId?: unknown; content?: unknown; containsSpoilers?: unknown };
   try {
