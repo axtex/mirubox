@@ -23,6 +23,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") ?? "all";
   const cursor = searchParams.get("cursor") ?? undefined;
+  const mediaIdParam = searchParams.get("mediaId");
+  const filterMediaId =
+    mediaIdParam && !Number.isNaN(Number(mediaIdParam)) ? Number(mediaIdParam) : null;
   const take = Math.min(Number(searchParams.get("take") ?? 20), 50);
 
   const where =
@@ -59,6 +62,18 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const page = hasNextPage ? lists.slice(0, take) : lists;
   const lastId = page[page.length - 1]?.id;
 
+  const listsWithMedia = new Set<string>();
+  if (filterMediaId !== null && type === "mine" && page.length > 0) {
+    const entries = await prisma.listEntry.findMany({
+      where: {
+        mediaId: filterMediaId,
+        listId: { in: page.map((l) => l.id) },
+      },
+      select: { listId: true },
+    });
+    for (const entry of entries) listsWithMedia.add(entry.listId);
+  }
+
   // Collect all entry media IDs to look up cover images in bulk
   const allMediaIds = [...new Set(page.flatMap((l) => l.entries.map((e) => e.mediaId)))];
   const mediaMap = new Map<number, string | null>();
@@ -93,6 +108,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     coverPosters: list.entries.map((e) => mediaMap.get(e.mediaId) ?? null),
     createdAt: list.createdAt,
     updatedAt: list.updatedAt,
+    ...(filterMediaId !== null ? { hasMedia: listsWithMedia.has(list.id) } : {}),
   }));
 
   return NextResponse.json({ lists: result, nextCursor: hasNextPage ? lastId : null });

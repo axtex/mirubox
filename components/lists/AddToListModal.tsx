@@ -24,12 +24,26 @@ interface ListsResponse {
     slug: string;
     title: string;
     entryCount: number;
-    isLikedByCurrentUser: boolean;
+    hasMedia?: boolean;
   }>;
 }
 
-interface EntriesResponse {
-  entries: Array<{ mediaId: number }>;
+interface ContainingList {
+  slug: string;
+  title: string;
+}
+
+async function fetchMineListsForMedia(mediaId: number): Promise<UserList[]> {
+  const res = await fetch(`/api/lists?type=mine&mediaId=${mediaId}&take=50`);
+  if (!res.ok) return [];
+  const data = (await res.json()) as ListsResponse;
+  return data.lists.map((l) => ({
+    id: l.id,
+    slug: l.slug,
+    title: l.title,
+    entryCount: l.entryCount,
+    hasMedia: l.hasMedia ?? false,
+  }));
 }
 
 const CREATE_LIST_LINK_CLASS = "btn-primary shrink-0";
@@ -38,6 +52,22 @@ const CREATE_LIST_LINK_STYLE: React.CSSProperties = {
   padding: "4px 10px",
   fontSize: 9,
   letterSpacing: "0.08em",
+};
+
+const LIST_CHIP_STYLE: React.CSSProperties = {
+  display: "block",
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "5px 8px",
+  textAlign: "left",
+  fontFamily: "var(--font-space-mono)",
+  fontSize: 9,
+  letterSpacing: "0.04em",
+  color: "var(--primary)",
+  textDecoration: "none",
+  background: "var(--badge-earned-bg)",
+  border: "1.5px solid var(--badge-earned-border)",
+  borderRadius: 2,
 };
 
 interface Props {
@@ -52,6 +82,22 @@ export function AddToListButton({ mediaId, mediaType, isLoggedIn, sidebar = fals
   const pathname = usePathname();
   const { openAuthModal } = useAuthModal();
   const [open, setOpen] = useState(false);
+  const [containingLists, setContainingLists] = useState<ContainingList[]>([]);
+
+  const refreshContainingLists = useCallback(async () => {
+    if (!isLoggedIn) {
+      setContainingLists([]);
+      return;
+    }
+    const lists = await fetchMineListsForMedia(mediaId);
+    setContainingLists(
+      lists.filter((l) => l.hasMedia).map((l) => ({ slug: l.slug, title: l.title }))
+    );
+  }, [isLoggedIn, mediaId]);
+
+  useEffect(() => {
+    if (sidebar) void refreshContainingLists();
+  }, [sidebar, refreshContainingLists]);
 
   function handleClick() {
     if (!isLoggedIn) {
@@ -59,6 +105,12 @@ export function AddToListButton({ mediaId, mediaType, isLoggedIn, sidebar = fals
       return;
     }
     setOpen(true);
+  }
+
+  function handleListsChange(lists: UserList[]) {
+    setContainingLists(
+      lists.filter((l) => l.hasMedia).map((l) => ({ slug: l.slug, title: l.title }))
+    );
   }
 
   return (
@@ -116,11 +168,36 @@ export function AddToListButton({ mediaId, mediaType, isLoggedIn, sidebar = fals
         {sidebar ? "+ ADD TO LIST" : "LIST +"}
       </button>
 
+      {sidebar && containingLists.length > 0 && (
+        <div
+          style={{
+            marginTop: 8,
+            paddingTop: 8,
+            borderTop: "1px solid var(--bg-card-high)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
+          {containingLists.map((list) => (
+            <Link
+              key={list.slug}
+              href={`/lists/${list.slug}`}
+              className="detail-sidebar-list-chip"
+              style={LIST_CHIP_STYLE}
+            >
+              {list.title}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {open && (
         <AddToListModal
           mediaId={mediaId}
           mediaType={mediaType}
           onClose={() => setOpen(false)}
+          onListsChange={sidebar ? handleListsChange : undefined}
         />
       )}
     </>
@@ -131,10 +208,12 @@ function AddToListModal({
   mediaId,
   mediaType,
   onClose,
+  onListsChange,
 }: {
   mediaId: number;
   mediaType: "ANIME" | "MANGA";
   onClose: () => void;
+  onListsChange?: (lists: UserList[]) => void;
 }) {
   const [lists, setLists] = useState<UserList[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,33 +229,16 @@ function AddToListModal({
   const fetchLists = useCallback(async () => {
     setLoading(true);
     try {
-      const [listsRes, entriesPromises] = await Promise.all([
-        fetch("/api/lists?type=mine").then((r) => r.json() as Promise<ListsResponse>),
-        [] as Promise<EntriesResponse>[],
-      ]);
-      void entriesPromises;
-
-      // For each list, check if this media is already in it
-      const enriched = await Promise.all(
-        listsRes.lists.map(async (l) => {
-          try {
-            const detail = await fetch(`/api/lists/${l.slug}`).then(
-              (r) => r.json() as Promise<{ entries: Array<{ mediaId: number }> }>
-            );
-            const hasMedia = detail.entries?.some((e) => e.mediaId === mediaId) ?? false;
-            return { id: l.id, slug: l.slug, title: l.title, entryCount: l.entryCount, hasMedia };
-          } catch {
-            return { id: l.id, slug: l.slug, title: l.title, entryCount: l.entryCount, hasMedia: false };
-          }
-        })
-      );
+      const enriched = await fetchMineListsForMedia(mediaId);
       setLists(enriched);
+      onListsChange?.(enriched);
     } catch {
       setLists([]);
+      onListsChange?.([]);
     } finally {
       setLoading(false);
     }
-  }, [mediaId]);
+  }, [mediaId, onListsChange]);
 
   useEffect(() => {
     fetchLists();
@@ -200,13 +262,15 @@ function AddToListModal({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mediaId }),
         });
-        setLists((prev) =>
-          prev.map((l) =>
+        setLists((prev) => {
+          const next = prev.map((l) =>
             l.slug === list.slug
               ? { ...l, hasMedia: false, entryCount: l.entryCount - 1 }
               : l
-          )
-        );
+          );
+          onListsChange?.(next);
+          return next;
+        });
       } else {
         const res = await fetch(`/api/lists/${list.slug}/entries`, {
           method: "POST",
@@ -216,14 +280,16 @@ function AddToListModal({
         if (res.ok) {
           const data = (await res.json()) as { notifications?: ToastNotification[] };
           data.notifications?.forEach((n) => showToast(n));
+          setLists((prev) => {
+            const next = prev.map((l) =>
+              l.slug === list.slug
+                ? { ...l, hasMedia: true, entryCount: l.entryCount + 1 }
+                : l
+            );
+            onListsChange?.(next);
+            return next;
+          });
         }
-        setLists((prev) =>
-          prev.map((l) =>
-            l.slug === list.slug
-              ? { ...l, hasMedia: true, entryCount: l.entryCount + 1 }
-              : l
-          )
-        );
       }
     } finally {
       setPending(null);

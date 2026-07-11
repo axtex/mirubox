@@ -57,7 +57,7 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const tab = str(params.tab) || "ai";
+  const tab = str(params.tab) || "browse";
   const [query, setQuery] = useState(str(params.q));
   const [focused, setFocused] = useState(false);
 

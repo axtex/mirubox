@@ -5,7 +5,7 @@ import { ContinueCard, type ContinueItem } from "@/components/home/ContinueCard"
 
 const GAP = 12;
 const MIN_CARD_WIDTH = 180;
-const MAX_VISIBLE = 5;
+const MAX_VISIBLE = 4;
 
 interface ContinueCardsRowProps {
   items: ContinueItem[];

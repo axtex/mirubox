@@ -15,6 +15,8 @@
   --primary-hover: #cc1229;
   --primary-dim: rgba(232, 23, 63, 0.15);
   --primary-glow: rgba(232, 23, 63, 0.25);
+  --badge-earned-bg: rgba(232, 23, 63, 0.1);
+  --badge-earned-border: rgba(232, 23, 63, 0.4);
   --warning: #ba7517;
   --secondary: #00dbe9;
   --tertiary: #bb10fd;
@@ -410,6 +412,26 @@ span.detail-sidebar-genre-link:hover {
   border: 1px solid var(--bg-card-high);
   border-radius: 2px;
   overflow: hidden;
+}
+
+.detail-sidebar-list-chip {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  text-align: left;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--primary);
+  text-decoration: none;
+  background: var(--badge-earned-bg);
+  border: 1.5px solid var(--badge-earned-border);
+  border-radius: 2px;
+}
+
+.detail-sidebar-list-chip:hover {
+  color: var(--primary-hover);
 }
 
 /* ── Subtle nav/footer links ────────────────────────────────────────────── */

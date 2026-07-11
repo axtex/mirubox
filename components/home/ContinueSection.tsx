@@ -14,7 +14,7 @@ export async function ContinueSection(): Promise<React.JSX.Element | null> {
     },
     include: { anime: true },
     orderBy: { updatedAt: "desc" },
-    take: 5,
+    take: 4,
   });
 
   if (entries.length === 0) return null;

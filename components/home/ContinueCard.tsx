@@ -32,9 +32,9 @@ export function ContinueCard({ item }: ContinueCardProps): React.JSX.Element {
           <Image
             src={coverImage}
             alt=""
-            fill
-            sizes="48px"
-            className="object-cover"
+            width={48}
+            height={68}
+            className="h-full w-full object-cover"
           />
         ) : (
           <div className="continue-card-cover-fallback" />

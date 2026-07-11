@@ -57,15 +57,10 @@ function normalizeParams(
   // genre: normalise to uppercase (AniList expects e.g. "Action", but genre_in accepts any case)
   // Keep as-is — AniList genre values are already title-cased in our dropdowns
 
-  // Auto-activate BROWSE when browse-signal params are present and tab not explicitly set
+  // Default to BROWSE unless tab or mode=ai is explicitly set
   if (!str(p.tab)) {
-    const browseSignals = [str(p.sort), str(p.status), str(p.season), str(p.genre), str(p.type)];
-    if (browseSignals.some(Boolean)) {
-      p.tab = "browse";
-    } else {
-      const mode = str(p.mode).toLowerCase();
-      p.tab = mode === "browse" ? "browse" : "ai";
-    }
+    const mode = str(p.mode).toLowerCase();
+    p.tab = mode === "ai" ? "ai" : "browse";
   }
 
   return p;
@@ -75,7 +70,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
   const raw = await searchParams;
   const params = normalizeParams(raw);
 
-  const tab = str(params.tab) || "ai";
+  const tab = str(params.tab) || "browse";
   const q = str(params.q);
   const genre = str(params.genre);
   const status = str(params.status);
