@@ -105,7 +105,7 @@ export function BadgeScrollRow({ badges }: BadgeScrollRowProps): React.JSX.Eleme
         >
           {badges.map((badge) => (
             <div
-              key={badge.key}
+              key={badge.id ?? badge.key}
               style={{
                 display: "flex",
                 flexDirection: "column",

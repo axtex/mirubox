@@ -2,9 +2,27 @@ import { prisma } from "@/lib/prisma";
 import { BadgeKey } from "@prisma/client";
 import { awardXP } from "@/lib/xp";
 import { createNotification } from "@/lib/notifications";
+import {
+  formatSeasonBadgeLabel,
+  formatSeasonLabel,
+  getSeasonBadgeKey,
+  isSeasonalWatcherBadge,
+  parseSeasonKey,
+  SEASON_ORDER,
+  type Season,
+} from "@/lib/season";
+
+export const SEASONAL_WATCHER_XP = 25;
+
+type StaticBadgeKey = Exclude<
+  BadgeKey,
+  "SPRING_WATCHER" | "SUMMER_WATCHER" | "FALL_WATCHER" | "WINTER_WATCHER"
+>;
+
+export type { StaticBadgeKey };
 
 export const BADGE_DEFINITIONS: Record<
-  BadgeKey,
+  StaticBadgeKey,
   {
     name: string;
     xp: number;
@@ -60,11 +78,7 @@ export const BADGE_DEFINITIONS: Record<
   COMMITTED: { name: "Committed", xp: 50, check: async (uid) => (await getStreak(uid, "longest")) >= 30 },
   DEVOTED: { name: "Devoted", xp: 100, check: async (uid) => (await getStreak(uid, "longest")) >= 100 },
 
-  // SEASONAL
-  SPRING_WATCHER: { name: "Spring Watcher", xp: 25, check: async (uid) => checkSeasonalBadge(uid, "SPRING") },
-  SUMMER_WATCHER: { name: "Summer Watcher", xp: 25, check: async (uid) => checkSeasonalBadge(uid, "SUMMER") },
-  FALL_WATCHER: { name: "Fall Watcher", xp: 25, check: async (uid) => checkSeasonalBadge(uid, "FALL") },
-  WINTER_WATCHER: { name: "Winter Watcher", xp: 25, check: async (uid) => checkSeasonalBadge(uid, "WINTER") },
+  // SEASONAL — year-specific badges awarded via awardSeasonalWatcherBadge()
   SEASONED_WATCHER: { name: "Seasoned Watcher", xp: 100, check: async (uid) => hasConsecutiveSeasons(uid, 4) },
 
   // EXPLORER
@@ -127,6 +141,59 @@ export async function evaluateBadges(userId: string): Promise<BadgeKey[]> {
   }
 
   return newlyEarned;
+}
+
+/** Awards a year-specific seasonal badge, e.g. Summer 2026 Watcher. */
+export async function awardSeasonalWatcherBadge(
+  userId: string,
+  seasonKey: string
+): Promise<BadgeKey | null> {
+  const parsed = parseSeasonKey(seasonKey);
+  if (!parsed) return null;
+
+  const badgeKey = getSeasonBadgeKey(parsed.season);
+  const name = formatSeasonBadgeLabel(seasonKey);
+
+  const existing = await prisma.userBadge.findUnique({
+    where: {
+      userId_badge_seasonKey: { userId, badge: badgeKey, seasonKey },
+    },
+  });
+  if (existing) return null;
+
+  await prisma.userBadge.create({
+    data: {
+      userId,
+      badge: badgeKey,
+      seasonKey,
+      xpAwarded: SEASONAL_WATCHER_XP,
+    },
+  });
+
+  await createNotification({
+    userId,
+    type: "BADGE_EARNED",
+    title: name,
+    body: `+${SEASONAL_WATCHER_XP} XP · ${name} unlocked`,
+    badgeKey,
+  });
+
+  await awardXP(userId, "BADGE_UNLOCKED", {
+    xpOverride: SEASONAL_WATCHER_XP,
+    skipDuplicateCheck: true,
+    meta: { badge: badgeKey, season: seasonKey },
+  });
+
+  return badgeKey;
+}
+
+export function resolveBadgeName(badge: BadgeKey, seasonKey?: string | null): string {
+  if (isSeasonalWatcherBadge(badge)) {
+    if (seasonKey) return formatSeasonBadgeLabel(seasonKey);
+    const seasonPart = badge.replace("_WATCHER", "");
+    return `${formatSeasonLabel(seasonPart)} Watcher`;
+  }
+  return BADGE_DEFINITIONS[badge as StaticBadgeKey]?.name ?? badge;
 }
 
 // ─── Helper query functions ────────────────────────────────────────────────
@@ -234,24 +301,33 @@ async function hasCompletedPublishingManga(userId: string): Promise<boolean> {
   return !!entry;
 }
 
-async function checkSeasonalBadge(userId: string, season: string): Promise<boolean> {
-  const currentYear = new Date().getFullYear();
-  const key = `${season}_${currentYear}`;
-  const progress = await prisma.seasonalProgress.findUnique({
-    where: { userId_season: { userId, season: key } },
-  });
-  return progress?.completed ?? false;
-}
-
 async function hasConsecutiveSeasons(userId: string, count: number): Promise<boolean> {
-  const earnedBadges = await prisma.userBadge.findMany({
-    where: {
-      userId,
-      badge: { in: ["SPRING_WATCHER", "SUMMER_WATCHER", "FALL_WATCHER", "WINTER_WATCHER"] },
-    },
+  const badges = await prisma.userBadge.findMany({
+    where: { userId, seasonKey: { not: "" } },
     orderBy: { earnedAt: "asc" },
+    select: { seasonKey: true },
   });
-  return earnedBadges.length >= count;
+
+  const ordinals = badges
+    .map((b) => parseSeasonKey(b.seasonKey))
+    .filter((p): p is { season: Season; year: number } => p != null)
+    .map((p) => p.year * SEASON_ORDER.length + SEASON_ORDER.indexOf(p.season))
+    .sort((a, b) => a - b);
+
+  const unique = [...new Set(ordinals)];
+  if (unique.length < count) return false;
+
+  let streak = 1;
+  let max = 1;
+  for (let i = 1; i < unique.length; i++) {
+    if (unique[i] === unique[i - 1] + 1) {
+      streak++;
+      max = Math.max(max, streak);
+    } else {
+      streak = 1;
+    }
+  }
+  return max >= count;
 }
 
 async function countPublicLists(userId: string): Promise<number> {

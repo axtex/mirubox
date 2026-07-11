@@ -38,6 +38,8 @@ function TabContent({
           badges={data.badges}
           statsGenres={data.statsGenres}
           ratingDistribution={data.ratingDistribution}
+          seasonChallenge={data.seasonChallenge}
+          pastSeasonChallenges={data.pastSeasonChallenges}
         />
       );
     case "reviews":

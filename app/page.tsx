@@ -7,8 +7,11 @@ import {
   getDisplayTitle,
   formatSeasonLabel,
 } from "@/lib/anilist";
+import { auth } from "@/auth";
+import { getContinueItems } from "@/lib/continue-items";
+import { getSeasonChallenge } from "@/lib/season-challenge";
 import { SectionRow } from "@/components/anime/SectionRow";
-import { ContinueSection } from "@/components/home/ContinueSection";
+import { ContinueStrip } from "@/components/home/ContinueStrip";
 import { DiscoverSection } from "@/components/home/DiscoverSection";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
@@ -24,8 +27,42 @@ const EMPTY_MEDIA_PAGE: MediaPage = {
 };
 
 export default async function HomePage() {
+  const session = await auth();
   const { season, year } = getCurrentSeason();
   const { season: nextSeason, year: nextYear } = getNextSeason();
+
+  const challengeData = session?.user?.id
+    ? await getSeasonChallenge(session.user.id)
+    : null;
+
+  const continueItems = session?.user?.id
+    ? await getContinueItems(session.user.id)
+    : [];
+
+  const showContinueStrip =
+    continueItems.length > 0 || (challengeData?.showOnHome ?? false);
+
+  const seasonChallenge =
+    challengeData?.showOnHome
+      ? {
+          emoji: challengeData.emoji,
+          label: `${formatSeasonLabel(challengeData.season)} ${challengeData.year}`,
+          season: challengeData.season,
+          year: challengeData.year,
+          target: challengeData.target,
+          count: challengeData.count,
+          isEarned: challengeData.isEarned,
+          badgeLabel: challengeData.badgeLabel,
+          xpReward: challengeData.xpReward,
+          completedTitles: challengeData.completedTitles.map((entry) => ({
+            id: entry.anime.id,
+            title: entry.anime.title,
+            titleEnglish: entry.anime.titleEnglish,
+            coverImage: entry.anime.coverImage,
+          })),
+          suggestions: challengeData.suggestions,
+        }
+      : null;
 
   const [trendingResult, seasonalResult, upcomingResult, mangaResult] = await Promise.allSettled([
     getTrending("ANIME", 1, 28),
@@ -77,7 +114,12 @@ export default async function HomePage() {
       {heroSlides.length > 0 && <HeroCarousel slides={heroSlides} />}
 
       <div className="flex flex-col" style={{ gap: 72, paddingTop: 56, paddingBottom: 56 }}>
-        <ContinueSection />
+        {showContinueStrip && (
+          <ContinueStrip
+            items={continueItems}
+            seasonChallenge={seasonChallenge}
+          />
+        )}
 
         <DiscoverSection type="ANIME" maxItems={24} />
 

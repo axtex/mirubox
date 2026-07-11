@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { XPAction, type BadgeKey } from "@prisma/client";
 import { ReviewIcon } from "@/components/icons/ReviewIcon";
 import { prisma } from "@/lib/prisma";
-import { BADGE_DEFINITIONS } from "@/lib/badges";
+import { BADGE_DEFINITIONS, resolveBadgeName } from "@/lib/badges";
 import { timeAgo } from "@/lib/time-ago";
 
 export { timeAgo };
@@ -52,8 +52,12 @@ const ACTION_LABELS: Record<XPAction, string> = {
 
 function describeEvent(action: XPAction, meta: unknown): string {
   if (action === "BADGE_UNLOCKED") {
-    const badge = (meta as { badge?: BadgeKey } | null)?.badge;
-    if (badge && BADGE_DEFINITIONS[badge]) return `Badge unlocked — ${BADGE_DEFINITIONS[badge].name}`;
+    const payload = meta as { badge?: BadgeKey; season?: string } | null;
+    const badge = payload?.badge;
+    if (badge) {
+      const name = resolveBadgeName(badge, payload?.season);
+      if (name) return `Badge unlocked — ${name}`;
+    }
   }
   return ACTION_LABELS[action];
 }

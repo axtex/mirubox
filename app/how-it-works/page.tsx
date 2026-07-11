@@ -197,10 +197,10 @@ const BADGE_CATEGORIES: Array<{ title: string; note?: string; badges: BadgeRow[]
     note:
       "Earn a seasonal badge by watching or completing 3 titles from that season. Seasonal badges are named by year — e.g. Summer 2026 Watcher. Earn 4 in a row for Seasoned Watcher.",
     badges: [
-      { icon: "🌱", name: "Spring Watcher", requirement: "3 Spring season titles watched or completed" },
-      { icon: "☀️", name: "Summer Watcher", requirement: "3 Summer season titles watched or completed" },
-      { icon: "🍂", name: "Fall Watcher", requirement: "3 Fall season titles watched or completed" },
-      { icon: "❄️", name: "Winter Watcher", requirement: "3 Winter season titles watched or completed" },
+      { icon: "🌱", name: "Spring 2026 Watcher", requirement: "3 Spring season titles watched or completed" },
+      { icon: "☀️", name: "Summer 2026 Watcher", requirement: "3 Summer season titles watched or completed" },
+      { icon: "🍂", name: "Fall 2026 Watcher", requirement: "3 Fall season titles watched or completed" },
+      { icon: "❄️", name: "Winter 2026 Watcher", requirement: "3 Winter season titles watched or completed" },
       { icon: "🗓", name: "Seasoned Watcher", requirement: "4 consecutive seasonal badges" },
     ],
   },

@@ -34,6 +34,18 @@ interface DbRow {
   similarity: number;
 }
 
+interface TrgmRow {
+  id: number;
+  type: string;
+  title: string;
+  titleEnglish: string | null;
+  coverImage: string | null;
+  genres: string[];
+  averageScore: number | null;
+  format: string | null;
+  sim_score: number;
+}
+
 export interface HybridSearchOptions {
   /** Max results returned after merging. Default 12. */
   limit?: number;
@@ -45,6 +57,8 @@ export interface HybridSearchOptions {
 const DEFAULT_LIMIT = 12;
 const DEFAULT_THRESHOLD = 0.27;
 const PROMPT_RELAXED_THRESHOLD = 0.2;
+/** pg_trgm similarity floor — 0.3 misses single-transposition typos like "naurto" (≈0.27). */
+const TRGM_MIN_SIMILARITY = 0.25;
 
 function cardToHybridResult(card: AnimeCard, similarity: number | null): HybridResult {
   return {
@@ -174,6 +188,47 @@ async function searchSemanticDB(
   `;
 
   return rows.map((r) => ({ ...r, similarity: Number(r.similarity), source: "semantic" as const }));
+}
+
+async function searchTrgmFallback(
+  query: string,
+  type: "ANIME" | "MANGA",
+  limit = 6,
+): Promise<HybridResult[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const rows = await prisma.$queryRaw<TrgmRow[]>`
+    SELECT
+      id, type, title, "titleEnglish", "coverImage",
+      genres, "averageScore", format,
+      GREATEST(
+        similarity(title, ${trimmed}),
+        similarity(COALESCE("titleEnglish", ''), ${trimmed})
+      ) AS sim_score
+    FROM "Anime"
+    WHERE (
+      similarity(title, ${trimmed}) > ${TRGM_MIN_SIMILARITY}
+      OR similarity("titleEnglish", ${trimmed}) > ${TRGM_MIN_SIMILARITY}
+    )
+    AND type = ${type}
+    ORDER BY sim_score DESC
+    LIMIT ${limit}
+  `;
+
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    titleEnglish: r.titleEnglish,
+    coverImage: r.coverImage,
+    genres: r.genres,
+    averageScore: r.averageScore,
+    format: r.format,
+    type: r.type,
+    similarity: Number(r.sim_score),
+    source: "anilist" as const,
+    _isFallback: true,
+  }));
 }
 
 async function searchAniListKeyword(
@@ -330,23 +385,13 @@ export async function hybridSearch(
     }
   }
 
-  // Last-resort typo tolerance: try partial match for single-word queries with no results
-  if (
-    results.length === 0 &&
-    query.trim().split(/\s+/).length === 1 &&
-    query.trim().length > 4
-  ) {
-    const partialQuery = query.trim().slice(0, 4);
+  // Last-resort typo tolerance: pg_trgm similarity against cached titles
+  if (results.length === 0 && query.trim().length >= 2) {
     try {
-      const partialResults = await searchAniListKeyword(partialQuery, limit, type);
-      if (partialResults.length > 0) {
-        return partialResults.slice(0, 6).map((r) => ({
-          ...r,
-          _isFallback: true,
-        }));
-      }
+      const trgmResults = await searchTrgmFallback(query, type);
+      if (trgmResults.length > 0) return trgmResults;
     } catch (err) {
-      console.error("Partial keyword fallback failed:", err);
+      console.error("Trgm fallback failed:", err);
     }
   }
 

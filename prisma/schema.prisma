@@ -24,6 +24,9 @@ model User {
   onboarded     Boolean   @default(false)
   pushToken     String? // stub for mobile push later
 
+  seasonChallengeFromSeason String?
+  seasonChallengeFromYear   Int?
+
   accounts             Account[]
   sessions             Session[]
   trackerEntries       TrackerEntry[]
@@ -262,10 +265,11 @@ model UserBadge {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   badge     BadgeKey
+  seasonKey String   @default("")
   earnedAt  DateTime @default(now())
   xpAwarded Int      @default(0)
 
-  @@unique([userId, badge])
+  @@unique([userId, badge, seasonKey])
   @@index([userId])
 }
 

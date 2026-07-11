@@ -1,8 +1,14 @@
 import { notFound } from "next/navigation";
 import type { BadgeKey } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { BADGE_DEFINITIONS } from "@/lib/badges";
+import { BADGE_DEFINITIONS, resolveBadgeName, SEASONAL_WATCHER_XP, type StaticBadgeKey } from "@/lib/badges";
+import { isSeasonalWatcherBadge } from "@/lib/season";
 import { getRankProgress } from "@/lib/xp";
+import {
+  getPastSeasonChallenges,
+  getSeasonChallenge,
+} from "@/lib/season-challenge";
+import { getCurrentSeason, getSeasonKey } from "@/lib/season";
 import { getAvatarSeed, getAvatarUrl } from "@/lib/avatar";
 import type {
   ActivityItem,
@@ -239,7 +245,15 @@ async function loadActivity(
   const activity: ActivityItem[] = page.map((e) => {
     const meta = (e.meta ?? null) as Record<string, unknown> | null;
     const badgeKey = meta?.badge as BadgeKey | undefined;
-    const badgeDef = badgeKey ? BADGE_DEFINITIONS[badgeKey] : null;
+    const seasonKey = meta?.season as string | undefined;
+    const badgeName =
+      badgeKey != null
+        ? resolveBadgeName(badgeKey, seasonKey)
+        : null;
+    const staticDef =
+      badgeKey && !isSeasonalWatcherBadge(badgeKey)
+        ? BADGE_DEFINITIONS[badgeKey as StaticBadgeKey]
+        : null;
     const list = e.listId ? listMap.get(e.listId) : null;
 
     return {
@@ -251,8 +265,10 @@ async function loadActivity(
       listTitle: list?.title ?? null,
       listEntryCount: list?._count.entries ?? null,
       listIsPublic: list?.isPublic ?? null,
-      badgeName: badgeDef?.name ?? null,
-      badgeDescription: badgeDef ? `${badgeDef.xp} XP badge` : null,
+      badgeName: badgeName,
+      badgeDescription: badgeName
+        ? `${staticDef?.xp ?? SEASONAL_WATCHER_XP} XP badge`
+        : null,
       meta,
     };
   });
@@ -277,7 +293,7 @@ export async function getProfileData(opts: {
       displayName: true,
       avatarUrl: true,
       totalXP: true,
-      userBadges: { select: { badge: true, earnedAt: true } },
+      userBadges: { select: { badge: true, seasonKey: true, earnedAt: true } },
       userStreak: true,
     },
   });
@@ -384,21 +400,47 @@ export async function getProfileData(opts: {
     }
   }
 
-  const earnedSet = new Map(user.userBadges.map((b) => [b.badge, b.earnedAt]));
-  const allBadgeKeys = Object.keys(BADGE_DEFINITIONS) as BadgeKey[];
+  const allBadgeKeys = Object.keys(BADGE_DEFINITIONS) as StaticBadgeKey[];
+
+  const earnedNonSeasonal = new Map<BadgeKey, Date>();
+  const earnedSeasonal: BadgeDisplay[] = [];
+
+  for (const row of user.userBadges) {
+    if (isSeasonalWatcherBadge(row.badge)) {
+      const name = resolveBadgeName(row.badge, row.seasonKey);
+      earnedSeasonal.push({
+        key: row.badge,
+        id: `${row.badge}_${row.seasonKey}`,
+        seasonKey: row.seasonKey,
+        name,
+        emoji: badgeEmoji(row.badge, name),
+        earned: true,
+        earnedAt: row.earnedAt,
+        description: `${SEASONAL_WATCHER_XP} XP`,
+      });
+    } else {
+      earnedNonSeasonal.set(row.badge, row.earnedAt);
+    }
+  }
+
+  earnedSeasonal.sort(
+    (a, b) => (b.earnedAt?.getTime() ?? 0) - (a.earnedAt?.getTime() ?? 0)
+  );
+
   const badges: BadgeDisplay[] = [
+    ...earnedSeasonal,
     ...allBadgeKeys
-      .filter((k) => earnedSet.has(k))
+      .filter((k) => earnedNonSeasonal.has(k))
       .map((k) => ({
         key: k,
         name: BADGE_DEFINITIONS[k].name,
         emoji: badgeEmoji(k, BADGE_DEFINITIONS[k].name),
         earned: true,
-        earnedAt: earnedSet.get(k) ?? null,
+        earnedAt: earnedNonSeasonal.get(k) ?? null,
         description: `${BADGE_DEFINITIONS[k].xp} XP`,
       })),
     ...allBadgeKeys
-      .filter((k) => !earnedSet.has(k))
+      .filter((k) => !earnedNonSeasonal.has(k))
       .map((k) => ({
         key: k,
         name: BADGE_DEFINITIONS[k].name,
@@ -419,6 +461,13 @@ export async function getProfileData(opts: {
 
   const seed = getAvatarSeed(user.username, user.id);
   const earnedCount = badges.filter((b) => b.earned).length;
+
+  const { season: currentSeason, year: currentYear } = getCurrentSeason();
+  const currentSeasonKey = getSeasonKey(currentSeason, currentYear);
+  const [seasonChallenge, pastSeasonChallenges] = await Promise.all([
+    getSeasonChallenge(user.id),
+    getPastSeasonChallenges(user.id, currentSeasonKey),
+  ]);
 
   return {
     user: {
@@ -464,6 +513,8 @@ export async function getProfileData(opts: {
       longest: user.userStreak?.longestStreak ?? 0,
       days: buildWeekDays(activeDates),
     },
+    seasonChallenge,
+    pastSeasonChallenges,
     activity,
     hasMoreActivity: hasMore,
     reviews: reviewItems,

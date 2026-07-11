@@ -446,31 +446,12 @@ export async function getTopRated(
   return data.Page;
 }
 
-export function getCurrentSeason(): { season: string; year: number } {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
-  let season: string;
-  if (month >= 1 && month <= 3) season = "WINTER";
-  else if (month >= 4 && month <= 6) season = "SPRING";
-  else if (month >= 7 && month <= 9) season = "SUMMER";
-  else season = "FALL";
-  return { season, year };
-}
-
-const SEASON_ORDER = ["WINTER", "SPRING", "SUMMER", "FALL"] as const;
-
-export function getNextSeason(): { season: string; year: number } {
-  const { season, year } = getCurrentSeason();
-  const idx = SEASON_ORDER.indexOf(season as (typeof SEASON_ORDER)[number]);
-  const nextIdx = (idx + 1) % SEASON_ORDER.length;
-  const nextYear = nextIdx === 0 ? year + 1 : year;
-  return { season: SEASON_ORDER[nextIdx], year: nextYear };
-}
-
-export function formatSeasonLabel(season: string): string {
-  return season[0].toUpperCase() + season.slice(1).toLowerCase();
-}
+export {
+  getCurrentSeason,
+  getNextSeason,
+  formatSeasonLabel,
+  type Season,
+} from "@/lib/season";
 
 export function getDisplayTitle(
   title: { romaji: string | null; english: string | null; native: string | null } | null

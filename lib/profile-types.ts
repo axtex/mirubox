@@ -1,5 +1,9 @@
 import type { BadgeKey, XPAction } from "@prisma/client";
 import type { RankProgress } from "@/lib/xp";
+import type {
+  PastSeasonChallenge,
+  SeasonChallengeData,
+} from "@/lib/season-challenge-types";
 
 export type ProfileTabId = "profile" | "activity" | "stats" | "reviews" | "lists";
 
@@ -41,6 +45,8 @@ export interface GenreCount {
 
 export interface BadgeDisplay {
   key: BadgeKey;
+  id?: string;
+  seasonKey?: string;
   name: string;
   emoji: string;
   earned: boolean;
@@ -123,6 +129,8 @@ export interface ProfileData {
     longest: number;
     days: StreakDay[];
   };
+  seasonChallenge: SeasonChallengeData | null;
+  pastSeasonChallenges: PastSeasonChallenge[];
   activity: ActivityItem[];
   hasMoreActivity: boolean;
   reviews: ReviewItem[];

@@ -3,7 +3,11 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { getMediaById } from "@/lib/anilist";
-import { awardXP, checkAndAwardSeasonChallenge, type ToastNotification } from "@/lib/xp";
+import { awardXP, type ToastNotification } from "@/lib/xp";
+import {
+  initSeasonChallengeStart,
+  syncSeasonChallenge,
+} from "@/lib/season-challenge-sync";
 import { embedAnimeIfNeeded } from "@/lib/embed-on-cache";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
@@ -141,8 +145,15 @@ export async function POST(req: Request) {
 
   const notifications: ToastNotification[] = [];
 
+  const seasonMeta = {
+    season: cached?.season ?? null,
+    seasonYear: cached?.seasonYear ?? null,
+  };
+
   if (statusStr !== "FAVOURITE") {
     if (!existing) {
+      await initSeasonChallengeStart(session.user.id);
+
       const totalEntries = await prisma.trackerEntry.count({ where: { userId: session.user.id } });
       if (totalEntries === 1) {
         const result = await awardXP(session.user.id, "FIRST_TITLE");
@@ -152,18 +163,15 @@ export async function POST(req: Request) {
       if (statusStr === "COMPLETED") {
         const result = await awardXP(session.user.id, "MARK_COMPLETED_DIRECT", { mediaId: animeId });
         if (result) notifications.push(...result.notifications);
+        await syncSeasonChallenge(session.user.id, seasonMeta);
       } else {
         const result = await awardXP(session.user.id, "ADD_TO_TRACKER", { mediaId: animeId });
         if (result) notifications.push(...result.notifications);
       }
-
-      await checkAndAwardSeasonChallenge(session.user.id, {
-        season: cached?.season ?? null,
-        seasonYear: cached?.seasonYear ?? null,
-      });
     } else {
       const wasPlanned = existing.status === "PLANNED";
       const wasWatching = existing.status === "IN_PROGRESS";
+      const wasCompleted = existing.status === "COMPLETED";
       const nowWatching = statusStr === "IN_PROGRESS";
       const nowCompleted = statusStr === "COMPLETED";
 
@@ -178,10 +186,11 @@ export async function POST(req: Request) {
           mediaId: animeId,
         });
         if (result) notifications.push(...result.notifications);
-        await checkAndAwardSeasonChallenge(session.user.id, {
-          season: cached?.season ?? null,
-          seasonYear: cached?.seasonYear ?? null,
-        });
+        await syncSeasonChallenge(session.user.id, seasonMeta);
+      }
+
+      if (wasCompleted && !nowCompleted) {
+        await syncSeasonChallenge(session.user.id, seasonMeta);
       }
     }
   }
@@ -212,9 +221,21 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Invalid animeId" }, { status: 400 });
   }
 
+  const cached = await prisma.anime.findUnique({
+    where: { id: animeId },
+    select: { season: true, seasonYear: true },
+  });
+
   await prisma.trackerEntry.deleteMany({
     where: { userId: session.user.id, animeId },
   });
+
+  if (cached?.season && cached.seasonYear != null) {
+    await syncSeasonChallenge(session.user.id, {
+      season: cached.season,
+      seasonYear: cached.seasonYear,
+    });
+  }
 
   return NextResponse.json({ success: true });
 }

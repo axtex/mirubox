@@ -2,8 +2,9 @@ import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 import type { BadgeKey } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { BADGE_DEFINITIONS } from "@/lib/badges";
+import { BADGE_DEFINITIONS, resolveBadgeName, type StaticBadgeKey } from "@/lib/badges";
 import { badgeEmoji } from "@/lib/profile-data";
+import { isSeasonalWatcherBadge } from "@/lib/season";
 import { getRankProgress } from "@/lib/xp";
 import { getAvatarSeed, getAvatarPngUrl } from "@/lib/avatar";
 import { PassportCardOG, PASSPORT_OG_WIDTH, PASSPORT_OG_HEIGHT } from "@/components/profile/PassportCardOG";
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       displayName: true,
       avatarUrl: true,
       totalXP: true,
-      userBadges: { select: { badge: true } },
+      userBadges: { select: { badge: true, seasonKey: true, earnedAt: true } },
       favouriteAnime: {
         orderBy: { order: "asc" },
         take: 3,
@@ -96,19 +97,37 @@ export async function GET(req: NextRequest): Promise<Response> {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  const earnedSet = new Set(user.userBadges.map((b) => b.badge));
-  const allBadgeKeys = Object.keys(BADGE_DEFINITIONS) as BadgeKey[];
-  const badges = [
-    ...allBadgeKeys.filter((k) => earnedSet.has(k)),
-    ...allBadgeKeys.filter((k) => !earnedSet.has(k)),
+  const earnedNonSeasonal = new Set<BadgeKey>();
+  const earnedSeasonal = user.userBadges
+    .filter((b) => isSeasonalWatcherBadge(b.badge))
+    .sort((a, b) => b.earnedAt.getTime() - a.earnedAt.getTime())
+    .map((b) => ({
+      key: b.badge,
+      label: resolveBadgeName(b.badge, b.seasonKey),
+      emoji: badgeEmoji(b.badge, resolveBadgeName(b.badge, b.seasonKey)),
+      earned: true as const,
+    }));
+
+  for (const row of user.userBadges) {
+    if (!isSeasonalWatcherBadge(row.badge)) {
+      earnedNonSeasonal.add(row.badge);
+    }
+  }
+
+  const allBadgeKeys = Object.keys(BADGE_DEFINITIONS) as StaticBadgeKey[];
+  const staticBadges = [
+    ...allBadgeKeys.filter((k) => earnedNonSeasonal.has(k)),
+    ...allBadgeKeys.filter((k) => !earnedNonSeasonal.has(k)),
   ]
-    .slice(0, 6)
+    .slice(0, Math.max(0, 6 - earnedSeasonal.length))
     .map((k) => ({
       key: k,
       label: BADGE_DEFINITIONS[k].name,
       emoji: badgeEmoji(k, BADGE_DEFINITIONS[k].name),
-      earned: earnedSet.has(k),
+      earned: earnedNonSeasonal.has(k),
     }));
+
+  const badges = [...earnedSeasonal, ...staticBadges].slice(0, 6);
 
   const progress = getRankProgress(user.totalXP);
 

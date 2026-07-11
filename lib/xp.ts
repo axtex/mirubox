@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { XPAction, Prisma, type BadgeKey } from "@prisma/client";
-import { evaluateBadges, BADGE_DEFINITIONS } from "@/lib/badges";
+import { evaluateBadges, BADGE_DEFINITIONS, type StaticBadgeKey } from "@/lib/badges";
 import { createNotification } from "@/lib/notifications";
 
 // XP values — single source of truth
@@ -189,7 +189,7 @@ export async function awardXP(
 
   const badgesEarned = await evaluateBadges(userId);
   for (const badgeKey of badgesEarned) {
-    const def = BADGE_DEFINITIONS[badgeKey];
+    const def = BADGE_DEFINITIONS[badgeKey as StaticBadgeKey];
     notifications.push({
       type: "BADGE_EARNED",
       title: def.name,
@@ -287,30 +287,4 @@ async function updateActivityStreak(userId: string): Promise<void> {
       lastActivityDate: today,
     },
   });
-}
-
-// Seasonal challenge — 3 titles added/completed from a season earns that season's badge XP
-export async function checkAndAwardSeasonChallenge(
-  userId: string,
-  media: { season?: string | null; seasonYear?: number | null }
-): Promise<void> {
-  if (!media.season || !media.seasonYear) return;
-
-  const key = `${media.season}_${media.seasonYear}`;
-
-  const progress = await prisma.seasonalProgress.upsert({
-    where: { userId_season: { userId, season: key } },
-    create: { userId, season: key, count: 1 },
-    update: { count: { increment: 1 } },
-  });
-
-  if (progress.count === 3 && !progress.completed) {
-    await prisma.seasonalProgress.update({
-      where: { userId_season: { userId, season: key } },
-      data: { completed: true },
-    });
-    await awardXP(userId, "SEASON_CHALLENGE", {
-      meta: { season: key },
-    });
-  }
 }
