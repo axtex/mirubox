@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { AnimeCard } from "./AnimeCard";
 import { AnimeCardSkeleton } from "./AnimeCardSkeleton";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
@@ -6,6 +7,8 @@ import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 interface SectionRowProps {
   title: string;
   seeAllHref?: string;
+  seeAllLabel?: string;
+  seeAllAccent?: boolean;
   items: AnimeCardType[];
   size?: "sm" | "md" | "lg";
   loading?: boolean;
@@ -13,7 +16,15 @@ interface SectionRowProps {
 
 const ROW_LIMIT = 7;
 
-export function SectionRow({ title, seeAllHref, items, size = "md", loading }: SectionRowProps) {
+export function SectionRow({
+  title,
+  seeAllHref,
+  seeAllLabel = "VIEW ALL",
+  seeAllAccent = false,
+  items,
+  size = "md",
+  loading,
+}: SectionRowProps) {
   const rowItems = items.slice(0, ROW_LIMIT);
 
   return (
@@ -24,9 +35,13 @@ export function SectionRow({ title, seeAllHref, items, size = "md", loading }: S
           {seeAllHref && (
             <Link
               href={seeAllHref}
-              className="text-label link-subtle"
+              className={`text-label inline-flex items-center gap-1 ${seeAllAccent ? "link-accent" : "link-subtle"}`}
+              style={seeAllAccent ? { color: "var(--primary)" } : undefined}
             >
-              VIEW ALL
+              {seeAllLabel}
+              {seeAllAccent && (
+                <ChevronRight size={12} strokeWidth={2} color="var(--primary)" aria-hidden />
+              )}
             </Link>
           )}
         </div>

@@ -9,6 +9,7 @@ import {
   isTrackedEntry,
 } from "@/lib/tracker-context";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
+import { AddToListButton } from "@/components/lists/AddToListModal";
 import { ReviewModal } from "@/components/detail/ReviewModal";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { trackerProgressPct } from "@/lib/tracker-progress";
@@ -118,6 +119,7 @@ export function TrackerSidebarBlock({
   }
 
   return (
+    <>
     <div>
       <p style={SECTION_TITLE}>TRACK</p>
       <div
@@ -362,5 +364,18 @@ export function TrackerSidebarBlock({
         )}
       </div>
     </div>
+
+    <div>
+      <p style={SECTION_TITLE}>LISTS</p>
+      <div style={BLOCK_STYLE}>
+        <AddToListButton
+          mediaId={mediaId}
+          mediaType={mediaType}
+          isLoggedIn={isLoggedIn}
+          sidebar
+        />
+      </div>
+    </div>
+    </>
   );
 }

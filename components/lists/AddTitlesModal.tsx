@@ -206,7 +206,6 @@ export function AddTitlesModal({
         />
 
         <div
-          className="scrollbar-theme"
           style={{
             marginTop: 8,
             maxHeight: 280,
@@ -214,9 +213,6 @@ export function AddTitlesModal({
             border: "1px solid var(--border)",
             borderRadius: 2,
             minHeight: 120,
-            colorScheme: "dark",
-            scrollbarWidth: "thin",
-            scrollbarColor: "var(--fg-muted) var(--bg-card)",
           }}
         >
           {query.trim().length < 2 ? (

@@ -87,6 +87,40 @@ body {
   min-height: 100dvh;
 }
 
+/* ── Global scrollbar (dark) — all scrollable surfaces ─────────────────── */
+
+*,
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--fg-muted) var(--bg-card);
+}
+
+*::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 6px;
+  height: 6px;
+  background: transparent;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--bg-card);
+  border-radius: 2px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--fg-muted);
+  border-radius: 2px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--fg);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* ── Page layout — Letterboxd-style contained column ───────────────────── */
 
 .page-container {
@@ -390,6 +424,26 @@ span.detail-sidebar-genre-link:hover {
   color: var(--fg);
 }
 
+.link-accent {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.link-accent:hover {
+  color: var(--primary-hover);
+}
+
+.link-accent svg {
+  color: var(--primary);
+  stroke: var(--primary);
+}
+
+.link-accent:hover svg {
+  color: var(--primary-hover);
+  stroke: var(--primary-hover);
+}
+
 .how-it-works-link:hover {
   color: #9e9ea8 !important;
 }
@@ -664,6 +718,99 @@ span.detail-sidebar-genre-link:hover {
   box-sizing: border-box;
 }
 
+/* ── Continue section (horizontal progress cards) ─────────────────────────── */
+
+.continue-cards {
+  display: grid;
+  width: 100%;
+  gap: 12px;
+  grid-template-columns: repeat(var(--continue-count, 1), minmax(0, 1fr));
+  grid-template-rows: 1fr;
+}
+
+.continue-card {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+  min-height: 76px;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  text-decoration: none;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.continue-card:hover {
+  border-color: var(--border-bright);
+  background: var(--bg-elevated);
+}
+
+.continue-card-cover {
+  position: relative;
+  width: 48px;
+  height: 68px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+
+.continue-card-cover-fallback {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-elevated);
+}
+
+.continue-card-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1px 0 2px;
+}
+
+.continue-card-copy {
+  min-width: 0;
+}
+
+.continue-card-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--fg);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.continue-card-progress {
+  margin: 3px 0 0;
+  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--fg-muted);
+}
+
+.continue-card-bar {
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.continue-card-bar-fill {
+  height: 100%;
+  border-radius: 1px;
+  background: var(--primary);
+  transition: width var(--transition);
+}
+
 /* ── Horizontal scroll carousel ─────────────────────────────────────────── */
 
 .scroll-row {
@@ -684,37 +831,11 @@ span.detail-sidebar-genre-link:hover {
   flex-shrink: 0;
 }
 
-/* ── Themed vertical scrollbar ──────────────────────────────────────────── */
+/* ── Scrollbar utilities ────────────────────────────────────────────────── */
 
+/** Reserve space for vertical scrollbar when content overflows. */
 .scrollbar-theme {
-  color-scheme: dark;
-  scrollbar-width: thin;
-  scrollbar-color: var(--fg-muted) var(--bg-card);
   scrollbar-gutter: stable;
-}
-
-.scrollbar-theme::-webkit-scrollbar {
-  -webkit-appearance: none;
-  width: 6px;
-  background: transparent;
-}
-
-.scrollbar-theme::-webkit-scrollbar-track {
-  background: var(--bg-card);
-  border-radius: 2px;
-}
-
-.scrollbar-theme::-webkit-scrollbar-thumb {
-  background-color: var(--fg-muted);
-  border-radius: 2px;
-}
-
-.scrollbar-theme::-webkit-scrollbar-thumb:hover {
-  background-color: var(--fg);
-}
-
-.scrollbar-theme::-webkit-scrollbar-corner {
-  background: transparent;
 }
 
 /* ── Anime card hover glow ──────────────────────────────────────────────── */

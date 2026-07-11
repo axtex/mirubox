@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ChevronRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { IconButton } from "@/components/ui/IconButton";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { useToast } from "@/context/ToastContext";
 import type { ToastNotification } from "@/lib/xp";
@@ -30,13 +32,23 @@ interface EntriesResponse {
   entries: Array<{ mediaId: number }>;
 }
 
+const CREATE_LIST_LINK_CLASS = "btn-primary shrink-0";
+const CREATE_LIST_LINK_STYLE: React.CSSProperties = {
+  minHeight: 28,
+  padding: "4px 10px",
+  fontSize: 9,
+  letterSpacing: "0.08em",
+};
+
 interface Props {
   mediaId: number;
   mediaType: "ANIME" | "MANGA";
   isLoggedIn: boolean;
+  /** Full-width control matching detail sidebar blocks. */
+  sidebar?: boolean;
 }
 
-export function AddToListButton({ mediaId, mediaType, isLoggedIn }: Props) {
+export function AddToListButton({ mediaId, mediaType, isLoggedIn, sidebar = false }: Props) {
   const pathname = usePathname();
   const { openAuthModal } = useAuthModal();
   const [open, setOpen] = useState(false);
@@ -52,30 +64,56 @@ export function AddToListButton({ mediaId, mediaType, isLoggedIn }: Props) {
   return (
     <>
       <button
+        type="button"
         onClick={handleClick}
-        style={{
-          fontFamily: "var(--font-space-mono)",
-          fontSize: 10,
-          letterSpacing: "0.08em",
-          padding: "7px 14px",
-          border: "1px solid #2a2a2d",
-          borderRadius: 2,
-          background: "transparent",
-          color: "var(--fg-muted)",
-          cursor: "pointer",
-          transition: "border-color 0.15s ease, color 0.15s ease",
-          whiteSpace: "nowrap",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "#3a3a3d";
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--fg)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "#2a2a2d";
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--fg-muted)";
-        }}
+        className={sidebar ? "detail-sidebar-track-btn" : undefined}
+        style={
+          sidebar
+            ? {
+                width: "100%",
+                padding: "5px 0",
+                textAlign: "center",
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 9,
+                letterSpacing: "0.04em",
+                color: "var(--fg-muted)",
+                border: "1px solid var(--bg-card-high)",
+                borderRadius: 2,
+                background: "transparent",
+                cursor: "pointer",
+              }
+            : {
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 10,
+                letterSpacing: "0.08em",
+                padding: "7px 14px",
+                border: "1px solid #2a2a2d",
+                borderRadius: 2,
+                background: "transparent",
+                color: "var(--fg-muted)",
+                cursor: "pointer",
+                transition: "border-color 0.15s ease, color 0.15s ease",
+                whiteSpace: "nowrap",
+              }
+        }
+        onMouseEnter={
+          sidebar
+            ? undefined
+            : (e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#3a3a3d";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--fg)";
+              }
+        }
+        onMouseLeave={
+          sidebar
+            ? undefined
+            : (e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#2a2a2d";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--fg-muted)";
+              }
+        }
       >
-        LIST +
+        {sidebar ? "+ ADD TO LIST" : "LIST +"}
       </button>
 
       {open && (
@@ -101,8 +139,13 @@ function AddToListModal({
   const [lists, setLists] = useState<UserList[]>([]);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchLists = useCallback(async () => {
     setLoading(true);
@@ -187,7 +230,9 @@ function AddToListModal({
     }
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       ref={overlayRef}
       onClick={(e) => {
@@ -205,6 +250,9 @@ function AddToListModal({
       }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Add to a list"
         style={{
           background: "var(--bg-elevated)",
           border: "1px solid var(--border)",
@@ -238,23 +286,13 @@ function AddToListModal({
           >
             ADD TO A LIST
           </span>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--fg-muted)",
-              display: "flex",
-              padding: 4,
-            }}
-          >
-            <X size={16} />
-          </button>
+          <IconButton onClick={onClose} aria-label="Close">
+            <X size={14} />
+          </IconButton>
         </div>
 
         {/* List rows */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           {loading ? (
             <p
               style={{
@@ -283,21 +321,14 @@ function AddToListModal({
                 href="/lists/new"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1"
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  color: "var(--primary)",
-                  letterSpacing: "0.06em",
-                  textDecoration: "none",
-                }}
+                className={CREATE_LIST_LINK_CLASS}
+                style={CREATE_LIST_LINK_STYLE}
               >
-                + Create your first list
-                <ChevronRight className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+                + CREATE LIST
               </Link>
             </div>
           ) : (
-            lists.map((list) => (
+            lists.map((list, index) => (
               <button
                 key={list.slug}
                 onClick={() => toggle(list)}
@@ -311,7 +342,8 @@ function AddToListModal({
                   background: "none",
                   border: "none",
                   cursor: pending === list.slug ? "default" : "pointer",
-                  borderBottom: "1px solid var(--border)",
+                  borderBottom:
+                    index < lists.length - 1 ? "1px solid var(--border)" : "none",
                   transition: "background 0.1s ease",
                   textAlign: "left",
                 }}
@@ -328,7 +360,7 @@ function AddToListModal({
                       fontFamily: "var(--font-space-mono)",
                       fontSize: 11,
                       color: "var(--fg)",
-                      marginBottom: 2,
+                      margin: "0 0 2px",
                     }}
                   >
                     {list.title}
@@ -338,6 +370,7 @@ function AddToListModal({
                       fontFamily: "var(--font-space-mono)",
                       fontSize: 9,
                       color: "var(--fg-muted)",
+                      margin: 0,
                     }}
                   >
                     {list.entryCount} titles
@@ -346,10 +379,23 @@ function AddToListModal({
                 <span
                   style={{
                     fontFamily: "var(--font-space-mono)",
-                    fontSize: 10,
-                    color: list.hasMedia ? "var(--primary)" : "var(--fg-muted)",
+                    fontSize: 9,
+                    letterSpacing: "0.04em",
                     flexShrink: 0,
                     marginLeft: 12,
+                    padding: "4px 10px",
+                    borderRadius: 2,
+                    ...(list.hasMedia
+                      ? {
+                          background: "var(--primary-dim)",
+                          border: "1px solid rgba(232, 23, 63, 0.3)",
+                          color: "var(--primary)",
+                        }
+                      : {
+                          background: "var(--bg-card-high)",
+                          border: "1px solid var(--bg-card-high)",
+                          color: "var(--fg-muted)",
+                        }),
                   }}
                 >
                   {list.hasMedia ? "✓ Added" : "+ Add"}
@@ -363,7 +409,7 @@ function AddToListModal({
         {lists.length > 0 && (
           <div
             style={{
-              padding: "10px 16px",
+              padding: "8px 16px",
               borderTop: "1px solid var(--border)",
             }}
           >
@@ -371,20 +417,15 @@ function AddToListModal({
               href="/lists/new"
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 10,
-                color: "var(--fg-muted)",
-                letterSpacing: "0.06em",
-                textDecoration: "none",
-                transition: "color 0.15s ease",
-              }}
+              className={CREATE_LIST_LINK_CLASS}
+              style={CREATE_LIST_LINK_STYLE}
             >
-              + Create new list
+              + CREATE LIST
             </Link>
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

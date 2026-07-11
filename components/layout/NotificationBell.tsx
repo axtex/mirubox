@@ -144,7 +144,7 @@ export function NotificationBell({ session: initialSession }: { session: Session
             boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           }}
         >
-          <div className="scrollbar-theme" style={{ maxHeight: 400, overflowY: "auto" }}>
+          <div style={{ maxHeight: 400, overflowY: "auto" }}>
             {loading && notifications.length === 0 ? (
               <p
                 style={{

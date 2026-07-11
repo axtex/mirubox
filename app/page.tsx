@@ -8,6 +8,7 @@ import {
   formatSeasonLabel,
 } from "@/lib/anilist";
 import { SectionRow } from "@/components/anime/SectionRow";
+import { ContinueSection } from "@/components/home/ContinueSection";
 import { DiscoverSection } from "@/components/home/DiscoverSection";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
@@ -52,6 +53,8 @@ export default async function HomePage() {
       {heroSlides.length > 0 && <HeroCarousel slides={heroSlides} />}
 
       <div className="flex flex-col" style={{ gap: 72, paddingTop: 56, paddingBottom: 56 }}>
+        <ContinueSection />
+
         <DiscoverSection type="ANIME" maxItems={24} />
 
         {trendingRow.length > 0 && (
