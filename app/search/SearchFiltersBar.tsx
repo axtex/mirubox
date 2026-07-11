@@ -2,12 +2,12 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useTransition, useRef, useEffect, type ReactNode } from "react";
-import { ChevronRight, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { FilterSelect } from "@/components/FilterSelect";
 import { SearchSkeletonGrid } from "@/components/search/SearchSkeletonGrid";
 import { StatusNotice } from "@/components/ui/StatusNotice";
 import { StatusMessage } from "@/components/ui/StatusMessage";
-import { ANIME_DISCOVER, MANGA_DISCOVER } from "@/lib/discover-entries";
+import { SEARCH_DISCOVER_PROMPTS } from "@/lib/search-discover-prompts";
 import { AnimeCard } from "@/components/anime/AnimeCard";
 import type { TitleSearchResult } from "@/app/api/search/titles/route";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
@@ -239,9 +239,8 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
     }
   }
 
-  const showHint = tab === "ai" && query.trim().length >= 1 && !hasBrowseQuery;
   const placeholder = tab === "ai" ? "describe a mood, theme, or feeling..." : "search by title...";
-  const discoverEntries = type === "MANGA" ? MANGA_DISCOVER : ANIME_DISCOVER;
+  const discoverPrompts = SEARCH_DISCOVER_PROMPTS[type === "MANGA" ? "MANGA" : "ANIME"];
 
   // Browse keyword-only search uses the local DB for instant results. When filters are
   // active, show local matches until the URL and server round-trip catch up.
@@ -359,7 +358,7 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
           {/* 3. Mode tabs — flat underline style */}
           <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 20 }}>
             <FlatTab label="BROWSE" active={tab === "browse"} onClick={() => handleTabChange("browse")} flushStart />
-            <FlatTab label="✦ DISCOVER" active={tab === "ai"} onClick={() => handleTabChange("ai")} />
+            <FlatTab label="DISCOVER" active={tab === "ai"} onClick={() => handleTabChange("ai")} />
           </div>
 
           {/* 4a. DISCOVER: type toggle + hint + prompt chips when no submitted query */}
@@ -373,20 +372,6 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
 
               {!hasBrowseQuery && (
                 <div>
-                  {showHint && (
-                    <p
-                      className="inline-flex items-center gap-1"
-                      style={{
-                        fontFamily: "var(--font-space-mono)",
-                        fontSize: 9,
-                        color: "#3a3a45",
-                        marginBottom: 10,
-                      }}
-                    >
-                      Describe what you&apos;re in the mood for, then press
-                      <ChevronRight className="w-3 h-3 shrink-0" strokeWidth={2} />
-                    </p>
-                  )}
                   <p
                     style={{
                       fontFamily: "var(--font-space-mono)",
@@ -399,8 +384,12 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
                     WHAT ARE YOU IN THE MOOD FOR?
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {discoverEntries.map((entry) => (
-                      <PromptChip key={entry.label} label={entry.label} onClick={() => handleChipClick(entry.label)} />
+                    {discoverPrompts.map((entry) => (
+                      <PromptChip
+                        key={entry.label}
+                        label={entry.label}
+                        onClick={() => handleChipClick(entry.searchQuery ?? entry.label)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -420,18 +409,18 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
               {/* Filter dropdowns */}
               <div className="flex flex-wrap gap-2 mb-6">
                 <FilterSelect
-                  value={sort}
-                  onChange={(v) => navigate({ sort: v || undefined })}
-                  placeholder="SORT"
-                  options={SORTS}
-                  active={!!sort}
-                />
-                <FilterSelect
                   value={genre}
                   onChange={(v) => navigate({ genre: v || undefined })}
                   placeholder="GENRE"
                   options={GENRES.map((g) => ({ value: g, label: g.toUpperCase() }))}
                   active={!!genre}
+                />
+                <FilterSelect
+                  value={sort}
+                  onChange={(v) => navigate({ sort: v || undefined })}
+                  placeholder="SORT"
+                  options={SORTS}
+                  active={!!sort}
                 />
                 <FilterSelect
                   value={status}

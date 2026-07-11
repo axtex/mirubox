@@ -85,11 +85,25 @@ export async function SearchResults({ params }: SearchResultsProps) {
     }
 
     if (results.length === 0) {
-      return <DiscoverEmptyState type={type} />;
+      return <DiscoverEmptyState query={query} type={type} />;
     }
+
+    const hasFallback = results.some((r) => r._isFallback);
 
     return (
       <div>
+        {hasFallback && (
+          <p
+            style={{
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 9,
+              color: "var(--fg-subtle)",
+              marginBottom: 8,
+            }}
+          >
+            No exact matches — showing similar titles
+          </p>
+        )}
         <ResultsLabel query={query} count={results.length} mode="ai" />
         <div className={GRID}>
           {results.map((r) => (
@@ -182,27 +196,30 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-function DiscoverEmptyState({ type }: { type: "ANIME" | "MANGA" }) {
+function DiscoverEmptyState({ query, type }: { query: string; type: "ANIME" | "MANGA" }) {
   const prompts = (type === "MANGA" ? MANGA_DISCOVER : ANIME_DISCOVER)
     .slice(0, 4)
     .map((entry) => entry.label);
 
+  const isTitleQuery = query.trim().split(/\s+/).length === 1;
+  const message = isTitleQuery
+    ? `No titles matching '${query}' found. Try the full title or check spelling.`
+    : `No mood matches found for '${query}'. Try rephrasing — describe a feeling, theme, or genre.`;
+
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <p style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)", marginBottom: 6 }}>
-        No matches found
-      </p>
-      <StatusMessage
-        block
+      <p
         style={{
-          lineHeight: 1.7,
-          maxWidth: 360,
-          textTransform: "none",
-          letterSpacing: "0.02em",
+          fontSize: 14,
+          fontWeight: 500,
+          color: "var(--fg)",
+          marginBottom: 6,
+          maxWidth: 400,
+          lineHeight: 1.5,
         }}
       >
-        Try describing a mood, theme, or feeling — like &quot;slow burn romance&quot; or &quot;dark fantasy with good world-building&quot;.
-      </StatusMessage>
+        {message}
+      </p>
       <div className="flex flex-wrap justify-center gap-2 mt-4">
         {prompts.map((prompt) => (
           <a

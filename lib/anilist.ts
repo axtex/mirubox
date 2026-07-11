@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { GraphQLClient, gql } from "graphql-request";
+import { ClientError, GraphQLClient, gql } from "graphql-request";
 import type {
   AnimeCard,
   AnimeDetail,
@@ -13,25 +13,57 @@ function sleep(ms: number): Promise<void> {
 }
 
 function isRateLimitError(err: unknown): boolean {
+  if (err instanceof ClientError && err.response.status === 429) return true;
   const msg = err instanceof Error ? err.message : String(err);
   return msg.includes("429") || msg.includes("Too Many");
 }
 
+function getRetryAfterMs(err: unknown): number | null {
+  if (!(err instanceof ClientError)) return null;
+  const retryAfter = err.response.headers.get("retry-after");
+  if (!retryAfter) return null;
+  const seconds = Number(retryAfter);
+  if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000;
+  const date = Date.parse(retryAfter);
+  if (!Number.isNaN(date)) return Math.max(0, date - Date.now());
+  return null;
+}
+
 const REQUEST_TIMEOUT_MS = 8000;
+/** AniList allows ~30 req/min — pace requests to stay under the limit. */
+const MIN_REQUEST_GAP_MS = 2100;
+
+let requestChain: Promise<void> = Promise.resolve();
+let lastRequestFinishedAt = 0;
+
+function waitForRequestSlot(): Promise<void> {
+  const slot = requestChain.then(async () => {
+    const wait = lastRequestFinishedAt + MIN_REQUEST_GAP_MS - Date.now();
+    if (wait > 0) await sleep(wait);
+  });
+  requestChain = slot.catch(() => {});
+  return slot;
+}
 
 async function anilistRequest<T>(
   query: string,
   variables?: Record<string, unknown>,
 ): Promise<T> {
-  const maxAttempts = 4;
+  const maxAttempts = 5;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await waitForRequestSlot();
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
-      return await client.request<T>({ document: query, variables, signal: controller.signal });
+      const result = await client.request<T>({ document: query, variables, signal: controller.signal });
+      lastRequestFinishedAt = Date.now();
+      return result;
     } catch (err) {
+      lastRequestFinishedAt = Date.now();
       if (isRateLimitError(err) && attempt < maxAttempts - 1) {
-        await sleep(2000 * (attempt + 1));
+        const retryAfter = getRetryAfterMs(err);
+        await sleep(retryAfter ?? 2000 * (attempt + 1));
         continue;
       }
       if (controller.signal.aborted) {
@@ -80,7 +112,7 @@ const ANIME_CARD_FRAGMENT = gql`
   }
 `;
 
-export async function getTrending(
+export const getTrending = cache(async function getTrending(
   type: "ANIME" | "MANGA" = "ANIME",
   page = 1,
   perPage = 20
@@ -107,9 +139,9 @@ export async function getTrending(
     perPage,
   });
   return data.Page;
-}
+});
 
-export async function getPopular(
+export const getPopular = cache(async function getPopular(
   type: "ANIME" | "MANGA" = "ANIME",
   page = 1,
   perPage = 20
@@ -136,9 +168,9 @@ export async function getPopular(
     perPage,
   });
   return data.Page;
-}
+});
 
-export async function getSeasonalAnime(
+export const getSeasonalAnime = cache(async function getSeasonalAnime(
   season: string,
   year: number,
   page = 1,
@@ -178,10 +210,11 @@ export async function getSeasonalAnime(
     perPage,
   });
   return data.Page;
-}
+});
 
 export interface SearchFilters {
   genres?: string[];
+  tags?: string[];
   status?: string;
   format?: string;
   year?: number;
@@ -202,6 +235,7 @@ export async function searchMedia(
       $search: String
       $type: MediaType
       $genres: [String]
+      $tags: [String]
       $status: MediaStatus
       $format: MediaFormat
       $year: Int
@@ -221,6 +255,7 @@ export async function searchMedia(
           search: $search
           type: $type
           genre_in: $genres
+          tag_in: $tags
           status: $status
           format: $format
           seasonYear: $year
@@ -237,6 +272,7 @@ export async function searchMedia(
     search: query || undefined,
     type,
     genres: filters.genres?.length ? filters.genres : undefined,
+    tags: filters.tags?.length ? filters.tags : undefined,
     status: filters.status || undefined,
     format: filters.format || undefined,
     year: filters.year || undefined,

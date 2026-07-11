@@ -14,19 +14,43 @@ import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
 import { WeeklyDigestSection } from "@/components/home/WeeklyDigestSection";
 import { takeUnique } from "@/lib/homepage";
+import type { MediaPage } from "@/types/anilist";
 
 const HERO_COUNT = 8;
+
+const EMPTY_MEDIA_PAGE: MediaPage = {
+  pageInfo: { total: 0, currentPage: 1, lastPage: 1, hasNextPage: false },
+  media: [],
+};
 
 export default async function HomePage() {
   const { season, year } = getCurrentSeason();
   const { season: nextSeason, year: nextYear } = getNextSeason();
 
-  const [trending, seasonal, upcoming, manga] = await Promise.all([
+  const [trendingResult, seasonalResult, upcomingResult, mangaResult] = await Promise.allSettled([
     getTrending("ANIME", 1, 28),
     getSeasonalAnime(season, year, 1, 20),
     getSeasonalAnime(nextSeason, nextYear, 1, 20),
     getPopular("MANGA", 1, 7),
   ]);
+
+  const trending = trendingResult.status === "fulfilled" ? trendingResult.value : EMPTY_MEDIA_PAGE;
+  const seasonal = seasonalResult.status === "fulfilled" ? seasonalResult.value : EMPTY_MEDIA_PAGE;
+  const upcoming = upcomingResult.status === "fulfilled" ? upcomingResult.value : EMPTY_MEDIA_PAGE;
+  const manga = mangaResult.status === "fulfilled" ? mangaResult.value : EMPTY_MEDIA_PAGE;
+
+  if (trendingResult.status === "rejected") {
+    console.error("Home trending fetch failed:", trendingResult.reason);
+  }
+  if (seasonalResult.status === "rejected") {
+    console.error("Home seasonal fetch failed:", seasonalResult.reason);
+  }
+  if (upcomingResult.status === "rejected") {
+    console.error("Home upcoming fetch failed:", upcomingResult.reason);
+  }
+  if (mangaResult.status === "rejected") {
+    console.error("Home manga fetch failed:", mangaResult.reason);
+  }
 
   const shownIds = new Set<number>();
 
