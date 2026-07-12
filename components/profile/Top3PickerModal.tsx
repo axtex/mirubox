@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { AnimeCard } from "@/components/anime/AnimeCard";
 import type { ProfileMedia } from "@/lib/profile-types";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
@@ -264,6 +265,9 @@ export function Top3PickerModal({
               <Link
                 href="/tracker?favourites=true"
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 2,
                   fontFamily: "var(--font-space-mono)",
                   fontSize: 10,
                   color: "var(--primary)",
@@ -271,7 +275,8 @@ export function Top3PickerModal({
                   letterSpacing: "0.06em",
                 }}
               >
-                GO TO FAVOURITES →
+                GO TO FAVOURITES
+                <ChevronRight size={12} strokeWidth={2} aria-hidden />
               </Link>
             </div>
           ) : (
