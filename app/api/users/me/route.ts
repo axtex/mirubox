@@ -26,6 +26,7 @@ export async function PATCH(req: Request) {
   const data: {
     username?: string;
     displayName?: string;
+    name?: string;
     avatarUrl?: string | null;
     onboarded?: boolean;
   } = {};
@@ -46,7 +47,10 @@ export async function PATCH(req: Request) {
   }
 
   if (body.displayName !== undefined) {
-    data.displayName = String(body.displayName).trim().slice(0, 50);
+    const displayName = String(body.displayName).trim().slice(0, 50);
+    data.displayName = displayName;
+    // Keep Auth.js `name` in sync — otherwise OAuth name stays stale in DB/session.
+    if (displayName) data.name = displayName;
   }
 
   if (body.avatarUrl !== undefined) {

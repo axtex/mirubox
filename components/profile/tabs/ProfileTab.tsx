@@ -52,7 +52,6 @@ function toAnimeCard(media: ProfileMedia): AnimeCardType {
 function EmptyFavSlot({ isOwnProfile }: { isOwnProfile: boolean }): React.JSX.Element {
   return (
     <div
-      className="anime-card"
       style={{
         width: "100%",
         borderRadius: 4,

@@ -28,7 +28,7 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
   return (
     <OnboardingForm
       userId={session.user.id}
-      initialDisplayName={session.user.name ?? ""}
+      initialDisplayName={session.user.displayName ?? session.user.name ?? ""}
       callbackUrl={callbackUrl}
     />
   );

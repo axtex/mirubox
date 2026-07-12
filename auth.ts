@@ -52,6 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.displayName = dbUser.displayName ?? null;
           token.avatarUrl = dbUser.avatarUrl ?? null;
           token.onboarded = dbUser.onboarded;
+          if (dbUser.displayName) token.name = dbUser.displayName;
           return token;
         }
         // Fall through to client patch if DB read fails.
@@ -97,6 +98,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.displayName = dbUser?.displayName ?? null;
         token.avatarUrl = dbUser?.avatarUrl ?? null;
         token.onboarded = dbUser?.onboarded ?? false;
+        if (dbUser?.displayName) token.name = dbUser.displayName;
       }
       return token;
     },
@@ -107,6 +109,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.displayName = token.displayName ?? null;
         session.user.avatarUrl = token.avatarUrl ?? null;
         session.user.onboarded = token.onboarded ?? false;
+        if (token.displayName) {
+          session.user.name = token.displayName;
+        }
       }
       return session;
     },

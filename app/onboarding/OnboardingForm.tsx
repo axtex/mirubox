@@ -35,6 +35,7 @@ export function OnboardingForm({ userId, initialDisplayName, callbackUrl }: Prop
 
   const checkTimer = useRef<number | undefined>(undefined);
   const avatarTimer = useRef<number | undefined>(undefined);
+  const displayNameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     window.clearTimeout(avatarTimer.current);
@@ -114,9 +115,14 @@ export function OnboardingForm({ userId, initialDisplayName, callbackUrl }: Prop
 
   async function handleContinue() {
     if (!canContinue) return;
+    // Prefer the live input value so browser autofill can't leave React state stale.
+    const trimmedDisplayName = (
+      displayNameRef.current?.value ?? displayName
+    ).trim();
     await persist({
       username,
-      displayName: displayName.trim() || undefined,
+      // Always send a string — `undefined` is dropped by JSON.stringify and skips the DB write.
+      displayName: trimmedDisplayName || username,
       avatarUrl: getAvatarUrl(username),
       onboarded: true,
     });
@@ -262,7 +268,10 @@ export function OnboardingForm({ userId, initialDisplayName, callbackUrl }: Prop
             DISPLAY NAME
           </label>
           <input
+            ref={displayNameRef}
             type="text"
+            name="displayName"
+            autoComplete="nickname"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Your name"
