@@ -16,7 +16,6 @@ import { ContinueStrip } from "@/components/home/ContinueStrip";
 import { DiscoverSection } from "@/components/home/DiscoverSection";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
-import { WeeklyDigestSection } from "@/components/home/WeeklyDigestSection";
 import { takeUnique } from "@/lib/homepage";
 import type { MediaPage } from "@/types/anilist";
 
@@ -140,8 +139,6 @@ export default async function HomePage() {
         )}
 
         <CuratedListsSection />
-
-        <WeeklyDigestSection />
       </div>
     </div>
   );
