@@ -13,6 +13,7 @@ import {
   dbMediaToAnilistShape,
   dbRelationToEdge,
   dbStreamingToExternalLink,
+  resolveMediaForMetadata,
 } from "@/lib/cache-media-details";
 import {
   CHARACTER_TTL_MS,
@@ -40,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const numId = Number(id);
   if (isNaN(numId)) return {};
 
-  const media = await getMediaById(numId);
+  const media = await resolveMediaForMetadata(numId);
   if (!media) return { title: "Not Found — mirubox" };
 
   const title = getDisplayTitle(media.title);

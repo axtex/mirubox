@@ -14,7 +14,9 @@ import {
 } from "@/lib/streaming-links";
 import type {
   AnimeDetail,
+  AnimeTitle,
   CharacterEdge,
+  CoverImage,
   ExternalLink,
   RelationEdge,
 } from "@/types/anilist";
@@ -30,6 +32,59 @@ const KEEP_RELATIONS = new Set([
   "ALTERNATIVE_VERSION",
   "PARENT",
 ]);
+
+export type MetadataMedia = {
+  title: AnimeTitle;
+  description: string | null;
+  bannerImage: string | null;
+  coverImage: CoverImage;
+  seasonYear: number | null;
+};
+
+/** AniList first; DB row for title/description/images when AniList is down. */
+export async function resolveMediaForMetadata(
+  id: number
+): Promise<MetadataMedia | null> {
+  const media = await getMediaById(id);
+  if (media) {
+    return {
+      title: media.title,
+      description: media.description,
+      bannerImage: media.bannerImage,
+      coverImage: media.coverImage,
+      seasonYear: media.seasonYear,
+    };
+  }
+
+  const cached = await prisma.anime.findUnique({
+    where: { id },
+    select: {
+      title: true,
+      titleEnglish: true,
+      titleNative: true,
+      description: true,
+      bannerImage: true,
+      coverImage: true,
+      seasonYear: true,
+    },
+  });
+  if (!cached) return null;
+
+  return {
+    title: {
+      romaji: cached.title,
+      english: cached.titleEnglish,
+      native: cached.titleNative,
+    },
+    description: cached.description,
+    bannerImage: cached.bannerImage,
+    coverImage: {
+      large: cached.coverImage,
+      extraLarge: cached.coverImage,
+    },
+    seasonYear: cached.seasonYear,
+  };
+}
 
 export type AnimeWithDetailCache = {
   id: number;
