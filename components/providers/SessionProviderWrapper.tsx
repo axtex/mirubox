@@ -1,15 +1,9 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import type { Session } from "next-auth";
 import type { ReactNode } from "react";
 
-export function SessionProviderWrapper({
-  session,
-  children,
-}: {
-  session: Session | null;
-  children: ReactNode;
-}) {
-  return <SessionProvider session={session}>{children}</SessionProvider>;
+/** Session is resolved client-side so the root layout stays sync / cacheable. */
+export function SessionProviderWrapper({ children }: { children: ReactNode }) {
+  return <SessionProvider>{children}</SessionProvider>;
 }

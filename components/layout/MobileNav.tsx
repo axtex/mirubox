@@ -31,6 +31,7 @@ export function MobileNav() {
           <Link
             key={label}
             href={href}
+            prefetch
             className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors"
             style={{ color: isActive ? "var(--primary)" : "var(--fg-subtle)" }}
           >

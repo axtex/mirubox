@@ -9,11 +9,11 @@ import { LoginXPTracker } from "@/components/layout/LoginXPTracker";
 import { TrackerProvider } from "@/lib/tracker-context";
 import { SeasonChallengeHost } from "@/components/season-challenge/SeasonChallengeHost";
 import { AuthModalProvider } from "@/context/AuthModalContext";
-import { AuthModal } from "@/components/auth/AuthModal";
+import { AuthModalLazy } from "@/components/auth/AuthModalLazy";
 import { ToastProvider } from "@/context/ToastContext";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { SessionProviderWrapper } from "@/components/providers/SessionProviderWrapper";
-import { auth } from "@/auth";
+
 const anybody = Anybody({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
@@ -52,13 +52,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
-
   return (
     <html lang="en">
       <body
@@ -74,19 +72,19 @@ export default async function RootLayout({
           flex-col
         `}
       >
-        <SessionProviderWrapper session={session}>
+        <SessionProviderWrapper>
           <ToastProvider>
-            <TrackerProvider isLoggedIn={!!session?.user}>
+            <TrackerProvider>
               <SeasonChallengeHost />
               <AuthModalProvider>
-                <LoginXPTracker isLoggedIn={!!session?.user} />
+                <LoginXPTracker />
                 <Navbar />
                 <MobileNav />
                 <main className="flex flex-1 flex-col min-h-0 pb-[56px] md:pb-0">
                   <PageContainer className="flex flex-1 flex-col min-h-0">{children}</PageContainer>
                 </main>
                 <Footer />
-                <AuthModal />
+                <AuthModalLazy />
                 <ToastContainer />
               </AuthModalProvider>
             </TrackerProvider>

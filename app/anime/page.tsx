@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 import {
-  getAnimeBrowseMedia,
   getCurrentSeason,
   getNextSeason,
   formatSeasonLabel,
 } from "@/lib/anilist";
+import { getAnimeBrowseShelves } from "@/lib/browse-shelves";
 import { SectionRow } from "@/components/anime/SectionRow";
 import { DiscoverSection } from "@/components/home/DiscoverSection";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
@@ -15,12 +15,7 @@ export default async function AnimeBrowsePage() {
   const { season, year } = getCurrentSeason();
   const { season: nextSeason, year: nextYear } = getNextSeason();
 
-  const { trending, seasonal, upcoming, topRated } = await getAnimeBrowseMedia(
-    season,
-    year,
-    nextSeason,
-    nextYear,
-  );
+  const { trending, seasonal, upcoming, topRated } = await getAnimeBrowseShelves();
 
   const currentSeasonLabel = `CURRENT SEASON — ${formatSeasonLabel(season).toUpperCase()} ${year}`;
   const upcomingSeasonLabel = `UPCOMING — ${formatSeasonLabel(nextSeason).toUpperCase()} ${nextYear}`;
@@ -28,35 +23,35 @@ export default async function AnimeBrowsePage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       <div className="flex flex-col" style={{ gap: 72, paddingTop: 56, paddingBottom: 56 }}>
-        {trending.media.length > 0 && (
+        {trending.length > 0 && (
           <SectionRow
             title="TRENDING NOW"
             seeAllHref="/search?type=anime&sort=TRENDING_DESC&mode=browse"
-            items={trending.media}
+            items={trending}
           />
         )}
 
-        {seasonal.media.length > 0 && (
+        {seasonal.length > 0 && (
           <SectionRow
             title={currentSeasonLabel}
             seeAllHref={`/search?type=anime&season=${season.toLowerCase()}&year=${year}&mode=browse`}
-            items={seasonal.media}
+            items={seasonal}
           />
         )}
 
-        {upcoming.media.length > 0 && (
+        {upcoming.length > 0 && (
           <SectionRow
             title={upcomingSeasonLabel}
             seeAllHref={`/search?type=anime&season=${nextSeason.toLowerCase()}&year=${nextYear}&status=NOT_YET_RELEASED&mode=browse`}
-            items={upcoming.media}
+            items={upcoming}
           />
         )}
 
-        {topRated.media.length > 0 && (
+        {topRated.length > 0 && (
           <SectionRow
             title="ALL TIME"
             seeAllHref="/search?type=anime&sort=SCORE_DESC&mode=browse"
-            items={topRated.media}
+            items={topRated}
           />
         )}
 

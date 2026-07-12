@@ -56,6 +56,7 @@ function NavLink({
   return (
     <Link
       href={href}
+      prefetch
       className="flex flex-col"
       style={{
         ...LINK_STYLE,
@@ -176,6 +177,7 @@ function CommunityDropdownItem({
   return (
     <Link
       href={href}
+      prefetch
       role="menuitem"
       onClick={onNavigate}
       className="block px-4 py-2.5"

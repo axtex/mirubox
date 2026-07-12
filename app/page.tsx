@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import {
-  getHomePageMedia,
   getCurrentSeason,
   getNextSeason,
   getDisplayTitle,
@@ -10,6 +9,7 @@ import { auth } from "@/auth";
 import { getContinueItems } from "@/lib/continue-items";
 import { getSeasonChallenge } from "@/lib/season-challenge";
 import { toContinueStripSeasonChallenge } from "@/lib/season-challenge-client";
+import { getHomeShelves } from "@/lib/browse-shelves";
 import { SectionRow } from "@/components/anime/SectionRow";
 import { ContinueStrip } from "@/components/home/ContinueStrip";
 import { DiscoverSection } from "@/components/home/DiscoverSection";
@@ -67,14 +67,13 @@ export default async function HomePage() {
 
   const userId = session?.user?.id;
 
-  // Public AniList (cached 1h) runs in parallel with logged-in DB work
-  const [homeMedia, challengeData, continueItems] = await Promise.all([
-    getHomePageMedia(season, year, nextSeason, nextYear),
+  const [homeShelves, challengeData, continueItems] = await Promise.all([
+    getHomeShelves(),
     userId ? getSeasonChallenge(userId) : Promise.resolve(null),
     userId ? getContinueItems(userId) : Promise.resolve([]),
   ]);
 
-  const { trending, seasonal, upcoming, manga } = homeMedia;
+  const { trending, seasonal, upcoming, manga } = homeShelves;
 
   const showContinueStrip =
     continueItems.length > 0 || (challengeData?.showOnHome ?? false);
@@ -86,7 +85,7 @@ export default async function HomePage() {
 
   const shownIds = new Set<number>();
 
-  const heroSlides = trending.media.slice(0, HERO_COUNT).map((anime) => {
+  const heroSlides = trending.slice(0, HERO_COUNT).map((anime) => {
     shownIds.add(anime.id);
     return {
       id: anime.id,
@@ -97,9 +96,9 @@ export default async function HomePage() {
     };
   });
 
-  const trendingRow = takeUnique(trending.media.slice(HERO_COUNT), shownIds);
-  const seasonalRow = takeUnique(seasonal.media, shownIds);
-  const upcomingRow = takeUnique(upcoming.media, shownIds);
+  const trendingRow = takeUnique(trending.slice(HERO_COUNT), shownIds);
+  const seasonalRow = takeUnique(seasonal, shownIds);
+  const upcomingRow = takeUnique(upcoming, shownIds);
 
   const currentSeasonLabel = `CURRENT · ${formatSeasonLabel(season).toUpperCase()} ${year}`;
   const upcomingSeasonLabel = `${formatSeasonLabel(nextSeason).toUpperCase()} ${nextYear}`;
@@ -144,11 +143,11 @@ export default async function HomePage() {
           />
         )}
 
-        {manga.media.length > 0 && (
+        {manga.length > 0 && (
           <SectionRow
             title="MANGA SPOTLIGHT"
             seeAllHref="/search?type=MANGA&sort=POPULARITY_DESC"
-            items={manga.media}
+            items={manga}
           />
         )}
 

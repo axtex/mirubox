@@ -294,107 +294,110 @@ const EMPTY_HOME_PAGE: MediaPage = {
   media: [],
 };
 
-/**
- * Single AniList round-trip for the home page (avoids the 2.1s serial gap × 4).
- * Cached across requests for 1 hour.
- */
-export const getHomePageMedia = unstable_cache(
-  async (
-    season: string,
-    year: number,
-    nextSeason: string,
-    nextYear: number,
-  ): Promise<HomePageMedia> => {
-    const query = gql`
-      ${ANIME_CARD_FRAGMENT}
-      query HomePageMedia(
-        $season: MediaSeason
-        $year: Int
-        $nextSeason: MediaSeason
-        $nextYear: Int
-      ) {
-        trending: Page(page: 1, perPage: 28) {
-          pageInfo {
-            total
-            currentPage
-            lastPage
-            hasNextPage
-          }
-          media(sort: TRENDING_DESC, type: ANIME, isAdult: false) {
-            ...AnimeCard
-          }
+/** Live AniList fetch for home shelves (used by cron sync + cache fallback). */
+export async function fetchHomePageMedia(
+  season: string,
+  year: number,
+  nextSeason: string,
+  nextYear: number,
+): Promise<HomePageMedia> {
+  const query = gql`
+    ${ANIME_CARD_FRAGMENT}
+    query HomePageMedia(
+      $season: MediaSeason
+      $year: Int
+      $nextSeason: MediaSeason
+      $nextYear: Int
+    ) {
+      trending: Page(page: 1, perPage: 28) {
+        pageInfo {
+          total
+          currentPage
+          lastPage
+          hasNextPage
         }
-        seasonal: Page(page: 1, perPage: 20) {
-          pageInfo {
-            total
-            currentPage
-            lastPage
-            hasNextPage
-          }
-          media(
-            season: $season
-            seasonYear: $year
-            sort: POPULARITY_DESC
-            type: ANIME
-            isAdult: false
-          ) {
-            ...AnimeCard
-          }
-        }
-        upcoming: Page(page: 1, perPage: 20) {
-          pageInfo {
-            total
-            currentPage
-            lastPage
-            hasNextPage
-          }
-          media(
-            season: $nextSeason
-            seasonYear: $nextYear
-            sort: POPULARITY_DESC
-            type: ANIME
-            isAdult: false
-          ) {
-            ...AnimeCard
-          }
-        }
-        manga: Page(page: 1, perPage: 7) {
-          pageInfo {
-            total
-            currentPage
-            lastPage
-            hasNextPage
-          }
-          media(sort: POPULARITY_DESC, type: MANGA, isAdult: false) {
-            ...AnimeCard
-          }
+        media(sort: TRENDING_DESC, type: ANIME, isAdult: false) {
+          ...AnimeCard
         }
       }
-    `;
-
-    try {
-      const data = await anilistRequest<{
-        trending: MediaPage;
-        seasonal: MediaPage;
-        upcoming: MediaPage;
-        manga: MediaPage;
-      }>(query, { season, year, nextSeason, nextYear });
-      return {
-        trending: data.trending,
-        seasonal: data.seasonal,
-        upcoming: data.upcoming,
-        manga: data.manga,
-      };
-    } catch (err) {
-      console.error("Home page media fetch failed:", err);
-      return {
-        trending: EMPTY_HOME_PAGE,
-        seasonal: EMPTY_HOME_PAGE,
-        upcoming: EMPTY_HOME_PAGE,
-        manga: EMPTY_HOME_PAGE,
-      };
+      seasonal: Page(page: 1, perPage: 20) {
+        pageInfo {
+          total
+          currentPage
+          lastPage
+          hasNextPage
+        }
+        media(
+          season: $season
+          seasonYear: $year
+          sort: POPULARITY_DESC
+          type: ANIME
+          isAdult: false
+        ) {
+          ...AnimeCard
+        }
+      }
+      upcoming: Page(page: 1, perPage: 20) {
+        pageInfo {
+          total
+          currentPage
+          lastPage
+          hasNextPage
+        }
+        media(
+          season: $nextSeason
+          seasonYear: $nextYear
+          sort: POPULARITY_DESC
+          type: ANIME
+          isAdult: false
+        ) {
+          ...AnimeCard
+        }
+      }
+      manga: Page(page: 1, perPage: 7) {
+        pageInfo {
+          total
+          currentPage
+          lastPage
+          hasNextPage
+        }
+        media(sort: POPULARITY_DESC, type: MANGA, isAdult: false) {
+          ...AnimeCard
+        }
+      }
     }
-  },
+  `;
+
+  try {
+    const data = await anilistRequest<{
+      trending: MediaPage;
+      seasonal: MediaPage;
+      upcoming: MediaPage;
+      manga: MediaPage;
+    }>(query, { season, year, nextSeason, nextYear });
+    return {
+      trending: data.trending,
+      seasonal: data.seasonal,
+      upcoming: data.upcoming,
+      manga: data.manga,
+    };
+  } catch (err) {
+    console.error("Home page media fetch failed:", err);
+    return {
+      trending: EMPTY_HOME_PAGE,
+      seasonal: EMPTY_HOME_PAGE,
+      upcoming: EMPTY_HOME_PAGE,
+      manga: EMPTY_HOME_PAGE,
+    };
+  }
+}
+
+/**
+ * Single AniList round-trip for the home page (avoids the 2.1s serial gap × 4).
+ * Cached across requests for 1 hour — prefer DB shelves on browse pages.
+ */
+export const getHomePageMedia = unstable_cache(
+  fetchHomePageMedia,
   ["home-page-media"],
   { revalidate: 3600, tags: ["home-anilist"] },
 );
@@ -406,78 +409,81 @@ export interface AnimeBrowseMedia {
   topRated: MediaPage;
 }
 
-/** Batched + hour-cached AniList payload for `/anime`. */
-export const getAnimeBrowseMedia = unstable_cache(
-  async (
-    season: string,
-    year: number,
-    nextSeason: string,
-    nextYear: number,
-  ): Promise<AnimeBrowseMedia> => {
-    const query = gql`
-      ${ANIME_CARD_FRAGMENT}
-      query AnimeBrowseMedia(
-        $season: MediaSeason
-        $year: Int
-        $nextSeason: MediaSeason
-        $nextYear: Int
-      ) {
-        trending: Page(page: 1, perPage: 20) {
-          pageInfo { total currentPage lastPage hasNextPage }
-          media(sort: TRENDING_DESC, type: ANIME, isAdult: false) {
-            ...AnimeCard
-          }
-        }
-        seasonal: Page(page: 1, perPage: 20) {
-          pageInfo { total currentPage lastPage hasNextPage }
-          media(
-            season: $season
-            seasonYear: $year
-            sort: POPULARITY_DESC
-            type: ANIME
-            isAdult: false
-          ) {
-            ...AnimeCard
-          }
-        }
-        upcoming: Page(page: 1, perPage: 20) {
-          pageInfo { total currentPage lastPage hasNextPage }
-          media(
-            season: $nextSeason
-            seasonYear: $nextYear
-            sort: POPULARITY_DESC
-            type: ANIME
-            isAdult: false
-          ) {
-            ...AnimeCard
-          }
-        }
-        topRated: Page(page: 1, perPage: 20) {
-          pageInfo { total currentPage lastPage hasNextPage }
-          media(sort: SCORE_DESC, type: ANIME, isAdult: false, popularity_greater: 10000) {
-            ...AnimeCard
-          }
+/** Live AniList fetch for `/anime` shelves. */
+export async function fetchAnimeBrowseMedia(
+  season: string,
+  year: number,
+  nextSeason: string,
+  nextYear: number,
+): Promise<AnimeBrowseMedia> {
+  const query = gql`
+    ${ANIME_CARD_FRAGMENT}
+    query AnimeBrowseMedia(
+      $season: MediaSeason
+      $year: Int
+      $nextSeason: MediaSeason
+      $nextYear: Int
+    ) {
+      trending: Page(page: 1, perPage: 20) {
+        pageInfo { total currentPage lastPage hasNextPage }
+        media(sort: TRENDING_DESC, type: ANIME, isAdult: false) {
+          ...AnimeCard
         }
       }
-    `;
-
-    try {
-      return await anilistRequest<AnimeBrowseMedia>(query, {
-        season,
-        year,
-        nextSeason,
-        nextYear,
-      });
-    } catch (err) {
-      console.error("Anime browse media fetch failed:", err);
-      return {
-        trending: EMPTY_HOME_PAGE,
-        seasonal: EMPTY_HOME_PAGE,
-        upcoming: EMPTY_HOME_PAGE,
-        topRated: EMPTY_HOME_PAGE,
-      };
+      seasonal: Page(page: 1, perPage: 20) {
+        pageInfo { total currentPage lastPage hasNextPage }
+        media(
+          season: $season
+          seasonYear: $year
+          sort: POPULARITY_DESC
+          type: ANIME
+          isAdult: false
+        ) {
+          ...AnimeCard
+        }
+      }
+      upcoming: Page(page: 1, perPage: 20) {
+        pageInfo { total currentPage lastPage hasNextPage }
+        media(
+          season: $nextSeason
+          seasonYear: $nextYear
+          sort: POPULARITY_DESC
+          type: ANIME
+          isAdult: false
+        ) {
+          ...AnimeCard
+        }
+      }
+      topRated: Page(page: 1, perPage: 20) {
+        pageInfo { total currentPage lastPage hasNextPage }
+        media(sort: SCORE_DESC, type: ANIME, isAdult: false, popularity_greater: 10000) {
+          ...AnimeCard
+        }
+      }
     }
-  },
+  `;
+
+  try {
+    return await anilistRequest<AnimeBrowseMedia>(query, {
+      season,
+      year,
+      nextSeason,
+      nextYear,
+    });
+  } catch (err) {
+    console.error("Anime browse media fetch failed:", err);
+    return {
+      trending: EMPTY_HOME_PAGE,
+      seasonal: EMPTY_HOME_PAGE,
+      upcoming: EMPTY_HOME_PAGE,
+      topRated: EMPTY_HOME_PAGE,
+    };
+  }
+}
+
+/** Batched + hour-cached AniList payload for `/anime`. Prefer DB shelves. */
+export const getAnimeBrowseMedia = unstable_cache(
+  fetchAnimeBrowseMedia,
   ["anime-browse-media"],
   { revalidate: 3600, tags: ["anime-browse-anilist"] },
 );
@@ -488,44 +494,47 @@ export interface MangaBrowseMedia {
   allTime: MediaPage;
 }
 
-/** Batched + hour-cached AniList payload for `/manga`. */
-export const getMangaBrowseMedia = unstable_cache(
-  async (): Promise<MangaBrowseMedia> => {
-    const query = gql`
-      ${ANIME_CARD_FRAGMENT}
-      query MangaBrowseMedia {
-        trending: Page(page: 1, perPage: 14) {
-          pageInfo { total currentPage lastPage hasNextPage }
-          media(sort: TRENDING_DESC, type: MANGA, isAdult: false) {
-            ...AnimeCard
-          }
-        }
-        publishing: Page(page: 1, perPage: 14) {
-          pageInfo { total currentPage lastPage hasNextPage }
-          media(status: RELEASING, sort: POPULARITY_DESC, type: MANGA, isAdult: false) {
-            ...AnimeCard
-          }
-        }
-        allTime: Page(page: 1, perPage: 14) {
-          pageInfo { total currentPage lastPage hasNextPage }
-          media(sort: SCORE_DESC, type: MANGA, isAdult: false) {
-            ...AnimeCard
-          }
+/** Live AniList fetch for `/manga` shelves. */
+export async function fetchMangaBrowseMedia(): Promise<MangaBrowseMedia> {
+  const query = gql`
+    ${ANIME_CARD_FRAGMENT}
+    query MangaBrowseMedia {
+      trending: Page(page: 1, perPage: 14) {
+        pageInfo { total currentPage lastPage hasNextPage }
+        media(sort: TRENDING_DESC, type: MANGA, isAdult: false) {
+          ...AnimeCard
         }
       }
-    `;
-
-    try {
-      return await anilistRequest<MangaBrowseMedia>(query);
-    } catch (err) {
-      console.error("Manga browse media fetch failed:", err);
-      return {
-        trending: EMPTY_HOME_PAGE,
-        publishing: EMPTY_HOME_PAGE,
-        allTime: EMPTY_HOME_PAGE,
-      };
+      publishing: Page(page: 1, perPage: 14) {
+        pageInfo { total currentPage lastPage hasNextPage }
+        media(status: RELEASING, sort: POPULARITY_DESC, type: MANGA, isAdult: false) {
+          ...AnimeCard
+        }
+      }
+      allTime: Page(page: 1, perPage: 14) {
+        pageInfo { total currentPage lastPage hasNextPage }
+        media(sort: SCORE_DESC, type: MANGA, isAdult: false) {
+          ...AnimeCard
+        }
+      }
     }
-  },
+  `;
+
+  try {
+    return await anilistRequest<MangaBrowseMedia>(query);
+  } catch (err) {
+    console.error("Manga browse media fetch failed:", err);
+    return {
+      trending: EMPTY_HOME_PAGE,
+      publishing: EMPTY_HOME_PAGE,
+      allTime: EMPTY_HOME_PAGE,
+    };
+  }
+}
+
+/** Batched + hour-cached AniList payload for `/manga`. Prefer DB shelves. */
+export const getMangaBrowseMedia = unstable_cache(
+  fetchMangaBrowseMedia,
   ["manga-browse-media"],
   { revalidate: 3600, tags: ["manga-browse-anilist"] },
 );
@@ -771,20 +780,4 @@ export {
   type Season,
 } from "@/lib/season";
 
-export function getDisplayTitle(
-  title: { romaji: string | null; english: string | null; native: string | null } | null
-): string {
-  if (!title) return "Unknown";
-  return title.english ?? title.romaji ?? title.native ?? "Unknown";
-}
-
-/**
- * Splits off the last word of a title so it can be glued (via white-space: nowrap)
- * to a trailing inline element like a score pill — keeps that pair from ever
- * wrapping apart, so the pill is never left alone on its own line.
- */
-export function splitLastWord(title: string): { leading: string; lastWord: string } {
-  const idx = title.trimEnd().lastIndexOf(" ");
-  if (idx === -1) return { leading: "", lastWord: title };
-  return { leading: title.slice(0, idx + 1), lastWord: title.slice(idx + 1) };
-}
+export { getDisplayTitle, splitLastWord } from "@/lib/display-title";

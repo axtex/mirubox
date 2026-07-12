@@ -182,6 +182,14 @@ model Anime {
   @@index([popularity])
 }
 
+/** Ordered AniList ID snapshots for home / anime / manga browse rows. Refreshed by cron. */
+model BrowseShelf {
+  key      String   @id
+  mediaIds Int[]
+  meta     Json?
+  syncedAt DateTime @default(now())
+}
+
 model Character {
   dbId    String   @id @default(cuid())
   id      Int

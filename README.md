@@ -40,6 +40,27 @@ Live at [mirubox.vercel.app](https://mirubox.vercel.app)
 
 ---
 
+## Browse shelves + cron
+
+Home, `/anime`, and `/manga` rows are served from Postgres (`BrowseShelf` + `Anime`), not live AniList on every request. A Vercel Cron refreshes shelves hourly.
+
+1. Set `CRON_SECRET` in Vercel (and locally in `.env.local` for manual runs).
+2. Apply migrations: `npx prisma migrate deploy`
+3. Seed once after deploy (or locally):
+
+```bash
+# Production (Vercel Cron auth)
+curl -X GET "https://mirubox.vercel.app/api/cron/browse-sync" \
+  -H "Authorization: Bearer $CRON_SECRET"
+
+# Local script (uses .env.local DATABASE_URL)
+npx tsx scripts/seed-browse-shelves.ts
+```
+
+Schedule is defined in `vercel.json` (`0 * * * *`). Cold visits fall back to AniList once and schedule a background sync.
+
+---
+
 ## Features in progress
 
 - Community tab — public profiles, leaderboards,

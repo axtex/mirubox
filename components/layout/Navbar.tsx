@@ -1,14 +1,11 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { auth } from "@/auth";
 import { NavbarLinks } from "./NavbarLinks";
 import { NavbarSearch } from "./NavbarSearch";
 import { NavbarClient } from "./NavbarClient";
 import { NotificationBell } from "./NotificationBell";
 
-export async function Navbar() {
-  const session = await auth();
-
+export function Navbar() {
   return (
     <nav
       className="hidden md:block sticky top-0 z-50 backdrop-blur-[20px]"
@@ -23,6 +20,7 @@ export async function Navbar() {
         <div className="flex items-center min-w-0">
           <Link
             href="/"
+            prefetch
             className="flex items-center shrink-0 text-[22px] font-bold tracking-tight"
             style={{ fontFamily: "var(--font-anybody)" }}
           >
@@ -37,8 +35,8 @@ export async function Navbar() {
         {/* Search + auth */}
         <div className="flex items-center shrink-0 gap-2">
           <NavbarSearch />
-          <NotificationBell session={session} />
-          <NavbarClient session={session} />
+          <NotificationBell />
+          <NavbarClient />
         </div>
       </div>
     </nav>

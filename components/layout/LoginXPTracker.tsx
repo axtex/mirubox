@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useToast } from "@/context/ToastContext";
 import type { ToastNotification } from "@/lib/xp";
 
-export function LoginXPTracker({ isLoggedIn }: { isLoggedIn: boolean }): null {
+export function LoginXPTracker(): null {
+  const { status } = useSession();
+  const isLoggedIn = status === "authenticated";
   const { showToast } = useToast();
 
   useEffect(() => {

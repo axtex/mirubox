@@ -9,6 +9,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
 import { useToast, type Toast } from "@/context/ToastContext";
 import { notifySeasonChallengeSync, type ContinueStripSeasonChallenge } from "@/lib/season-challenge-client";
 import type { ToastNotification } from "@/lib/xp";
@@ -50,12 +51,12 @@ const TrackerContext = createContext<TrackerContextValue>({
 });
 
 export function TrackerProvider({
-  isLoggedIn,
   children,
 }: {
-  isLoggedIn: boolean;
   children: ReactNode;
 }) {
+  const { status } = useSession();
+  const isLoggedIn = status === "authenticated";
   const { showToast } = useToast();
   const [trackerMap, setTrackerMap] = useState<Map<number, TrackerMapEntry>>(new Map());
   const [favouriteIds, setFavouriteIds] = useState<Set<number>>(new Set());
@@ -67,7 +68,11 @@ export function TrackerProvider({
   useEffect(() => { favRef.current = favouriteIds; }, [favouriteIds]);
 
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn) {
+      setTrackerMap(new Map());
+      setFavouriteIds(new Set());
+      return;
+    }
     Promise.all([
       fetch("/api/tracker/ids").then((r) => r.json() as Promise<{ entries: { id: number; status: string; favourite: boolean }[] }>),
       fetch("/api/favourites/ids").then((r) => r.json() as Promise<{ ids: number[] }>),

@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Bell } from "lucide-react";
-import type { Session } from "next-auth";
 import { useNotificationPolling } from "@/hooks/useNotificationPolling";
 import { getNotifVisual, type NotifVisualType } from "@/lib/notification-visuals";
 import { timeAgo } from "@/lib/time-ago";
@@ -36,9 +35,8 @@ function getLinkTarget(n: NotificationItem): string | null {
   }
 }
 
-export function NotificationBell({ session: initialSession }: { session: Session | null }) {
-  const { data: liveSession } = useSession();
-  const session = liveSession ?? initialSession;
+export function NotificationBell() {
+  const { data: session } = useSession();
   const router = useRouter();
   const { unreadCount, setUnreadCount } = useNotificationPolling();
 

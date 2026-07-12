@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
-import { getDisplayTitle } from "@/lib/anilist";
+import { getDisplayTitle } from "@/lib/display-title";
 import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 import { AnimeCardActions } from "./AnimeCardActions";
 import { useTracker, STATUS_COLORS, isTrackedEntry } from "@/lib/tracker-context";
@@ -104,6 +104,7 @@ export function AnimeCard({
         ) : (
           <Link
             href={detailHref}
+            prefetch
             className="absolute inset-0 z-[1]"
             aria-label={`View ${title}`}
           />

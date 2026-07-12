@@ -4,13 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { Session } from "next-auth";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
-
-interface NavbarClientProps {
-  session: Session | null;
-}
 
 const ITEM_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-space-mono)",
@@ -20,9 +15,8 @@ const ITEM_STYLE: React.CSSProperties = {
 
 const MENU_ITEM_CLASS = "block px-4 py-2.5 font-mono text-[10px] tracking-[0.06em]";
 
-export function NavbarClient({ session: initialSession }: NavbarClientProps) {
-  const { data: liveSession } = useSession();
-  const session = liveSession ?? initialSession;
+export function NavbarClient() {
+  const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -36,6 +30,21 @@ export function NavbarClient({ session: initialSession }: NavbarClientProps) {
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, []);
+
+  if (status === "loading") {
+    return (
+      <div
+        aria-hidden
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          border: "1px solid var(--bg-card-high)",
+          background: "var(--bg-card)",
+        }}
+      />
+    );
+  }
 
   if (!session?.user) {
     return (
@@ -57,7 +66,6 @@ export function NavbarClient({ session: initialSession }: NavbarClientProps) {
 
   return (
     <div className="relative" ref={ref}>
-      {/* Avatar trigger */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -83,7 +91,6 @@ export function NavbarClient({ session: initialSession }: NavbarClientProps) {
         />
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div
           className="absolute right-0 top-full z-50 overflow-hidden"
@@ -96,7 +103,6 @@ export function NavbarClient({ session: initialSession }: NavbarClientProps) {
             boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           }}
         >
-          {/* User header */}
           <div
             className="px-4 py-3"
             style={{ borderBottom: `1px solid var(--bg-card)` }}
@@ -109,7 +115,6 @@ export function NavbarClient({ session: initialSession }: NavbarClientProps) {
             </p>
           </div>
 
-          {/* Nav items */}
           {[
             { href: "/profile",   label: "PROFILE" },
             { href: "/settings",  label: "SETTINGS" },
@@ -119,10 +124,8 @@ export function NavbarClient({ session: initialSession }: NavbarClientProps) {
             </DropdownLink>
           ))}
 
-          {/* Divider */}
           <div style={{ height: 1, background: "var(--bg-card)" }} />
 
-          {/* Sign out */}
           <SignOutButton />
         </div>
       )}
@@ -144,6 +147,7 @@ function DropdownLink({
   return (
     <Link
       href={href}
+      prefetch
       onClick={onNavigate}
       className={MENU_ITEM_CLASS}
       style={{

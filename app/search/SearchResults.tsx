@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { searchMedia } from "@/lib/anilist";
 import { AnimeCard } from "@/components/anime/AnimeCard";
@@ -140,18 +141,19 @@ export async function SearchResults({ params }: SearchResultsProps) {
       {results.pageInfo.lastPage > 1 && (
         <div className="flex items-center justify-center mt-10" style={{ gap: 10 }}>
           {page > 1 ? (
-            <a
+            <Link
               href={`?${new URLSearchParams({
                 ...Object.fromEntries(
                   Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
                 ),
                 page: String(page - 1),
               })}`}
+              prefetch
               aria-label="Previous page"
               className="scroll-row-arrow"
             >
               <ChevronLeft size={12} strokeWidth={2} />
-            </a>
+            </Link>
           ) : (
             <button type="button" disabled aria-label="Previous page" className="scroll-row-arrow">
               <ChevronLeft size={12} strokeWidth={2} />
@@ -167,18 +169,19 @@ export async function SearchResults({ params }: SearchResultsProps) {
             {page} / {results.pageInfo.lastPage}
           </span>
           {results.pageInfo.hasNextPage ? (
-            <a
+            <Link
               href={`?${new URLSearchParams({
                 ...Object.fromEntries(
                   Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
                 ),
                 page: String(page + 1),
               })}`}
+              prefetch
               aria-label="Next page"
               className="scroll-row-arrow"
             >
               <ChevronRight size={12} strokeWidth={2} />
-            </a>
+            </Link>
           ) : (
             <button type="button" disabled aria-label="Next page" className="scroll-row-arrow">
               <ChevronRight size={12} strokeWidth={2} />

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getMangaBrowseMedia } from "@/lib/anilist";
+import { getMangaBrowseShelves } from "@/lib/browse-shelves";
 import { SectionRow } from "@/components/anime/SectionRow";
 import { DiscoverSection } from "@/components/home/DiscoverSection";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
@@ -7,7 +7,7 @@ import { CuratedListsSection } from "@/components/home/CuratedListsSection";
 export const revalidate = 3600;
 
 export default async function MangaPage() {
-  const { trending, publishing, allTime } = await getMangaBrowseMedia();
+  const { trending, publishing, allTime } = await getMangaBrowseShelves();
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
@@ -15,19 +15,19 @@ export default async function MangaPage() {
         <SectionRow
           title="TRENDING NOW"
           seeAllHref="/search?type=manga&sort=TRENDING_DESC&mode=browse"
-          items={trending.media}
+          items={trending}
         />
 
         <SectionRow
           title="CURRENTLY PUBLISHING"
           seeAllHref="/search?type=manga&status=RELEASING&mode=browse"
-          items={publishing.media}
+          items={publishing}
         />
 
         <SectionRow
           title="ALL TIME"
           seeAllHref="/search?type=manga&sort=SCORE_DESC&mode=browse"
-          items={allTime.media}
+          items={allTime}
         />
 
         <Suspense fallback={null}>

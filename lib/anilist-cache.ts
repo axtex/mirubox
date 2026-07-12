@@ -100,7 +100,10 @@ export async function cacheAnimeAdaptationFlag(media: AnimeDetail): Promise<void
   }
 }
 
-export async function cacheAnimeCard(media: AnimeCard): Promise<void> {
+export async function cacheAnimeCard(
+  media: AnimeCard,
+  options: { force?: boolean } = {},
+): Promise<void> {
   try {
     const existing = await prisma.anime.findUnique({ where: { id: media.id } });
     const missingCounts =
@@ -108,7 +111,7 @@ export async function cacheAnimeCard(media: AnimeCard): Promise<void> {
       ((media.type === "MANGA" && existing.chapters == null && media.chapters != null) ||
         (media.type !== "MANGA" && existing.episodes == null && media.episodes != null));
 
-    if (existing && isFresh(existing.cachedAt) && !missingCounts) return;
+    if (existing && isFresh(existing.cachedAt) && !missingCounts && !options.force) return;
 
     await prisma.anime.upsert({
       where: { id: media.id },
