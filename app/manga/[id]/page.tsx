@@ -1,11 +1,25 @@
 import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import type { Metadata } from "next";
 import { getMediaById, getDisplayTitle, splitLastWord } from "@/lib/anilist";
 import { cleanDescription } from "@/lib/clean-description";
 import { cacheAnimeAdaptationFlag } from "@/lib/anilist-cache";
 import { embedIfMissing } from "@/lib/embed-if-missing";
+import {
+  cacheCharactersIfMissing,
+  cacheRelationsIfMissing,
+  cacheStreamingIfMissing,
+  dbCharToEdge,
+  dbMediaToAnilistShape,
+  dbRelationToEdge,
+  dbStreamingToExternalLink,
+} from "@/lib/cache-media-details";
+import {
+  CHARACTER_TTL_MS,
+  RELATION_TTL_MS,
+  STREAMING_TTL_MS,
+  isStale,
+} from "@/lib/cache-utils";
 import { filterStreamingLinks, buildSearchFallbacks } from "@/lib/streaming-links";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +29,7 @@ import { AnimeCard } from "@/components/anime/AnimeCard";
 import { DetailHeroScore } from "@/components/detail/DetailHeroScore";
 import { DetailSidebar } from "@/components/detail/DetailSidebar";
 import { MangaCharacterSection } from "@/components/detail/MangaCharacterSection";
-import type { AnimeCard as AnimeCardType, Relation } from "@/types/anilist";
+import type { AnimeCard as AnimeCardType, AnimeDetail, Relation } from "@/types/anilist";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -102,11 +116,67 @@ export default async function MangaDetailPage({ params }: PageProps) {
   const numId = Number(id);
   if (isNaN(numId)) notFound();
 
-  const [media, session] = await Promise.all([getMediaById(numId), auth()]);
-  if (!media) notFound();
+  const [anilistMedia, cachedSections, session] = await Promise.all([
+    getMediaById(numId),
+    prisma.anime.findUnique({
+      where: { id: numId },
+      include: {
+        characters: { orderBy: { order: "asc" } },
+        relationsFrom: true,
+        streamingLinks: true,
+      },
+    }),
+    auth(),
+  ]);
 
-  void cacheAnimeAdaptationFlag(media);
-  void embedIfMissing(media);
+  // getMediaById returns null on AniList failure (does not throw).
+  let anilistError = false;
+  let media: AnimeDetail;
+
+  if (anilistMedia) {
+    media = anilistMedia;
+
+    const useDbChars =
+      !isStale(cachedSections?.charactersCachedAt, CHARACTER_TTL_MS) &&
+      (cachedSections?.characters.length ?? 0) > 0;
+    const useDbRelations = !isStale(
+      cachedSections?.relationsCachedAt,
+      RELATION_TTL_MS
+    );
+    const useDbStreaming =
+      !isStale(cachedSections?.streamingCachedAt, STREAMING_TTL_MS) &&
+      (cachedSections?.streamingLinks.length ?? 0) > 0;
+
+    if (useDbChars && cachedSections) {
+      media = {
+        ...media,
+        characters: { edges: cachedSections.characters.map(dbCharToEdge) },
+      };
+    }
+    if (useDbRelations && cachedSections) {
+      media = {
+        ...media,
+        relations: { edges: cachedSections.relationsFrom.map(dbRelationToEdge) },
+      };
+    }
+    if (useDbStreaming && cachedSections) {
+      media = {
+        ...media,
+        externalLinks: cachedSections.streamingLinks.map(dbStreamingToExternalLink),
+      };
+    }
+
+    void cacheAnimeAdaptationFlag(media);
+    void embedIfMissing(media);
+    void cacheCharactersIfMissing(media.id, "MANGA");
+    void cacheRelationsIfMissing(media.id);
+    void cacheStreamingIfMissing(media.id, "MANGA");
+  } else if (cachedSections) {
+    anilistError = true;
+    media = dbMediaToAnilistShape(cachedSections);
+  } else {
+    notFound();
+  }
 
   const title = getDisplayTitle(media.title);
   const nativeTitle =
@@ -212,6 +282,20 @@ export default async function MangaDetailPage({ params }: PageProps) {
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
+
+      {anilistError && (
+        <div
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 9,
+            letterSpacing: "0.06em",
+            color: "#5a5a65",
+            padding: "10px 0 0",
+          }}
+        >
+          Data may be slightly outdated. We&apos;re having trouble reaching AniList.
+        </div>
+      )}
 
       {/* ═══ HERO ═══════════════════════════════════════════════════════════ */}
       <div className="relative">

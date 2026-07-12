@@ -5,7 +5,6 @@ import {
   CoverThumb,
   FriendsSection,
   InlineUserLabel,
-  ReviewStars,
   mediaHref,
   mediaTitle,
 } from "@/components/community/friends-shared";
@@ -63,27 +62,6 @@ export function RecentlyCompletedSection({
                     {mediaTitle(item.media)}
                   </Link>
                 </p>
-                {item.rating != null ? (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      marginTop: 2,
-                    }}
-                  >
-                    <ReviewStars score={item.rating} />
-                    <span
-                      style={{
-                        fontFamily: "var(--font-space-mono)",
-                        fontSize: 9,
-                        color: "#5a5a65",
-                      }}
-                    >
-                      {item.rating}/10
-                    </span>
-                  </div>
-                ) : null}
               </div>
               <span
                 style={{

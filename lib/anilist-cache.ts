@@ -21,7 +21,7 @@ function isTop100FromRankings(rankings: AnimeCard["rankings"] | undefined): bool
 }
 
 function toDbAnime(media: AnimeCard | AnimeDetail) {
-  return {
+  const base = {
     id: media.id,
     title: media.title.romaji ?? media.title.english ?? "Unknown",
     titleEnglish: media.title.english ?? null,
@@ -44,6 +44,19 @@ function toDbAnime(media: AnimeCard | AnimeDetail) {
     isTop100: isTop100FromRankings(media.rankings),
     cachedAt: new Date(),
   };
+
+  // Only write detail-only fields when we have a full Media payload —
+  // card-only upserts must not null out source/duration/meanScore.
+  if ("description" in media) {
+    return {
+      ...base,
+      source: media.source ?? null,
+      duration: media.duration ?? null,
+      meanScore: media.meanScore ?? null,
+    };
+  }
+
+  return base;
 }
 
 export async function checkAndGetAnime(id: number): Promise<AnimeDetail | null> {

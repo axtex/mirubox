@@ -158,6 +158,12 @@ model Anime {
   demographic         String?
   hasAnimeAdaptation  Boolean  @default(false)
   isTop100            Boolean  @default(false)
+  source              String?
+  duration            Int?
+  meanScore           Int?
+  charactersCachedAt  DateTime?
+  relationsCachedAt   DateTime?
+  streamingCachedAt   DateTime?
   cachedAt     DateTime @default(now())
   embedding    Unsupported("vector(1536)")?
 
@@ -167,10 +173,79 @@ model Anime {
   favourites       Favourite[]
   favouriteAnime   FavouriteAnime[]
   favouriteManga   FavouriteManga[]
+  characters       Character[]
+  relationsFrom    MediaRelation[]
+  streamingLinks   StreamingLink[]
 
   @@index([title])
   @@index([titleEnglish])
   @@index([popularity])
+}
+
+model Character {
+  dbId    String   @id @default(cuid())
+  id      Int
+  // AniList character ID
+  mediaId Int
+  name    String
+  image   String?
+  role    String
+  // MAIN or SUPPORTING
+  order   Int      @default(0)
+
+  // Japanese VA (anime only)
+  vaId    Int?
+  vaName  String?
+  vaImage String?
+
+  cachedAt DateTime @default(now())
+
+  media Anime @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([id, mediaId])
+  @@index([mediaId])
+  @@index([mediaId, role])
+}
+
+model MediaRelation {
+  id              String @id
+  // "${fromId}_${toId}_${relationType}"
+  fromMediaId     Int
+  toMediaId       Int
+  relationType    String
+  // SEQUEL, PREQUEL, ADAPTATION, ALTERNATIVE_VERSION, PARENT
+
+  // Denormalised target fields — target may not be in Anime table
+  targetAnilistId Int
+  targetTitle     String?
+  targetTitleEng  String?
+  targetCover     String?
+  targetFormat    String?
+  targetType      String?
+  targetStatus    String?
+
+  cachedAt DateTime @default(now())
+
+  fromMedia Anime @relation(fields: [fromMediaId], references: [id], onDelete: Cascade)
+
+  @@index([fromMediaId])
+}
+
+model StreamingLink {
+  id         String  @id
+  // String(AniList externalLink id)
+  mediaId    Int
+  url        String
+  site       String
+  color      String?
+  icon       String?
+  isDisabled Boolean @default(false)
+
+  cachedAt DateTime @default(now())
+
+  media Anime @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([mediaId])
 }
 
 model TrackerEntry {

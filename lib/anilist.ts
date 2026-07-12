@@ -69,6 +69,11 @@ async function anilistRequest<T>(
       if (controller.signal.aborted) {
         throw new Error("AniList request timed out", { cause: err });
       }
+      // Surface GraphQL messages (e.g. page-depth cap) instead of a generic wrap
+      if (err instanceof ClientError) {
+        const gqlMsg = err.response.errors?.[0]?.message;
+        if (gqlMsg) throw new Error(gqlMsg, { cause: err });
+      }
       throw new Error("Failed to fetch data from AniList", { cause: err });
     } finally {
       clearTimeout(timeout);
@@ -169,6 +174,70 @@ export const getPopular = cache(async function getPopular(
   });
   return data.Page;
 });
+
+/**
+ * Media for embedding population (uncached — long multi-page jobs).
+ *
+ * AniList caps each Page query at 5000 entries (page × perPage). To cover
+ * more titles, call this multiple times with disjoint filter ranges
+ * (e.g. popularity buckets, or score floor + popularity_lesser) and union by id.
+ */
+export interface EmbeddingsMediaFilter {
+  popularityGreater?: number;
+  popularityLesser?: number;
+  averageScoreGreater?: number;
+  sort?: "POPULARITY_DESC" | "SCORE_DESC";
+}
+
+export async function getPopularForEmbeddings(
+  type: "ANIME" | "MANGA" = "ANIME",
+  page = 1,
+  perPage = 20,
+  filter: EmbeddingsMediaFilter = { popularityGreater: 4999 }
+): Promise<MediaPage> {
+  const sort = filter.sort ?? "POPULARITY_DESC";
+  const query = gql`
+    ${ANIME_CARD_FRAGMENT}
+    query GetPopularForEmbeddings(
+      $type: MediaType
+      $page: Int
+      $perPage: Int
+      $sort: [MediaSort]
+      $popularityGreater: Int
+      $popularityLesser: Int
+      $averageScoreGreater: Int
+    ) {
+      Page(page: $page, perPage: $perPage) {
+        pageInfo {
+          total
+          currentPage
+          lastPage
+          hasNextPage
+        }
+        media(
+          sort: $sort
+          type: $type
+          isAdult: false
+          popularity_greater: $popularityGreater
+          popularity_lesser: $popularityLesser
+          averageScore_greater: $averageScoreGreater
+        ) {
+          ...AnimeCard
+        }
+      }
+    }
+  `;
+  const data = await anilistRequest<{ Page: MediaPage }>(query, {
+    type,
+    page,
+    perPage,
+    sort: [sort],
+    popularityGreater: filter.popularityGreater,
+    popularityLesser: filter.popularityLesser,
+    averageScoreGreater: filter.averageScoreGreater,
+  });
+  return data.Page;
+}
 
 export const getSeasonalAnime = cache(async function getSeasonalAnime(
   season: string,

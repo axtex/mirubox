@@ -114,11 +114,15 @@ export function ActivityFeedItem({
   isLast = false,
 }: ActivityFeedItemProps): React.JSX.Element {
   const router = useRouter();
-  const style = variant === "profile" ? actionIcon(item.action) : null;
+  const showPoster = !!item.media?.coverImage;
+  // Social feed: badge icons only when there is no title-card poster
+  const style =
+    variant === "profile" || (variant === "social" && !showPoster)
+      ? actionIcon(item.action)
+      : null;
   const text =
     variant === "social" ? socialActionText(item) : actionText(item);
   const sub = variant === "social" ? null : subText(item);
-  const showPoster = !!item.media?.coverImage;
   const clickable = variant === "social" && !!item.media;
 
   function handleClick(): void {
@@ -197,45 +201,76 @@ export function ActivityFeedItem({
       }}
     >
       {style ? (
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 12,
-            flexShrink: 0,
-            background: style.bg,
-            border: `1px solid ${style.border}`,
-          }}
-        >
-          {style.icon}
-        </div>
+        variant === "social" ? (
+          <div
+            style={{
+              width: 26,
+              height: 36,
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                background: style.bg,
+                border: `1px solid ${style.border}`,
+              }}
+            >
+              {style.icon}
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              flexShrink: 0,
+              background: style.bg,
+              border: `1px solid ${style.border}`,
+            }}
+          >
+            {style.icon}
+          </div>
+        )
       ) : null}
 
-      <div
-        style={{
-          width: 26,
-          height: 36,
-          borderRadius: 2,
-          flexShrink: 0,
-          position: "relative",
-          overflow: "hidden",
-          background: showPoster ? "var(--bg-elevated)" : "transparent",
-        }}
-      >
-        {showPoster && item.media?.coverImage ? (
-          <ImageWithFallback
-            src={item.media.coverImage}
-            alt=""
-            fill
-            sizes="26px"
-            className="object-cover"
-          />
-        ) : null}
-      </div>
+      {variant === "profile" || showPoster ? (
+        <div
+          style={{
+            width: 26,
+            height: 36,
+            borderRadius: 2,
+            flexShrink: 0,
+            position: "relative",
+            overflow: "hidden",
+            background: showPoster ? "var(--bg-elevated)" : "transparent",
+          }}
+        >
+          {showPoster && item.media?.coverImage ? (
+            <ImageWithFallback
+              src={item.media.coverImage}
+              alt=""
+              fill
+              sizes="26px"
+              className="object-cover"
+            />
+          ) : null}
+        </div>
+      ) : null}
 
       <div style={{ flex: 1, minWidth: 0 }}>
         {actionLine}

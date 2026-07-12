@@ -13,7 +13,7 @@ interface SourceLink {
   isDisabled?: boolean | null;
 }
 
-const ANIME_STREAMING_SITES = new Set([
+export const ANIME_STREAMING_SITES = new Set([
   "Crunchyroll",
   "Netflix",
   "HiDive",
@@ -26,7 +26,7 @@ const ANIME_STREAMING_SITES = new Set([
   "YouTube",
 ]);
 
-const MANGA_READING_SITES = new Set([
+export const MANGA_READING_SITES = new Set([
   "MangaPlus",
   "Viz",
   "Comikey",

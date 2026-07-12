@@ -103,14 +103,13 @@ export interface NowWatchingItem {
 export interface RecentlyCompletedItem {
   id: string;
   updatedAt: Date;
-  rating: number | null;
   user: FriendsUser;
   media: FriendsMedia;
 }
 
 export interface FriendsReviewItem {
   id: string;
-  content: string;
+  content: string | null;
   containsSpoilers: boolean;
   updatedAt: Date;
   rating: number;
@@ -225,7 +224,7 @@ export async function loadFriendsPageData(
     feedResult,
     nowWatchingRows,
     completedRows,
-    reviewRows,
+    ratingRows,
     myArchive,
     followedUsers,
   ] = await Promise.all([
@@ -254,7 +253,7 @@ export async function loadFriendsPageData(
       orderBy: { updatedAt: "desc" },
       take: 10,
     }),
-    prisma.review.findMany({
+    prisma.rating.findMany({
       where: { userId: { in: followingIds } },
       include: {
         user: { select: FRIENDS_USER_SELECT },
@@ -270,31 +269,40 @@ export async function loadFriendsPageData(
     }),
   ]);
 
-  const completedKeys = completedRows.map((r) => ({
+  const ratingKeys = ratingRows.map((r) => ({
     userId: r.userId,
     animeId: r.animeId,
   }));
-  const reviewKeys = reviewRows.map((r) => ({
-    userId: r.userId,
-    animeId: r.animeId,
-  }));
-  const ratingKeys = [...completedKeys, ...reviewKeys];
 
-  const ratings =
+  const reviewRows =
     ratingKeys.length > 0
-      ? await prisma.rating.findMany({
+      ? await prisma.review.findMany({
           where: {
             OR: ratingKeys.map((k) => ({
               userId: k.userId,
               animeId: k.animeId,
             })),
           },
-          select: { userId: true, animeId: true, score: true },
+          select: {
+            userId: true,
+            animeId: true,
+            content: true,
+            containsSpoilers: true,
+          },
         })
       : [];
 
-  const ratingMap = new Map(
-    ratings.map((r) => [`${r.userId}:${r.animeId}`, r.score] as const)
+  const reviewMap = new Map(
+    reviewRows.map(
+      (r) =>
+        [
+          `${r.userId}:${r.animeId}`,
+          {
+            content: r.content,
+            containsSpoilers: r.containsSpoilers,
+          },
+        ] as const
+    )
   );
 
   const nowWatching: NowWatchingItem[] = nowWatchingRows.map((row) => ({
@@ -309,27 +317,23 @@ export async function loadFriendsPageData(
     (row) => ({
       id: row.id,
       updatedAt: row.updatedAt,
-      rating: ratingMap.get(`${row.userId}:${row.animeId}`) ?? null,
       user: toFriendsUser(row.user),
       media: toFriendsMedia(row.anime, row.mediaType),
     })
   );
 
-  const recentReviews: FriendsReviewItem[] = reviewRows
-    .map((row) => {
-      const rating = ratingMap.get(`${row.userId}:${row.animeId}`);
-      if (rating == null) return null;
-      return {
-        id: row.id,
-        content: row.content,
-        containsSpoilers: row.containsSpoilers,
-        updatedAt: row.updatedAt,
-        rating,
-        user: toFriendsUser(row.user),
-        media: toFriendsMedia(row.anime),
-      };
-    })
-    .filter((row): row is FriendsReviewItem => row != null);
+  const recentReviews: FriendsReviewItem[] = ratingRows.map((row) => {
+    const review = reviewMap.get(`${row.userId}:${row.animeId}`);
+    return {
+      id: row.id,
+      content: review?.content ?? null,
+      containsSpoilers: review?.containsSpoilers ?? false,
+      updatedAt: row.updatedAt,
+      rating: row.score,
+      user: toFriendsUser(row.user),
+      media: toFriendsMedia(row.anime),
+    };
+  });
 
   const myMediaIds = myArchive.map((e) => e.animeId);
   let compatibility: CompatibilityEntry[] = followedUsers.map((user) => ({

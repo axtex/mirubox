@@ -29,7 +29,7 @@ export function RecentReviewsSection({
             padding: "8px 0",
           }}
         >
-          No recent reviews from people you follow.
+          No recent ratings from people you follow.
         </p>
       ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -41,10 +41,12 @@ export function RecentReviewsSection({
           const meta = [item.media.type, item.media.seasonYear]
             .filter(Boolean)
             .join(" · ");
-          const truncated = item.content.length > 120;
+          const reviewContent = item.content?.trim() ? item.content : null;
+          const truncated =
+            reviewContent != null && reviewContent.length > 120;
           const excerpt = truncated
-            ? `${item.content.slice(0, 120)}...`
-            : item.content;
+            ? `${reviewContent.slice(0, 120)}...`
+            : reviewContent;
 
           return (
             <div
@@ -111,7 +113,7 @@ export function RecentReviewsSection({
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
-                  marginBottom: 6,
+                  marginBottom: reviewContent != null ? 6 : 0,
                 }}
               >
                 <ReviewStars score={item.rating} />
@@ -126,33 +128,35 @@ export function RecentReviewsSection({
                 </span>
               </div>
 
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 11,
-                  color: "#9e9ea8",
-                  lineHeight: 1.6,
-                }}
-              >
-                {excerpt}
-                {truncated ? (
-                  <>
-                    {" "}
-                    <Link
-                      href={reviewsHref}
-                      style={{
-                        fontFamily: "var(--font-space-mono)",
-                        fontSize: 9,
-                        color: "var(--primary)",
-                        textDecoration: "none",
-                      }}
-                    >
-                      read more →
-                    </Link>
-                  </>
-                ) : null}
-              </p>
+              {reviewContent != null ? (
+                <p
+                  style={{
+                    margin: 0,
+                    fontFamily: "var(--font-space-mono)",
+                    fontSize: 11,
+                    color: "#9e9ea8",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {excerpt}
+                  {truncated ? (
+                    <>
+                      {" "}
+                      <Link
+                        href={reviewsHref}
+                        style={{
+                          fontFamily: "var(--font-space-mono)",
+                          fontSize: 9,
+                          color: "var(--primary)",
+                          textDecoration: "none",
+                        }}
+                      >
+                        read more →
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
 
               <div
                 style={{
