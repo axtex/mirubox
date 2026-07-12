@@ -2,13 +2,7 @@
 
 import { BadgeScrollRow } from "@/components/profile/BadgeScrollRow";
 import { GenreBars } from "@/components/profile/GenreBars";
-import { SeasonChallengeCard } from "@/components/home/SeasonChallengeCard";
 import type { BadgeDisplay, GenreCount, StreakDay } from "@/lib/profile-types";
-import type {
-  PastSeasonChallenge,
-  SeasonChallengeData,
-} from "@/lib/season-challenge-types";
-import { formatEarnedDate } from "@/lib/season-challenge-types";
 import type { RankProgress } from "@/lib/xp";
 
 interface StatsTabProps {
@@ -18,8 +12,6 @@ interface StatsTabProps {
   badges: BadgeDisplay[];
   statsGenres: GenreCount[];
   ratingDistribution: { rating: number; count: number }[];
-  seasonChallenge: SeasonChallengeData | null;
-  pastSeasonChallenges: PastSeasonChallenge[];
 }
 
 function StatCard({
@@ -94,8 +86,6 @@ export function StatsTab({
   badges,
   statsGenres,
   ratingDistribution,
-  seasonChallenge,
-  pastSeasonChallenges,
 }: StatsTabProps): React.JSX.Element {
   const maxRating = Math.max(...ratingDistribution.map((r) => r.count), 1);
 
@@ -136,55 +126,6 @@ export function StatsTab({
           {" days"}
         </p>
       </StatCard>
-
-      {seasonChallenge && (
-        <div style={{ marginBottom: 10 }}>
-          <SeasonChallengeCard
-            {...seasonChallenge}
-            showSuggestions={false}
-            variant="stats"
-          />
-          {pastSeasonChallenges.length > 0 && (
-            <div style={{ marginTop: 10 }}>
-              <p
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 9,
-                  color: "var(--fg-subtle)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  margin: "0 0 6px",
-                }}
-              >
-                Previous seasonal badges
-              </p>
-              <ul
-                style={{
-                  listStyle: "none",
-                  margin: 0,
-                  padding: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                }}
-              >
-                {pastSeasonChallenges.map((past) => (
-                  <li
-                    key={`${past.season}_${past.year}`}
-                    style={{
-                      fontFamily: "var(--font-space-mono)",
-                      fontSize: 9,
-                      color: "#5a5a65",
-                    }}
-                  >
-                    {past.emoji} {past.badgeLabel} — {formatEarnedDate(past.earnedAt)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
 
       <StatCard label="XP PROGRESSION">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

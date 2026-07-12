@@ -1,26 +1,30 @@
 "use client";
 
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { PROFILE_TABS, type ProfileTabId } from "@/lib/profile-types";
 
 interface ProfileTabsProps {
   activeTab: ProfileTabId;
+  onTabChange: (id: ProfileTabId) => void;
 }
 
-export function ProfileTabs({ activeTab }: ProfileTabsProps): React.JSX.Element {
-  const router = useRouter();
+export function ProfileTabs({
+  activeTab,
+  onTabChange,
+}: ProfileTabsProps): React.JSX.Element {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   function setTab(id: ProfileTabId): void {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     if (id === "profile") {
       params.delete("tab");
     } else {
       params.set("tab", id);
     }
     const qs = params.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    // History API keeps the switch client-side (no loading.tsx / RSC refetch).
+    window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
+    onTabChange(id);
   }
 
   return (

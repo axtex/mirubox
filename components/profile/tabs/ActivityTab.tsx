@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
 import type { ActivityItem } from "@/lib/profile-types";
 import { ActivityFeedItem } from "@/components/activity/ActivityFeedItem";
 import { BUCKET_ORDER, dateBucket } from "@/lib/activity-display";
@@ -11,34 +10,14 @@ const PAGE_SIZE = 10;
 
 interface ActivityTabProps {
   activity: ActivityItem[];
-  showFriendsLink?: boolean;
 }
 
-export function ActivityTab({
-  activity,
-  showFriendsLink = false,
-}: ActivityTabProps): React.JSX.Element {
+export function ActivityTab({ activity }: ActivityTabProps): React.JSX.Element {
   const [page, setPage] = useState(1);
 
   if (activity.length === 0) {
     return (
       <div style={{ padding: "16px 0" }}>
-        {showFriendsLink ? (
-          <p
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 10,
-              margin: "0 0 12px",
-            }}
-          >
-            <Link
-              href="/community?tab=friends"
-              style={{ color: "var(--primary)", textDecoration: "none" }}
-            >
-              View friends activity →
-            </Link>
-          </p>
-        ) : null}
         <p
           style={{
             fontFamily: "var(--font-space-mono)",
@@ -71,23 +50,6 @@ export function ActivityTab({
 
   return (
     <div style={{ padding: "16px 0" }}>
-      {showFriendsLink ? (
-        <p
-          style={{
-            fontFamily: "var(--font-space-mono)",
-            fontSize: 10,
-            margin: "0 0 12px",
-          }}
-        >
-          <Link
-            href="/community?tab=friends"
-            style={{ color: "var(--primary)", textDecoration: "none" }}
-          >
-            View friends activity →
-          </Link>
-        </p>
-      ) : null}
-
       {BUCKET_ORDER.filter((b) => groups.has(b)).map((bucket, gi) => {
         const items = groups.get(bucket)!;
         return (

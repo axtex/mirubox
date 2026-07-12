@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
@@ -11,7 +11,12 @@ import { ReviewsTab } from "@/components/profile/tabs/ReviewsTab";
 import { ListsTab } from "@/components/profile/tabs/ListsTab";
 import { PassportModal } from "@/components/profile/PassportModal";
 import { FollowListModal } from "@/components/profile/FollowListModal";
-import type { FavouriteSlot, ProfileData, ProfileTabId } from "@/lib/profile-types";
+import {
+  parseProfileTab,
+  type FavouriteSlot,
+  type ProfileData,
+  type ProfileTabId,
+} from "@/lib/profile-types";
 
 interface ProfileViewProps {
   data: ProfileData;
@@ -44,10 +49,7 @@ function TabContent({
   switch (activeTab) {
     case "activity":
       return (
-        <ActivityTab
-          activity={data.activity}
-          showFriendsLink={data.isOwnProfile}
-        />
+        <ActivityTab activity={data.activity} />
       );
     case "stats":
       return (
@@ -58,8 +60,6 @@ function TabContent({
           badges={data.badges}
           statsGenres={data.statsGenres}
           ratingDistribution={data.ratingDistribution}
-          seasonChallenge={data.seasonChallenge}
-          pastSeasonChallenges={data.pastSeasonChallenges}
         />
       );
     case "reviews":
@@ -89,10 +89,11 @@ function TabContent({
 
 export function ProfileView({
   data,
-  activeTab,
+  activeTab: initialTab,
   sharePath,
 }: ProfileViewProps): React.JSX.Element {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [passportOpen, setPassportOpen] = useState(false);
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListType, setFollowListType] = useState<"followers" | "following">(
@@ -100,6 +101,19 @@ export function ProfileView({
   );
   const [favouriteAnime, setFavouriteAnime] = useState(data.favouriteAnime);
   const [favouriteManga, setFavouriteManga] = useState(data.favouriteManga);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
+    function onPopState(): void {
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      setActiveTab(parseProfileTab(tab));
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   useEffect(() => {
     setFavouriteAnime(data.favouriteAnime);
@@ -140,9 +154,7 @@ export function ProfileView({
         }}
         onOpenPassport={() => setPassportOpen(true)}
       />
-      <Suspense fallback={null}>
-        <ProfileTabs activeTab={activeTab} />
-      </Suspense>
+      <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
       <TabContent
         data={data}
         activeTab={activeTab}
