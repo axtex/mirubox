@@ -39,11 +39,11 @@ function hybridToCard(r: HybridResult): AnimeCardType {
 
 const GRID = "grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-3";
 
-function ResultsLabel({ query, count, mode }: { query: string; count: number; mode: "ai" | "browse" }) {
+function ResultsLabel({ query, mode }: { query: string; mode: "ai" | "browse" }) {
   const truncated = query.length > 30 ? `${query.slice(0, 30)}…` : query;
   const left = mode === "browse" && !query ? "RESULTS" : `RESULTS FOR "${truncated.toUpperCase()}"`;
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 0 8px 0", marginTop: 4 }}>
+    <div style={{ display: "flex", alignItems: "center", padding: "0 0 8px 0", marginTop: 4 }}>
       <span
         style={{
           fontFamily: "var(--font-space-mono)",
@@ -54,9 +54,6 @@ function ResultsLabel({ query, count, mode }: { query: string; count: number; mo
         }}
       >
         {left}
-      </span>
-      <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "var(--fg-faint)" }}>
-        {count} found
       </span>
     </div>
   );
@@ -104,7 +101,7 @@ export async function SearchResults({ params }: SearchResultsProps) {
             No exact matches — showing similar titles
           </p>
         )}
-        <ResultsLabel query={query} count={results.length} mode="ai" />
+        <ResultsLabel query={query} mode="ai" />
         <div className={GRID}>
           {results.map((r) => (
             <AnimeCard key={r.id} anime={hybridToCard(r)} size="md" />
@@ -132,7 +129,7 @@ export async function SearchResults({ params }: SearchResultsProps) {
 
   return (
     <div>
-      <ResultsLabel query={query} count={results.pageInfo.total ?? results.media.length} mode="browse" />
+      <ResultsLabel query={query} mode="browse" />
 
       <div className={GRID}>
         {results.media.map((anime) => (
@@ -141,8 +138,8 @@ export async function SearchResults({ params }: SearchResultsProps) {
       </div>
 
       {results.pageInfo.lastPage > 1 && (
-        <div className="flex justify-center gap-2 mt-10">
-          {page > 1 && (
+        <div className="flex items-center justify-center mt-10" style={{ gap: 10 }}>
+          {page > 1 ? (
             <a
               href={`?${new URLSearchParams({
                 ...Object.fromEntries(
@@ -150,16 +147,26 @@ export async function SearchResults({ params }: SearchResultsProps) {
                 ),
                 page: String(page - 1),
               })}`}
-              className="btn-ghost inline-flex items-center gap-1.5"
+              aria-label="Previous page"
+              className="scroll-row-arrow"
             >
-              <ChevronLeft className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
-              PREV
+              <ChevronLeft size={12} strokeWidth={2} />
             </a>
+          ) : (
+            <button type="button" disabled aria-label="Previous page" className="scroll-row-arrow">
+              <ChevronLeft size={12} strokeWidth={2} />
+            </button>
           )}
-          <span className="flex items-center px-4 text-label" style={{ color: "var(--fg-muted)" }}>
+          <span
+            style={{
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 10,
+              color: "var(--fg-muted)",
+            }}
+          >
             {page} / {results.pageInfo.lastPage}
           </span>
-          {results.pageInfo.hasNextPage && (
+          {results.pageInfo.hasNextPage ? (
             <a
               href={`?${new URLSearchParams({
                 ...Object.fromEntries(
@@ -167,11 +174,15 @@ export async function SearchResults({ params }: SearchResultsProps) {
                 ),
                 page: String(page + 1),
               })}`}
-              className="btn-ghost inline-flex items-center gap-1.5"
+              aria-label="Next page"
+              className="scroll-row-arrow"
             >
-              NEXT
-              <ChevronRight className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+              <ChevronRight size={12} strokeWidth={2} />
             </a>
+          ) : (
+            <button type="button" disabled aria-label="Next page" className="scroll-row-arrow">
+              <ChevronRight size={12} strokeWidth={2} />
+            </button>
           )}
         </div>
       )}

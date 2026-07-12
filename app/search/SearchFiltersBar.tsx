@@ -489,7 +489,7 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
         )}
         {showClientTitleResults ? (
           <div>
-            <BrowseResultsLabel query={trimmedQuery} count={titleResults.length} />
+            <BrowseResultsLabel query={trimmedQuery} />
             <div className={GRID}>
               {titleResults.map((r) => (
                 <AnimeCard key={r.id} anime={titleResultToCard(r)} size="md" />
@@ -515,10 +515,10 @@ export function SearchFiltersBar({ params, children }: SearchFiltersBarProps) {
   );
 }
 
-function BrowseResultsLabel({ query, count }: { query: string; count: number }) {
+function BrowseResultsLabel({ query }: { query: string }) {
   const truncated = query.length > 30 ? `${query.slice(0, 30)}…` : query;
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 0 8px 0", marginTop: 4 }}>
+    <div style={{ display: "flex", alignItems: "center", padding: "0 0 8px 0", marginTop: 4 }}>
       <span
         style={{
           fontFamily: "var(--font-space-mono)",
@@ -529,9 +529,6 @@ function BrowseResultsLabel({ query, count }: { query: string; count: number }) 
         }}
       >
         {`RESULTS FOR "${truncated.toUpperCase()}"`}
-      </span>
-      <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "var(--fg-faint)" }}>
-        {count} found
       </span>
     </div>
   );
