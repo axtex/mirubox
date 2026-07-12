@@ -20,6 +20,20 @@ const FG_FAINT = "#3a3a45";
 const BG_ELEVATED = "#1b1b1e";
 const BG_CARD_HIGH = "#2a2a2d";
 
+const POSTER_FALLBACK =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="150">' +
+      '<rect width="100%" height="100%" fill="#1b1b1e"/></svg>'
+  );
+
+const AVATAR_FALLBACK =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">' +
+      '<rect width="100%" height="100%" fill="#1b1b1e"/></svg>'
+  );
+
 const GENRE_FILL_COLORS = ["#534AB7", "#1d9e75", "#BA7517", "rgba(255,255,255,0.2)"];
 
 const S = PASSPORT_OG_SCALE;
@@ -69,15 +83,13 @@ function PosterRow({
             background: BG_ELEVATED,
           }}
         >
-          {slot.coverImage ? (
-            // eslint-disable-next-line @next/next/no-img-element -- rendered by satori, not the DOM
-            <img
-              src={slot.coverImage}
-              width={POSTER_WIDTH}
-              height={POSTER_HEIGHT}
-              style={{ width: POSTER_WIDTH, height: POSTER_HEIGHT, objectFit: "cover" }}
-            />
-          ) : null}
+          {/* eslint-disable-next-line @next/next/no-img-element -- rendered by satori, not the DOM */}
+          <img
+            src={slot.coverImage || POSTER_FALLBACK}
+            width={POSTER_WIDTH}
+            height={POSTER_HEIGHT}
+            style={{ width: POSTER_WIDTH, height: POSTER_HEIGHT, objectFit: "cover" }}
+          />
         </div>
       ))}
     </div>
@@ -165,7 +177,12 @@ export function PassportCardOG({
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- rendered by satori, not the DOM */}
-            <img src={avatarUrl} width={avatarSize} height={avatarSize} style={{ width: avatarSize, height: avatarSize, objectFit: "cover" }} />
+            <img
+              src={avatarUrl || AVATAR_FALLBACK}
+              width={avatarSize}
+              height={avatarSize}
+              style={{ width: avatarSize, height: avatarSize, objectFit: "cover" }}
+            />
           </div>
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: avatarSize }}>
             <div style={{ display: "flex", flexDirection: "column" }}>

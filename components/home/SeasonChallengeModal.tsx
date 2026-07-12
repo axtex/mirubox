@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import Link from "next/link";
 import { getSeasonBrowseSearchHref } from "@/lib/season";
 import { SEASON_CHALLENGE_SUGGESTIONS } from "@/lib/season-challenge-types";
@@ -72,7 +72,7 @@ function TitleCard({
     >
       <div className="relative w-full aspect-[2/3] overflow-hidden">
         {coverImage ? (
-          <Image
+          <ImageWithFallback
             src={coverImage}
             alt=""
             fill
@@ -82,7 +82,7 @@ function TitleCard({
         ) : (
           <div
             className="absolute inset-0"
-            style={{ background: "var(--bg-elevated)" }}
+            style={{ background: "#1b1b1e" }}
           />
         )}
         {score != null && (

@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Check } from "lucide-react";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import type { SeasonChallengeData } from "@/lib/season-challenge-types";
 import { formatEarnedDate } from "@/lib/season-challenge-types";
 import { formatSeasonLabel } from "@/lib/season";
@@ -40,7 +40,7 @@ function CompletedThumbnail({
       }}
     >
       {coverImage ? (
-        <Image
+        <ImageWithFallback
           src={coverImage}
           alt=""
           width={40}
@@ -50,7 +50,7 @@ function CompletedThumbnail({
       ) : (
         <div
           className="h-full w-full"
-          style={{ background: "var(--bg-elevated)" }}
+          style={{ background: "#1b1b1e" }}
         />
       )}
     </Link>
@@ -84,7 +84,7 @@ function SuggestionCard({
     >
       <div className="relative w-full aspect-[2/3] overflow-hidden">
         {coverImage ? (
-          <Image
+          <ImageWithFallback
             src={coverImage}
             alt=""
             fill
@@ -94,7 +94,7 @@ function SuggestionCard({
         ) : (
           <div
             className="absolute inset-0"
-            style={{ background: "var(--bg-elevated)" }}
+            style={{ background: "#1b1b1e" }}
           />
         )}
         {score != null && (

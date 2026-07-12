@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { SectionLabel } from "@/components/community/SectionLabel";
 import type { FriendsUser } from "@/lib/community-feed";
 
@@ -165,7 +165,7 @@ export function CoverThumb({
       }}
     >
       {src ? (
-        <Image src={src} alt="" fill sizes={`${width}px`} className="object-cover" />
+        <ImageWithFallback src={src} alt="" fill sizes={`${width}px`} className="object-cover" />
       ) : null}
     </Link>
   );

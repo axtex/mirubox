@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { useToast } from "@/context/ToastContext";
 import { StatusMessage } from "@/components/ui/StatusMessage";
 import { StatusNotice } from "@/components/ui/StatusNotice";
@@ -264,7 +264,7 @@ export function AddTitlesModal({
                     }}
                   >
                     {r.coverImage && (
-                      <Image src={r.coverImage} alt="" fill sizes="28px" className="object-cover" />
+                      <ImageWithFallback src={r.coverImage} alt="" fill sizes="28px" className="object-cover" />
                     )}
                   </div>
                   <span

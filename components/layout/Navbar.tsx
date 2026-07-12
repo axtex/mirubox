@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { NavbarLinks } from "./NavbarLinks";
 import { NavbarSearch } from "./NavbarSearch";
@@ -28,7 +29,9 @@ export async function Navbar() {
             <span style={{ color: "var(--fg)" }}>miru</span>
             <span style={{ color: "var(--primary)" }}>box</span>
           </Link>
-          <NavbarLinks />
+          <Suspense fallback={null}>
+            <NavbarLinks />
+          </Suspense>
         </div>
 
         {/* Search + auth */}

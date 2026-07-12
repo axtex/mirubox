@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import type { ActivityItem } from "@/lib/profile-types";
 import type { FeedUser } from "@/lib/community-feed";
@@ -227,7 +227,7 @@ export function ActivityFeedItem({
         }}
       >
         {showPoster && item.media?.coverImage ? (
-          <Image
+          <ImageWithFallback
             src={item.media.coverImage}
             alt=""
             fill

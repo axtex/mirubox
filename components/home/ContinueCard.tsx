@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { trackerProgressPct } from "@/lib/tracker-progress";
 
 export interface ContinueItem {
@@ -29,7 +29,7 @@ export function ContinueCard({ item }: ContinueCardProps): React.JSX.Element {
     <Link href={href} className="continue-card" aria-label={`Continue ${title}`}>
       <div className="continue-card-cover">
         {coverImage ? (
-          <Image
+          <ImageWithFallback
             src={coverImage}
             alt=""
             width={48}

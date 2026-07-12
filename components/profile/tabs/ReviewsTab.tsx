@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import type { ReviewItem } from "@/lib/profile-types";
 
 const PAGE_SIZE = 10;
@@ -102,7 +102,7 @@ export function ReviewsTab({ reviews }: ReviewsTabProps): React.JSX.Element {
                 }}
               >
                 {item.media.coverImage ? (
-                  <Image
+                  <ImageWithFallback
                     src={item.media.coverImage}
                     alt=""
                     fill
@@ -195,7 +195,7 @@ export function ReviewsTab({ reviews }: ReviewsTabProps): React.JSX.Element {
                 }}
               >
                 {item.media.coverImage ? (
-                  <Image
+                  <ImageWithFallback
                     src={item.media.coverImage}
                     alt=""
                     fill

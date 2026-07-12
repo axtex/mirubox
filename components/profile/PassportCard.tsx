@@ -1,4 +1,5 @@
 import { UserAvatar } from "@/components/avatar/UserAvatar";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { getRankColors } from "@/lib/rank-colors";
 import { hexToRgba } from "@/lib/color";
 
@@ -69,14 +70,16 @@ function PosterRow({
             border: "1px solid rgba(255,255,255,0.06)",
             overflow: "hidden",
             background: "#1b1b1e",
+            position: "relative",
           }}
         >
           {slot.coverImage ? (
-            // eslint-disable-next-line @next/next/no-img-element -- captured as a downloadable card image
-            <img
+            <ImageWithFallback
               src={slot.coverImage}
               alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              fill
+              sizes="120px"
+              style={{ objectFit: "cover" }}
             />
           ) : null}
         </div>

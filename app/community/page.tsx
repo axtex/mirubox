@@ -10,10 +10,6 @@ import { RecentReviewsSection } from "@/components/community/RecentReviewsSectio
 import { TasteCompatibilitySection } from "@/components/community/TasteCompatibilitySection";
 import { loadFriendsPageData } from "@/lib/community-feed";
 
-export const metadata: Metadata = {
-  title: "Lists — mirubox",
-};
-
 const TABS = [
   { value: "news", label: "NEWS" },
   { value: "forum", label: "FORUM" },
@@ -29,8 +25,25 @@ const TAB_TITLES: Record<Exclude<Tab, "lists">, string> = {
   friends: "FRIENDS",
 };
 
+const PAGE_TITLES: Record<Tab, string> = {
+  friends: "Friends — mirubox",
+  lists: "Lists — mirubox",
+  news: "News — mirubox",
+  forum: "Forum — mirubox",
+};
+
 interface PageProps {
   searchParams: Promise<{ tab?: string; type?: string }>;
+}
+
+export async function generateMetadata({
+  searchParams,
+}: PageProps): Promise<Metadata> {
+  const { tab: tabParam } = await searchParams;
+  const tab: Tab = TABS.some((t) => t.value === tabParam)
+    ? (tabParam as Tab)
+    : "lists";
+  return { title: PAGE_TITLES[tab] };
 }
 
 export default async function CommunityPage({ searchParams }: PageProps) {

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { Heart, Plus } from "lucide-react";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { useTracker } from "@/lib/tracker-context";
 import { useAuthModal } from "@/context/AuthModalContext";
 
@@ -50,29 +50,36 @@ export function ListCard({ list }: { list: ListCardData }) {
             }}
           >
             {src ? (
-              <Image
+              <ImageWithFallback
                 src={src}
                 alt=""
                 fill
                 sizes="80px"
                 style={{ objectFit: "cover" }}
               />
+            ) : list.entryCount === 0 && i === 0 ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  width: "100%",
+                  position: "absolute",
+                  inset: 0,
+                  background: "#1b1b1e",
+                }}
+              >
+                <span style={{ color: "var(--fg-muted)", fontSize: 14 }}>✦</span>
+              </div>
             ) : (
-              list.entryCount === 0 && i === 0 ? (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: "100%",
-                    width: "100%",
-                    position: "absolute",
-                    inset: 0,
-                  }}
-                >
-                  <span style={{ color: "var(--fg-muted)", fontSize: 14 }}>✦</span>
-                </div>
-              ) : null
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "#1b1b1e",
+                }}
+              />
             )}
           </div>
         ))}

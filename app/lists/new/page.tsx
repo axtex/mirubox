@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import Link from "next/link";
 import { ChevronLeft, X } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
@@ -321,7 +321,7 @@ export default function NewListPage() {
                           }}
                         >
                           {r.coverImage && (
-                            <Image src={r.coverImage} alt="" fill sizes="28px" className="object-cover" />
+                            <ImageWithFallback src={r.coverImage} alt="" fill sizes="28px" className="object-cover" />
                           )}
                         </div>
                         <span

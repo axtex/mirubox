@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 
 export interface HeroSlide {
   id: number;
@@ -51,7 +51,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
               aria-hidden={i !== index}
             >
               {bg ? (
-                <Image
+                <ImageWithFallback
                   src={bg}
                   alt=""
                   fill
@@ -60,7 +60,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
                   className="object-cover object-top"
                 />
               ) : (
-                <div className="absolute inset-0" style={{ background: "var(--bg-card)" }} />
+                <div className="absolute inset-0" style={{ background: "#1b1b1e" }} />
               )}
 
               <div
