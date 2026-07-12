@@ -90,17 +90,17 @@ export async function countCompletedForSeasonChallenge(
 export async function syncSeasonChallenge(
   userId: string,
   media: { season?: string | null; seasonYear?: number | null }
-): Promise<void> {
+): Promise<{ justEarned: boolean }> {
   if (!media.season || media.seasonYear == null || !isValidSeason(media.season)) {
-    return;
+    return { justEarned: false };
   }
 
   const from = await getSeasonChallengeStart(userId);
-  if (!from) return;
+  if (!from) return { justEarned: false };
 
   const season = media.season;
   const year = media.seasonYear;
-  if (!isSeasonChallengeEligible(season, year, from)) return;
+  if (!isSeasonChallengeEligible(season, year, from)) return { justEarned: false };
 
   const key = getSeasonKey(season, year);
   const count = await countCompletedForSeasonChallenge(userId, season, year, from);
@@ -126,10 +126,14 @@ export async function syncSeasonChallenge(
     },
   });
 
-  if (count >= SEASON_CHALLENGE_TARGET && !wasCompleted) {
+  const justEarned = count >= SEASON_CHALLENGE_TARGET && !wasCompleted;
+
+  if (justEarned) {
     await awardXP(userId, "SEASON_CHALLENGE", {
       meta: { season: key },
     });
     await awardSeasonalWatcherBadge(userId, key);
   }
+
+  return { justEarned };
 }

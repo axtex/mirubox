@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { getMediaById } from "@/lib/anilist";
 import { awardXP, type ToastNotification } from "@/lib/xp";
+import { getSeasonChallenge } from "@/lib/season-challenge";
+import { toContinueStripSeasonChallenge } from "@/lib/season-challenge-client";
 import {
   initSeasonChallengeStart,
   syncSeasonChallenge,
@@ -144,6 +146,7 @@ export async function POST(req: Request) {
   });
 
   const notifications: ToastNotification[] = [];
+  let seasonChallengeJustEarned = false;
 
   const seasonMeta = {
     season: cached?.season ?? null,
@@ -163,7 +166,8 @@ export async function POST(req: Request) {
       if (statusStr === "COMPLETED") {
         const result = await awardXP(session.user.id, "MARK_COMPLETED_DIRECT", { mediaId: animeId });
         if (result) notifications.push(...result.notifications);
-        await syncSeasonChallenge(session.user.id, seasonMeta);
+        const sync = await syncSeasonChallenge(session.user.id, seasonMeta);
+        seasonChallengeJustEarned = seasonChallengeJustEarned || sync.justEarned;
       } else {
         const result = await awardXP(session.user.id, "ADD_TO_TRACKER", { mediaId: animeId });
         if (result) notifications.push(...result.notifications);
@@ -186,7 +190,8 @@ export async function POST(req: Request) {
           mediaId: animeId,
         });
         if (result) notifications.push(...result.notifications);
-        await syncSeasonChallenge(session.user.id, seasonMeta);
+        const sync = await syncSeasonChallenge(session.user.id, seasonMeta);
+        seasonChallengeJustEarned = seasonChallengeJustEarned || sync.justEarned;
       }
 
       if (wasCompleted && !nowCompleted) {
@@ -197,7 +202,20 @@ export async function POST(req: Request) {
 
   void embedAnimeIfNeeded(animeId);
 
-  return NextResponse.json({ entry, notifications });
+  let seasonChallenge = null;
+  if (seasonChallengeJustEarned) {
+    const challengeData = await getSeasonChallenge(session.user.id);
+    if (challengeData?.showOnHome) {
+      seasonChallenge = toContinueStripSeasonChallenge(challengeData);
+    }
+  }
+
+  return NextResponse.json({
+    entry,
+    notifications,
+    seasonChallengeJustEarned,
+    seasonChallenge,
+  });
 }
 
 export async function DELETE(req: Request) {

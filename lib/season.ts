@@ -108,3 +108,7 @@ export function formatSeasonBadgeLabel(seasonKey: string): string {
   if (!parsed) return "Season Watcher";
   return `${formatSeasonLabel(parsed.season)} ${parsed.year} Watcher`;
 }
+
+export function getSeasonBrowseSearchHref(season: Season | string, year: number): string {
+  return `/search?type=anime&season=${season.toLowerCase()}&year=${year}&mode=browse`;
+}

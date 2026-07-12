@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
+import { notifySeasonChallengeSync, type ContinueStripSeasonChallenge } from "@/lib/season-challenge-client";
 
 const UNIFIED_STATUSES = [
   { value: "PLANNED",     label: "PLANNED",     dot: "#e4e1e6" },
@@ -54,7 +55,15 @@ export function TrackerStatusBar({
         body: JSON.stringify({ animeId, status: newStatus, mediaType }),
       });
       if (!res.ok) throw new Error("Failed to update tracker");
+      const data = (await res.json()) as {
+        seasonChallengeJustEarned?: boolean;
+        seasonChallenge?: ContinueStripSeasonChallenge | null;
+      };
       setStatus(newStatus);
+      notifySeasonChallengeSync({
+        justEarned: data.seasonChallengeJustEarned,
+        challenge: data.seasonChallenge ?? undefined,
+      });
     } catch {
       showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     } finally {

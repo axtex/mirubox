@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Check } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
+import { notifySeasonChallengeSync, type ContinueStripSeasonChallenge } from "@/lib/season-challenge-client";
 
 const STATUSES = [
   { value: "PLANNED",     label: "PLANNED",     dot: "#e4e1e6" },
@@ -42,7 +43,15 @@ export function TrackerButton({ animeId, initialStatus, isLoggedIn }: TrackerBut
         body: JSON.stringify({ animeId, status: value, mediaType: "ANIME" }),
       });
       if (!res.ok) throw new Error("Failed to update tracker");
+      const data = (await res.json()) as {
+        seasonChallengeJustEarned?: boolean;
+        seasonChallenge?: ContinueStripSeasonChallenge | null;
+      };
       setStatus(value);
+      notifySeasonChallengeSync({
+        justEarned: data.seasonChallengeJustEarned,
+        challenge: data.seasonChallenge ?? undefined,
+      });
     } catch {
       showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     } finally {
@@ -61,6 +70,7 @@ export function TrackerButton({ animeId, initialStatus, isLoggedIn }: TrackerBut
       });
       if (!res.ok) throw new Error("Failed to remove from tracker");
       setStatus(null);
+      notifySeasonChallengeSync();
     } catch {
       showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     } finally {

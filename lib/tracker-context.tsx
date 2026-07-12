@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useToast, type Toast } from "@/context/ToastContext";
+import { notifySeasonChallengeSync, type ContinueStripSeasonChallenge } from "@/lib/season-challenge-client";
 import type { ToastNotification } from "@/lib/xp";
 
 function fireToasts(showToast: (t: Omit<Toast, "id">) => void, notifications?: ToastNotification[]) {
@@ -93,8 +94,16 @@ export function TrackerProvider({
           body: JSON.stringify({ animeId: mediaId, status, mediaType }),
         });
         if (!res.ok) throw new Error("api error");
-        const data = (await res.json()) as { notifications?: ToastNotification[] };
+        const data = (await res.json()) as {
+          notifications?: ToastNotification[];
+          seasonChallengeJustEarned?: boolean;
+          seasonChallenge?: ContinueStripSeasonChallenge | null;
+        };
         fireToasts(showToast, data.notifications);
+        notifySeasonChallengeSync({
+          justEarned: data.seasonChallengeJustEarned,
+          challenge: data.seasonChallenge ?? undefined,
+        });
       } catch {
         setTrackerMap((m) => {
           const next = new Map(m);
@@ -119,8 +128,16 @@ export function TrackerProvider({
         body: JSON.stringify({ animeId: mediaId, status }),
       });
       if (!res.ok) throw new Error("api error");
-      const data = (await res.json()) as { notifications?: ToastNotification[] };
+      const data = (await res.json()) as {
+        notifications?: ToastNotification[];
+        seasonChallengeJustEarned?: boolean;
+        seasonChallenge?: ContinueStripSeasonChallenge | null;
+      };
       fireToasts(showToast, data.notifications);
+      notifySeasonChallengeSync({
+        justEarned: data.seasonChallengeJustEarned,
+        challenge: data.seasonChallenge ?? undefined,
+      });
     } catch {
       setTrackerMap((m) => {
         const next = new Map(m);
@@ -145,6 +162,7 @@ export function TrackerProvider({
         body: JSON.stringify({ animeId: mediaId }),
       });
       if (!res.ok) throw new Error("api error");
+      notifySeasonChallengeSync();
     } catch {
       if (prev !== undefined) {
         setTrackerMap((m) => new Map(m).set(mediaId, prev));

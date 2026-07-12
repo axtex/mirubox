@@ -4,8 +4,8 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
-import { Check } from "lucide-react";
-import { formatSeasonLabel } from "@/lib/season";
+import { getSeasonBrowseSearchHref } from "@/lib/season";
+import { SEASON_CHALLENGE_SUGGESTIONS } from "@/lib/season-challenge-types";
 
 export interface SeasonChallengeModalProps {
   isOpen: boolean;
@@ -34,6 +34,14 @@ export interface SeasonChallengeModalProps {
   }[];
 }
 
+type TitleCardItem = {
+  id: number;
+  title: string;
+  titleEnglish: string | null;
+  coverImage: string | null;
+  averageScore?: number | null;
+};
+
 function mediaTitle(anime: {
   title: string;
   titleEnglish: string | null;
@@ -41,26 +49,22 @@ function mediaTitle(anime: {
   return anime.titleEnglish ?? anime.title;
 }
 
-function SuggestionCard({
+function TitleCard({
   id,
   title,
   coverImage,
-  averageScore,
-}: {
-  id: number;
-  title: string;
-  coverImage: string | null;
-  averageScore: number | null;
-}): React.JSX.Element {
+  averageScore = null,
+}: TitleCardItem): React.JSX.Element {
   const score =
     averageScore != null ? (averageScore / 10).toFixed(1) : null;
 
   return (
     <Link
       href={`/anime/${id}`}
-      className="anime-card anime-card--sm group relative"
+      className="anime-card group relative"
       aria-label={title}
       style={{
+        width: "100%",
         borderRadius: 4,
         border: "1px solid #1f1f22",
         overflow: "hidden",
@@ -72,7 +76,7 @@ function SuggestionCard({
             src={coverImage}
             alt=""
             fill
-            sizes="100px"
+            sizes="110px"
             className="object-cover"
           />
         ) : (
@@ -112,12 +116,120 @@ function SuggestionCard({
   );
 }
 
+function TitleGridSection({
+  label,
+  titles,
+  limit = 3,
+  viewAllHref,
+}: {
+  label: string;
+  titles: TitleCardItem[];
+  limit?: number;
+  viewAllHref?: string;
+}): React.JSX.Element | null {
+  const visible = titles.slice(0, limit);
+  if (visible.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 8,
+          gap: 8,
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 9,
+            color: "#5a5a65",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            margin: 0,
+          }}
+        >
+          {label}
+        </p>
+        {viewAllHref && (
+          <Link
+            href={viewAllHref}
+            style={{
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 9,
+              color: "#5a5a65",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              flexShrink: 0,
+              textDecoration: "none",
+            }}
+          >
+            VIEW ALL
+          </Link>
+        )}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 8,
+        }}
+      >
+        {visible.map((anime) => (
+          <TitleCard
+            key={anime.id}
+            id={anime.id}
+            title={mediaTitle(anime)}
+            coverImage={anime.coverImage}
+            averageScore={anime.averageScore ?? null}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RewardFooter({
+  xpReward,
+  badgeLabel,
+}: {
+  xpReward: number;
+  badgeLabel: string;
+}): React.JSX.Element {
+  return (
+    <div
+      style={{
+        marginTop: 14,
+        paddingTop: 12,
+        borderTop: "1px solid #1f1f22",
+        textAlign: "center",
+      }}
+    >
+      <p
+        style={{
+          fontFamily: "var(--font-space-mono)",
+          fontSize: 10,
+          color: "#5a5a65",
+          margin: 0,
+        }}
+      >
+        <span style={{ color: "#e8173f", fontWeight: 600 }}>+{xpReward} XP</span>
+        {" · "}
+        {badgeLabel} Badge
+      </p>
+    </div>
+  );
+}
+
 export function SeasonChallengeModal({
   isOpen,
   onClose,
   emoji,
   label,
   season,
+  year,
   target,
   count,
   isEarned,
@@ -142,7 +254,6 @@ export function SeasonChallengeModal({
 
   if (!isOpen) return null;
 
-  const seasonName = formatSeasonLabel(season).toLowerCase();
   const progressPct = Math.min(100, Math.round((count / target) * 100));
   const headerTitle = `${emoji} ${label} Challenge`;
 
@@ -202,16 +313,7 @@ export function SeasonChallengeModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            style={{
-              fontSize: 16,
-              color: "#3a3a45",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-              lineHeight: 1,
-            }}
-            className="hover:text-[#9e9ea8]"
+            className="review-modal-close"
           >
             ×
           </button>
@@ -219,49 +321,17 @@ export function SeasonChallengeModal({
 
         <div style={{ padding: 16 }}>
           {isEarned ? (
-            <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
-              <Check
-                size={28}
-                strokeWidth={2}
-                color="#1d9e75"
-                style={{ margin: "0 auto 10px", display: "block" }}
-                aria-hidden
+            <>
+              <TitleGridSection
+                label="Completed"
+                titles={completedTitles}
+                limit={target}
               />
-              <p
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  color: "#e4e1e6",
-                  margin: "0 0 6px",
-                }}
-              >
-                {emoji} {label} Challenge
-              </p>
-              <p
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  color: "#5a5a65",
-                  margin: 0,
-                }}
-              >
-                {badgeLabel} earned
-              </p>
-            </div>
+
+              <RewardFooter xpReward={xpReward} badgeLabel={badgeLabel} />
+            </>
           ) : (
             <>
-              <p
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  color: "#9e9ea8",
-                  lineHeight: 1.6,
-                  margin: "0 0 14px",
-                }}
-              >
-                Complete {target} {seasonName} anime to earn the {badgeLabel}. Only seasons from when you started tracking count.
-              </p>
-
               <p
                 style={{
                   fontSize: 13,
@@ -276,7 +346,6 @@ export function SeasonChallengeModal({
                 style={{
                   height: 6,
                   background: "#1f1f22",
-                  borderRadius: 2,
                   overflow: "hidden",
                   marginBottom: 14,
                 }}
@@ -286,131 +355,24 @@ export function SeasonChallengeModal({
                     height: 6,
                     width: `${progressPct}%`,
                     background: "linear-gradient(to right, #e8173f, #ff4455)",
-                    borderRadius: 2,
                   }}
                 />
               </div>
 
-              {count > 0 && completedTitles.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <p
-                    style={{
-                      fontFamily: "var(--font-space-mono)",
-                      fontSize: 9,
-                      color: "#5a5a65",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                      margin: "0 0 6px",
-                    }}
-                  >
-                    Completed
-                  </p>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {completedTitles.slice(0, target).map((anime) => (
-                      <Link
-                        key={anime.id}
-                        href={`/anime/${anime.id}`}
-                        aria-label={mediaTitle(anime)}
-                        style={{
-                          width: 40,
-                          aspectRatio: "2/3",
-                          borderRadius: 2,
-                          overflow: "hidden",
-                          flexShrink: 0,
-                          border: "1px solid var(--bg-card)",
-                        }}
-                      >
-                        {anime.coverImage ? (
-                          <Image
-                            src={anime.coverImage}
-                            alt=""
-                            width={40}
-                            height={60}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div
-                            className="h-full w-full"
-                            style={{ background: "var(--bg-elevated)" }}
-                          />
-                        )}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <TitleGridSection
+                label="Completed"
+                titles={completedTitles}
+                limit={target}
+              />
 
-              {suggestions.length > 0 && (
-                <div style={{ marginBottom: 4 }}>
-                  <p
-                    style={{
-                      fontFamily: "var(--font-space-mono)",
-                      fontSize: 9,
-                      color: "#5a5a65",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                      margin: "0 0 6px",
-                    }}
-                  >
-                    Airing this season
-                  </p>
-                  <div
-                    className="section-cards no-scrollbar"
-                    style={{ paddingBottom: 4 }}
-                  >
-                    {suggestions.map((anime) => (
-                      <SuggestionCard
-                        key={anime.id}
-                        id={anime.id}
-                        title={mediaTitle(anime)}
-                        coverImage={anime.coverImage}
-                        averageScore={anime.averageScore}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              <TitleGridSection
+                label="Airing this season"
+                titles={suggestions}
+                limit={SEASON_CHALLENGE_SUGGESTIONS}
+                viewAllHref={getSeasonBrowseSearchHref(season, year)}
+              />
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginTop: 14,
-                  paddingTop: 12,
-                  borderTop: "1px solid #1f1f22",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-space-mono)",
-                    fontSize: 10,
-                    color: "#e8173f",
-                    fontWeight: 600,
-                  }}
-                >
-                  +{xpReward} XP
-                </span>
-                <span style={{ color: "#3a3a45", fontSize: 10 }}>·</span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-space-mono)",
-                    fontSize: 10,
-                    color: "#5a5a65",
-                  }}
-                >
-                  {badgeLabel}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-space-mono)",
-                    fontSize: 10,
-                    color: "#3a3a45",
-                  }}
-                >
-                  on completion
-                </span>
-              </div>
+              <RewardFooter xpReward={xpReward} badgeLabel={badgeLabel} />
             </>
           )}
         </div>

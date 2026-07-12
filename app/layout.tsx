@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { LoginXPTracker } from "@/components/layout/LoginXPTracker";
 import { TrackerProvider } from "@/lib/tracker-context";
+import { SeasonChallengeHost } from "@/components/season-challenge/SeasonChallengeHost";
 import { AuthModalProvider } from "@/context/AuthModalContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { ToastProvider } from "@/context/ToastContext";
@@ -76,6 +77,7 @@ export default async function RootLayout({
         <SessionProviderWrapper session={session}>
           <ToastProvider>
             <TrackerProvider isLoggedIn={!!session?.user}>
+              <SeasonChallengeHost />
               <AuthModalProvider>
                 <LoginXPTracker isLoggedIn={!!session?.user} />
                 <Navbar />

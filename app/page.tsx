@@ -10,6 +10,7 @@ import {
 import { auth } from "@/auth";
 import { getContinueItems } from "@/lib/continue-items";
 import { getSeasonChallenge } from "@/lib/season-challenge";
+import { toContinueStripSeasonChallenge } from "@/lib/season-challenge-client";
 import { SectionRow } from "@/components/anime/SectionRow";
 import { ContinueStrip } from "@/components/home/ContinueStrip";
 import { DiscoverSection } from "@/components/home/DiscoverSection";
@@ -44,24 +45,7 @@ export default async function HomePage() {
 
   const seasonChallenge =
     challengeData?.showOnHome
-      ? {
-          emoji: challengeData.emoji,
-          label: `${formatSeasonLabel(challengeData.season)} ${challengeData.year}`,
-          season: challengeData.season,
-          year: challengeData.year,
-          target: challengeData.target,
-          count: challengeData.count,
-          isEarned: challengeData.isEarned,
-          badgeLabel: challengeData.badgeLabel,
-          xpReward: challengeData.xpReward,
-          completedTitles: challengeData.completedTitles.map((entry) => ({
-            id: entry.anime.id,
-            title: entry.anime.title,
-            titleEnglish: entry.anime.titleEnglish,
-            coverImage: entry.anime.coverImage,
-          })),
-          suggestions: challengeData.suggestions,
-        }
+      ? toContinueStripSeasonChallenge(challengeData)
       : null;
 
   const [trendingResult, seasonalResult, upcomingResult, mangaResult] = await Promise.allSettled([

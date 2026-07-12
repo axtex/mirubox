@@ -1,37 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Check } from "lucide-react";
 import type { ContinueItem } from "@/components/home/ContinueCard";
 import { ContinueCardsRow } from "@/components/home/ContinueCardsRow";
-import { SeasonChallengeModal } from "@/components/home/SeasonChallengeModal";
 import { formatSeasonLabel } from "@/lib/season";
+import {
+  fetchContinueStripSeasonChallenge,
+  openSeasonChallengeModal,
+  SEASON_CHALLENGE_SYNC_EVENT,
+  type ContinueStripSeasonChallenge,
+} from "@/lib/season-challenge-client";
 
-export interface ContinueStripSeasonChallenge {
-  emoji: string;
-  label: string;
-  season: string;
-  year: number;
-  target: number;
-  count: number;
-  isEarned: boolean;
-  badgeLabel: string;
-  xpReward: number;
-  completedTitles: {
-    id: number;
-    title: string;
-    titleEnglish: string | null;
-    coverImage: string | null;
-  }[];
-  suggestions: {
-    id: number;
-    title: string;
-    titleEnglish: string | null;
-    coverImage: string | null;
-    averageScore: number | null;
-  }[];
-}
+export type { ContinueStripSeasonChallenge };
 
 interface ContinueStripProps {
   items: ContinueItem[];
@@ -40,9 +22,30 @@ interface ContinueStripProps {
 
 export function ContinueStrip({
   items,
-  seasonChallenge = null,
+  seasonChallenge: initialSeasonChallenge = null,
 }: ContinueStripProps): React.JSX.Element | null {
-  const [modalOpen, setModalOpen] = useState(false);
+  const [seasonChallenge, setSeasonChallenge] =
+    useState<ContinueStripSeasonChallenge | null>(initialSeasonChallenge);
+
+  useEffect(() => {
+    setSeasonChallenge(initialSeasonChallenge);
+  }, [initialSeasonChallenge]);
+
+  const refreshSeasonChallenge = useCallback(async () => {
+    try {
+      const data = await fetchContinueStripSeasonChallenge();
+      setSeasonChallenge(data);
+    } catch {
+      // ignore — keep last known state
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener(SEASON_CHALLENGE_SYNC_EVENT, refreshSeasonChallenge);
+    return () => {
+      window.removeEventListener(SEASON_CHALLENGE_SYNC_EVENT, refreshSeasonChallenge);
+    };
+  }, [refreshSeasonChallenge]);
 
   if (items.length === 0 && !seasonChallenge) {
     return null;
@@ -87,12 +90,19 @@ export function ContinueStrip({
             }}
           />
           {seasonChallenge.isEarned ? (
-            <div
+            <button
+              type="button"
+              onClick={openSeasonChallengeModal}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
                 paddingTop: 8,
+                width: "100%",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                textAlign: "left",
               }}
             >
               <Check size={12} strokeWidth={2.5} color="#1d9e75" aria-hidden />
@@ -105,11 +115,11 @@ export function ContinueStrip({
               >
                 {seasonChallenge.emoji} {seasonChallenge.label} Challenge
               </span>
-            </div>
+            </button>
           ) : (
             <button
               type="button"
-              onClick={() => setModalOpen(true)}
+              onClick={openSeasonChallengeModal}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -135,19 +145,19 @@ export function ContinueStrip({
               <div
                 style={{
                   flex: 1,
-                  height: 3,
+                  height: 2,
                   background: "#1f1f22",
-                  borderRadius: 2,
+                  borderRadius: 1,
                   overflow: "hidden",
-                  maxWidth: 80,
+                  maxWidth: 56,
                 }}
               >
                 <div
                   style={{
-                    height: 3,
+                    height: 2,
                     width: `${progressPct}%`,
                     background: "#e8173f",
-                    borderRadius: 2,
+                    borderRadius: 1,
                   }}
                 />
               </div>
@@ -161,39 +171,16 @@ export function ContinueStrip({
               >
                 {seasonChallenge.count}/{seasonChallenge.target}
               </span>
-              <span
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 9,
-                  color: "#3a3a45",
-                  marginLeft: 4,
-                  flexShrink: 0,
-                }}
+              <ChevronRight
+                size={12}
+                strokeWidth={2}
+                color="#3a3a45"
                 aria-hidden
-              >
-                →
-              </span>
+                style={{ flexShrink: 0 }}
+              />
             </button>
           )}
         </>
-      )}
-
-      {seasonChallenge && (
-        <SeasonChallengeModal
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-          emoji={seasonChallenge.emoji}
-          label={seasonChallenge.label}
-          season={seasonChallenge.season}
-          year={seasonChallenge.year}
-          target={seasonChallenge.target}
-          count={seasonChallenge.count}
-          isEarned={seasonChallenge.isEarned}
-          badgeLabel={seasonChallenge.badgeLabel}
-          xpReward={seasonChallenge.xpReward}
-          completedTitles={seasonChallenge.completedTitles}
-          suggestions={seasonChallenge.suggestions}
-        />
       )}
     </section>
   );

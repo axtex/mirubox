@@ -13,12 +13,14 @@ import {
   getSeasonChallengeStart,
 } from "@/lib/season-challenge-sync";
 import {
+  SEASON_CHALLENGE_SUGGESTIONS,
   SEASON_CHALLENGE_TARGET,
   type PastSeasonChallenge,
   type SeasonChallengeData,
 } from "@/lib/season-challenge-types";
 
 export {
+  SEASON_CHALLENGE_SUGGESTIONS,
   SEASON_CHALLENGE_TARGET,
   formatEarnedDate,
   type PastSeasonChallenge,
@@ -110,32 +112,30 @@ export async function getSeasonChallenge(
       prisma.seasonalProgress.findUnique({
         where: { userId_season: { userId, season: key } },
       }),
-      from
-        ? prisma.trackerEntry.findMany({
-            where: {
-              userId,
-              status: "COMPLETED",
-              mediaType: "ANIME",
-              anime: {
-                season,
-                seasonYear: year,
-                type: "ANIME",
-              },
+      prisma.trackerEntry.findMany({
+        where: {
+          userId,
+          status: "COMPLETED",
+          mediaType: "ANIME",
+          anime: {
+            season,
+            seasonYear: year,
+            type: "ANIME",
+          },
+        },
+        include: {
+          anime: {
+            select: {
+              id: true,
+              title: true,
+              titleEnglish: true,
+              coverImage: true,
             },
-            include: {
-              anime: {
-                select: {
-                  id: true,
-                  title: true,
-                  titleEnglish: true,
-                  coverImage: true,
-                },
-              },
-            },
-            orderBy: { updatedAt: "desc" },
-            take: SEASON_CHALLENGE_TARGET,
-          })
-        : Promise.resolve([]),
+          },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: SEASON_CHALLENGE_TARGET,
+      }),
       prisma.anime.findMany({
         where: {
           season,
@@ -158,15 +158,16 @@ export async function getSeasonChallenge(
   const completedIds = new Set(completedEntries.map((e) => e.animeId));
   const filteredSuggestions = suggestions
     .filter((s) => !completedIds.has(s.id))
-    .slice(0, 6);
+    .slice(0, SEASON_CHALLENGE_SUGGESTIONS);
 
   const isEarned = progress?.completed ?? false;
-  const displayCount = isEarned ? 0 : count;
+  const resolvedCount = Math.max(count, progress?.count ?? 0);
   const resolvedEarnedAt = earnedAt;
   const daysSinceEarned =
     resolvedEarnedAt != null ? daysSince(resolvedEarnedAt) : null;
   const showOnHome =
     !isEarned ||
+    resolvedEarnedAt == null ||
     (daysSinceEarned != null && daysSinceEarned < 7);
 
   return {
@@ -176,7 +177,7 @@ export async function getSeasonChallenge(
     emoji,
     key,
     target: SEASON_CHALLENGE_TARGET,
-    count: displayCount,
+    count: resolvedCount,
     isEarned,
     earnedAt: resolvedEarnedAt,
     completedTitles: completedEntries.map((entry) => ({
