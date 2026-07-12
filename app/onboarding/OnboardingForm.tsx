@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AvatarGlyph } from "@/components/avatar/AvatarGlyph";
 import { getAvatarUrl } from "@/lib/avatar";
@@ -11,6 +10,13 @@ const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 
 type UsernameStatus = "idle" | "invalid" | "checking" | "available" | "taken";
 
+/** Keep post-onboarding redirects on-site and off the onboarding loop. */
+function safeCallbackUrl(url: string): string {
+  if (!url.startsWith("/") || url.startsWith("//")) return "/";
+  if (url.startsWith("/onboarding") || url.startsWith("/auth")) return "/";
+  return url;
+}
+
 interface Props {
   userId: string;
   initialDisplayName: string;
@@ -18,7 +24,6 @@ interface Props {
 }
 
 export function OnboardingForm({ userId, initialDisplayName, callbackUrl }: Props) {
-  const router = useRouter();
   const { update } = useSession();
 
   const [username, setUsername] = useState("");
@@ -26,6 +31,7 @@ export function OnboardingForm({ userId, initialDisplayName, callbackUrl }: Prop
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [avatarSeed, setAvatarSeed] = useState(userId);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const checkTimer = useRef<number | undefined>(undefined);
   const avatarTimer = useRef<number | undefined>(undefined);
@@ -78,20 +84,29 @@ export function OnboardingForm({ userId, initialDisplayName, callbackUrl }: Prop
     onboarded: boolean;
   }) {
     setSubmitting(true);
+    setError("");
     try {
-      await fetch("/api/users/me", {
+      const res = await fetch("/api/users/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
+      if (!res.ok) {
+        setError("Couldn't save your profile. Try again.");
+        return;
+      }
+      // Refresh JWT so proxy.ts sees onboarded=true before leaving this page.
       await update({
         username: patch.username ?? null,
         displayName: patch.displayName ?? null,
         avatarUrl: patch.avatarUrl ?? null,
         onboarded: patch.onboarded,
       });
-      router.refresh();
-      router.push(callbackUrl);
+      // Hard navigation: soft router.push("/") races the session cookie and
+      // proxy bounces unfinished sessions straight back to /onboarding.
+      window.location.assign(safeCallbackUrl(callbackUrl));
+    } catch {
+      setError("Couldn't save your profile. Try again.");
     } finally {
       setSubmitting(false);
     }
@@ -288,6 +303,19 @@ export function OnboardingForm({ userId, initialDisplayName, callbackUrl }: Prop
         >
           {submitting ? "SAVING…" : "CONTINUE"}
         </button>
+        {error ? (
+          <p
+            style={{
+              fontFamily: MONO,
+              fontSize: 9,
+              color: "var(--primary)",
+              marginTop: 10,
+              textAlign: "center",
+            }}
+          >
+            {error}
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -26,7 +26,11 @@ export default auth((req) => {
     const isExempt = onboardingExemptRoutes.some((route) => nextUrl.pathname.startsWith(route));
     if (!isExempt) {
       const onboardingUrl = new URL("/onboarding", nextUrl.origin);
-      onboardingUrl.searchParams.set("callbackUrl", nextUrl.pathname);
+      const returnTo =
+        nextUrl.pathname.startsWith("/onboarding") || nextUrl.pathname.startsWith("/auth")
+          ? "/"
+          : nextUrl.pathname;
+      onboardingUrl.searchParams.set("callbackUrl", returnTo);
       return NextResponse.redirect(onboardingUrl);
     }
   }

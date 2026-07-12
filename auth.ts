@@ -34,12 +34,50 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       const userId = user?.id ?? token.sub;
+
+      // session.update() after onboarding: always re-read DB so proxy sees onboarded=true.
+      // Do this before needsProfile so a stale JWT cannot overwrite the fresh row.
+      if (trigger === "update" && userId) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+            onboarded: true,
+          },
+        });
+        if (dbUser) {
+          token.username = dbUser.username ?? null;
+          token.displayName = dbUser.displayName ?? null;
+          token.avatarUrl = dbUser.avatarUrl ?? null;
+          token.onboarded = dbUser.onboarded;
+          return token;
+        }
+        // Fall through to client patch if DB read fails.
+        const patch = session as Partial<{
+          username: string | null;
+          displayName: string | null;
+          avatarUrl: string | null;
+          onboarded: boolean;
+        }> | null;
+        if (patch) {
+          if (patch.username !== undefined) token.username = patch.username;
+          if (patch.displayName !== undefined) token.displayName = patch.displayName;
+          if (patch.avatarUrl !== undefined) token.avatarUrl = patch.avatarUrl;
+          if (patch.onboarded !== undefined) token.onboarded = patch.onboarded;
+        }
+        return token;
+      }
+
       // Refresh when signing in, or when profile fields are still missing (null/undefined).
       // Important: older sessions may have username: null permanently if we only check undefined.
+      // Also re-read while onboarded is false so completing onboarding is visible to proxy.
       const needsProfile =
         Boolean(userId) &&
         (Boolean(user?.id) ||
           !token.username ||
+          token.onboarded === false ||
           token.avatarUrl === undefined ||
           token.displayName === undefined ||
           token.onboarded === undefined);
@@ -59,18 +97,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.displayName = dbUser?.displayName ?? null;
         token.avatarUrl = dbUser?.avatarUrl ?? null;
         token.onboarded = dbUser?.onboarded ?? false;
-      }
-      if (trigger === "update" && session) {
-        const patch = session as Partial<{
-          username: string | null;
-          displayName: string | null;
-          avatarUrl: string | null;
-          onboarded: boolean;
-        }>;
-        if (patch.username !== undefined) token.username = patch.username;
-        if (patch.displayName !== undefined) token.displayName = patch.displayName;
-        if (patch.avatarUrl !== undefined) token.avatarUrl = patch.avatarUrl;
-        if (patch.onboarded !== undefined) token.onboarded = patch.onboarded;
       }
       return token;
     },
