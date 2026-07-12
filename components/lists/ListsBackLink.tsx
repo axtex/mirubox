@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { getListsBackHref } from "@/lib/lists-back";
 
 export function ListsBackLink(): React.JSX.Element {
   const router = useRouter();
@@ -10,11 +11,7 @@ export function ListsBackLink(): React.JSX.Element {
     <button
       type="button"
       onClick={() => {
-        if (typeof window !== "undefined" && window.history.length > 1) {
-          router.back();
-          return;
-        }
-        router.push("/community?tab=lists");
+        router.push(getListsBackHref());
       }}
       className="mb-5 flex w-fit items-center gap-1.5"
       style={{

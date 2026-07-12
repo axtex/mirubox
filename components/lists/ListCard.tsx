@@ -6,6 +6,7 @@ import { Heart, Plus } from "lucide-react";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { useTracker } from "@/lib/tracker-context";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { rememberListsBackTab } from "@/lib/lists-back";
 
 export interface ListCardData {
   id: string;
@@ -26,6 +27,7 @@ export function ListCard({ list }: { list: ListCardData }) {
   return (
     <Link
       href={`/lists/${list.slug}`}
+      onClick={() => rememberListsBackTab()}
       style={{
         display: "block",
         background: "var(--bg-card)",

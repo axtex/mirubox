@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GripVertical, Pencil, Plus, X } from "lucide-react";
 import { AnimeCard } from "@/components/anime/AnimeCard";
@@ -284,7 +285,19 @@ export function ListDetailClient({
             canLike={!isOwner}
           />
           <span aria-hidden>·</span>
-          <span>by {username}</span>
+          <span>
+            by{" "}
+            <Link
+              href={`/u/${username}`}
+              style={{
+                color: "var(--fg)",
+                textDecoration: "underline",
+                textUnderlineOffset: 2,
+              }}
+            >
+              {username}
+            </Link>
+          </span>
           <span aria-hidden>·</span>
           <span>updated {updatedLabel}</span>
           {!isPublic && isOwner ? (
