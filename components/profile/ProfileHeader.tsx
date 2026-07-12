@@ -1,7 +1,9 @@
 "use client";
 
 import { IdCard, Pencil, Share } from "lucide-react";
+import { useState } from "react";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
+import { FollowButton } from "@/components/profile/FollowButton";
 import { IconButton, outlineBtnBase } from "@/components/ui/IconButton";
 import type { RankProgress } from "@/lib/xp";
 
@@ -12,24 +14,70 @@ interface ProfileHeaderProps {
     displayName: string;
     avatarUrl: string | null;
     resolvedAvatarUrl: string;
-    followingCount: number;
-    followersCount: number;
   };
   isOwnProfile: boolean;
   sharePath: string;
   rank: RankProgress;
+  initialIsFollowing: boolean;
+  initialFollowerCount: number;
+  initialFollowingCount: number;
+  onOpenFollowList?: (type: "followers" | "following") => void;
   onOpenPassport?: () => void;
 }
 
 const canNativeShare = typeof navigator !== "undefined" && !!navigator.share;
+
+function CountButton({
+  count,
+  label,
+  onClick,
+}: {
+  count: number;
+  label: string;
+  onClick?: () => void;
+}): React.JSX.Element {
+  const content = (
+    <>
+      <span style={{ color: "var(--fg)", fontWeight: 600 }}>{count}</span>{" "}
+      {label}
+    </>
+  );
+
+  const style = {
+    fontFamily: "var(--font-space-mono)",
+    fontSize: 10,
+    color: "var(--fg-muted)",
+    background: "none",
+    border: "none",
+    padding: 0,
+    cursor: onClick ? "pointer" : "default",
+  } as const;
+
+  if (!onClick) {
+    return <span style={style}>{content}</span>;
+  }
+
+  return (
+    <button type="button" onClick={onClick} style={style}>
+      {content}
+    </button>
+  );
+}
 
 export function ProfileHeader({
   user,
   isOwnProfile,
   sharePath,
   rank,
+  initialIsFollowing,
+  initialFollowerCount,
+  initialFollowingCount,
+  onOpenFollowList,
   onOpenPassport,
 }: ProfileHeaderProps): React.JSX.Element {
+  const [followerCount, setFollowerCount] = useState(initialFollowerCount);
+  const [followingCount] = useState(initialFollowingCount);
+
   async function handleShare(): Promise<void> {
     const url = user.username
       ? `https://mirubox.vercel.app/u/${user.username}`
@@ -146,30 +194,24 @@ export function ProfileHeader({
               </span>
             </div>
             <div style={{ display: "flex", gap: 14 }}>
-              <span
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  color: "var(--fg-muted)",
-                }}
-              >
-                <span style={{ color: "var(--fg)", fontWeight: 600 }}>
-                  {user.followingCount}
-                </span>{" "}
-                Following
-              </span>
-              <span
-                style={{
-                  fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  color: "var(--fg-muted)",
-                }}
-              >
-                <span style={{ color: "var(--fg)", fontWeight: 600 }}>
-                  {user.followersCount}
-                </span>{" "}
-                Followers
-              </span>
+              <CountButton
+                count={followingCount}
+                label="Following"
+                onClick={
+                  user.username
+                    ? () => onOpenFollowList?.("following")
+                    : undefined
+                }
+              />
+              <CountButton
+                count={followerCount}
+                label="Followers"
+                onClick={
+                  user.username
+                    ? () => onOpenFollowList?.("followers")
+                    : undefined
+                }
+              />
             </div>
           </div>
         </div>
@@ -194,10 +236,19 @@ export function ProfileHeader({
                 <IdCard size={13} strokeWidth={2} aria-hidden />
               </IconButton>
             </>
+          ) : user.username ? (
+            <FollowButton
+              username={user.username}
+              initialIsFollowing={initialIsFollowing}
+              callbackPath={sharePath}
+              onFollowChange={(following) => {
+                setFollowerCount((c) => (following ? c + 1 : c - 1));
+              }}
+            />
           ) : (
             <button
               type="button"
-              // TODO: wire up follow when community feature ships
+              disabled
               style={{
                 ...outlineBtnBase,
                 color: "#fff",
@@ -206,6 +257,7 @@ export function ProfileHeader({
                 padding: "5px 12px",
                 fontWeight: 600,
                 letterSpacing: "0.06em",
+                opacity: 0.5,
               }}
             >
               FOLLOW

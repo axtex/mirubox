@@ -10,6 +10,7 @@ import {
 } from "@/lib/season-challenge";
 import { getCurrentSeason, getSeasonKey } from "@/lib/season";
 import { getAvatarSeed, getAvatarUrl } from "@/lib/avatar";
+import { loadSocialActivity } from "@/lib/social-activity";
 import type {
   ActivityItem,
   BadgeDisplay,
@@ -207,19 +208,25 @@ async function loadActivity(
   userId: string,
   take = 50
 ): Promise<{ activity: ActivityItem[]; hasMore: boolean }> {
-  const events = await prisma.xPTransaction.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: take + 1,
-  });
-  const hasMore = events.length > take;
-  const page = events.slice(0, take);
+  const fetchLimit = take + 1;
+
+  const [events, socialEvents] = await Promise.all([
+    prisma.xPTransaction.findMany({
+      where: { userId, action: { not: "ADD_FRIEND" } },
+      orderBy: { createdAt: "desc" },
+      take: fetchLimit,
+    }),
+    loadSocialActivity(userId, fetchLimit),
+  ]);
+  const hasMoreCombined =
+    events.length > take || socialEvents.length > take;
+  const xpPage = events.slice(0, take);
 
   const mediaIds = [
-    ...new Set(page.map((e) => e.mediaId).filter((id): id is number => id != null)),
+    ...new Set(xpPage.map((e) => e.mediaId).filter((id): id is number => id != null)),
   ];
   const listIds = [
-    ...new Set(page.map((e) => e.listId).filter((id): id is string => id != null)),
+    ...new Set(xpPage.map((e) => e.listId).filter((id): id is string => id != null)),
   ];
 
   const [mediaRows, listRows] = await Promise.all([
@@ -231,6 +238,7 @@ async function loadActivity(
           where: { id: { in: listIds } },
           select: {
             id: true,
+            slug: true,
             title: true,
             isPublic: true,
             _count: { select: { entries: true } },
@@ -242,7 +250,7 @@ async function loadActivity(
   const mediaMap = new Map(mediaRows.map((m) => [m.id, m]));
   const listMap = new Map(listRows.map((l) => [l.id, l]));
 
-  const activity: ActivityItem[] = page.map((e) => {
+  const xpActivity: ActivityItem[] = xpPage.map((e) => {
     const meta = (e.meta ?? null) as Record<string, unknown> | null;
     const badgeKey = meta?.badge as BadgeKey | undefined;
     const seasonKey = meta?.season as string | undefined;
@@ -263,6 +271,7 @@ async function loadActivity(
       createdAt: e.createdAt,
       media: e.mediaId != null ? (mediaMap.get(e.mediaId) ?? null) : null,
       listTitle: list?.title ?? null,
+      listSlug: list?.slug ?? null,
       listEntryCount: list?._count.entries ?? null,
       listIsPublic: list?.isPublic ?? null,
       badgeName: badgeName,
@@ -270,8 +279,15 @@ async function loadActivity(
         ? `${staticDef?.xp ?? SEASONAL_WATCHER_XP} XP badge`
         : null,
       meta,
+      relatedUser: null,
     };
   });
+
+  const merged = [...xpActivity, ...socialEvents].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  );
+  const hasMore = hasMoreCombined || merged.length > take;
+  const activity = merged.slice(0, take);
 
   return { activity, hasMore };
 }
@@ -320,6 +336,9 @@ export async function getProfileData(opts: {
     lists,
     watchedCount,
     readCount,
+    followersCount,
+    followingCount,
+    isFollowing,
   ] = await Promise.all([
     prisma.favouriteAnime.findMany({
       where: { userId: user.id },
@@ -370,6 +389,20 @@ export async function getProfileData(opts: {
     prisma.trackerEntry.count({
       where: { userId: user.id, status: "COMPLETED", mediaType: "MANGA" },
     }),
+    prisma.follow.count({ where: { followingId: user.id } }),
+    prisma.follow.count({ where: { followerId: user.id } }),
+    opts.viewerId
+      ? prisma.follow
+          .findUnique({
+            where: {
+              followerId_followingId: {
+                followerId: opts.viewerId,
+                followingId: user.id,
+              },
+            },
+          })
+          .then((f) => !!f)
+      : Promise.resolve(false),
   ]);
 
   const genreSorted = countGenres(trackerForGenres);
@@ -477,10 +510,11 @@ export async function getProfileData(opts: {
       avatarUrl: user.avatarUrl,
       resolvedAvatarUrl: user.avatarUrl || getAvatarUrl(seed),
       totalXP: user.totalXP,
-      followingCount: 0,
-      followersCount: 0,
+      followingCount,
+      followersCount,
     },
     isOwnProfile,
+    isFollowing,
     rank: getRankProgress(user.totalXP),
     badges,
     headerBadges: [

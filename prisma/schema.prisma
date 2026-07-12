@@ -43,6 +43,21 @@ model User {
   listLikes            ListLike[]
   notifications        Notification[] @relation("UserNotifications")
   notificationsTriggered Notification[] @relation("NotificationSender")
+  followers            Follow[] @relation("UserFollowers")
+  following            Follow[] @relation("UserFollowing")
+}
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }
 
 model List {

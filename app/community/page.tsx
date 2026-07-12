@@ -3,6 +3,12 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { getLists } from "@/lib/list-queries";
 import { ListCard, CreateListButton } from "@/components/lists/ListCard";
+import { FriendsTab } from "@/components/community/FriendsTab";
+import { NowWatchingSection } from "@/components/community/NowWatchingSection";
+import { RecentlyCompletedSection } from "@/components/community/RecentlyCompletedSection";
+import { RecentReviewsSection } from "@/components/community/RecentReviewsSection";
+import { TasteCompatibilitySection } from "@/components/community/TasteCompatibilitySection";
+import { loadFriendsPageData } from "@/lib/community-feed";
 
 export const metadata: Metadata = {
   title: "Lists — mirubox",
@@ -34,6 +40,67 @@ export default async function CommunityPage({ searchParams }: PageProps) {
   const tab: Tab = TABS.some((t) => t.value === tabParam)
     ? (tabParam as Tab)
     : "lists";
+
+  if (tab === "friends") {
+    if (!session?.user?.id) {
+      return (
+        <div className="py-8 min-h-screen" style={{ background: "var(--bg)" }}>
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <p
+              style={{
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 11,
+                color: "var(--fg-muted)",
+              }}
+            >
+              <Link
+                href="/auth/signin?callbackUrl=/community?tab=friends"
+                style={{
+                  color: "var(--primary)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: 3,
+                }}
+              >
+                Sign in
+              </Link>{" "}
+              to find friends and see their activity.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const data = await loadFriendsPageData(session.user.id);
+
+    return (
+      <div className="py-8">
+        <FriendsTab
+          initialFeed={data.feed}
+          initialHasMore={data.hasMore}
+          initialCursor={data.nextCursor}
+          isFollowingAnyone={data.isFollowingAnyone}
+        >
+          <div
+            className="grid grid-cols-1 md:grid-cols-2"
+            style={{ gap: 24, marginBottom: 24 }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <NowWatchingSection items={data.nowWatching} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <RecentlyCompletedSection items={data.recentlyCompleted} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <RecentReviewsSection items={data.recentReviews} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <TasteCompatibilitySection compatibility={data.compatibility} />
+            </div>
+          </div>
+        </FriendsTab>
+      </div>
+    );
+  }
 
   const listType = ["official", "community", "mine"].includes(typeParam ?? "")
     ? (typeParam ?? "official")

@@ -2,6 +2,21 @@ import { prisma } from "@/lib/prisma";
 import { XPAction, Prisma, type BadgeKey } from "@prisma/client";
 import { evaluateBadges, BADGE_DEFINITIONS, type StaticBadgeKey } from "@/lib/badges";
 import { createNotification } from "@/lib/notifications";
+import {
+  computeRank,
+  getRankProgress,
+  RANKS,
+  type RankName,
+  type RankProgress,
+} from "@/lib/ranks";
+
+export {
+  computeRank,
+  getRankProgress,
+  RANKS,
+  type RankName,
+  type RankProgress,
+} from "@/lib/ranks";
 
 // XP values — single source of truth
 export const XP_VALUES: Record<XPAction, number> = {
@@ -22,54 +37,6 @@ export const XP_VALUES: Record<XPAction, number> = {
   SEASON_CHALLENGE: 25,
   BADGE_UNLOCKED: 0, // varies — passed as override
 };
-
-// Rank thresholds
-export const RANKS = [
-  { name: "WATCHER", min: 0, emoji: "👁" },
-  { name: "TRACKER", min: 100, emoji: "📌" },
-  { name: "ARCHIVIST", min: 500, emoji: "📂" },
-  { name: "CURATOR", min: 1000, emoji: "🎯" },
-  { name: "SCHOLAR", min: 2000, emoji: "⚡" },
-  { name: "SAGE", min: 3500, emoji: "🔮" },
-  { name: "LEGEND", min: 5000, emoji: "👑" },
-] as const;
-
-export type RankName = (typeof RANKS)[number]["name"];
-
-export function computeRank(totalXP: number): RankName {
-  const rank = [...RANKS].reverse().find((r) => totalXP >= r.min);
-  return rank?.name ?? "WATCHER";
-}
-
-export interface RankProgress {
-  name: RankName;
-  emoji: string;
-  minXP: number;
-  nextName: RankName | null;
-  nextMinXP: number | null;
-  progressPct: number;
-  isMax: boolean;
-}
-
-export function getRankProgress(totalXP: number): RankProgress {
-  const index = [...RANKS].reverse().findIndex((r) => totalXP >= r.min);
-  const rankIndex = index === -1 ? 0 : RANKS.length - 1 - index;
-  const current = RANKS[rankIndex] ?? RANKS[0];
-  const next = RANKS[rankIndex + 1] ?? null;
-  const progressPct = next
-    ? Math.min(100, Math.max(0, ((totalXP - current.min) / (next.min - current.min)) * 100))
-    : 100;
-
-  return {
-    name: current.name,
-    emoji: current.emoji,
-    minXP: current.min,
-    nextName: next?.name ?? null,
-    nextMinXP: next?.min ?? null,
-    progressPct,
-    isMax: !next,
-  };
-}
 
 export interface ToastNotification {
   type: "BADGE_EARNED" | "RANK_UP" | "XP";

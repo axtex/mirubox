@@ -54,7 +54,7 @@ function TitleCard({
   title,
   coverImage,
   averageScore = null,
-}: TitleCardItem): React.JSX.Element {
+}: Pick<TitleCardItem, "id" | "title" | "coverImage" | "averageScore">): React.JSX.Element {
   const score =
     averageScore != null ? (averageScore / 10).toFixed(1) : null;
 

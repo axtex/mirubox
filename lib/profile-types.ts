@@ -54,18 +54,34 @@ export interface BadgeDisplay {
   description: string;
 }
 
+export type SocialActivityAction =
+  | "FOLLOWING"
+  | "NEW_FOLLOWER"
+  | "LIST_LIKED"
+  | "LIST_GOT_LIKED";
+
+export type ActivityAction = XPAction | SocialActivityAction;
+
+export interface ActivityRelatedUser {
+  id: string;
+  username: string | null;
+  displayName: string;
+}
+
 export interface ActivityItem {
   id: string;
-  action: XPAction;
+  action: ActivityAction;
   amount: number;
   createdAt: Date;
   media: ProfileMedia | null;
   listTitle: string | null;
+  listSlug: string | null;
   listEntryCount: number | null;
   listIsPublic: boolean | null;
   badgeName: string | null;
   badgeDescription: string | null;
   meta: Record<string, unknown> | null;
+  relatedUser: ActivityRelatedUser | null;
 }
 
 export interface ReviewItem {
@@ -105,11 +121,11 @@ export interface ProfileData {
     avatarUrl: string | null;
     resolvedAvatarUrl: string;
     totalXP: number;
-    // TODO: wire up when community feature ships
     followingCount: number;
     followersCount: number;
   };
   isOwnProfile: boolean;
+  isFollowing: boolean;
   rank: RankProgress;
   badges: BadgeDisplay[];
   headerBadges: BadgeDisplay[];

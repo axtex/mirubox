@@ -12,10 +12,10 @@ const NAV_LINKS = [
 ];
 
 const COMMUNITY_LINKS = [
-  { href: "/community?tab=forum",   label: "FORUM",   tab: "forum" },
-  { href: "/community?tab=news",    label: "NEWS",    tab: "news" },
   { href: "/community?tab=friends", label: "FRIENDS", tab: "friends" },
   { href: "/community?tab=lists",   label: "LISTS",   tab: "lists" },
+  { href: "/community?tab=news",    label: "NEWS",    tab: "news" },
+  { href: "/community?tab=forum",   label: "FORUM",   tab: "forum" },
 ] as const;
 
 const LINK_STYLE: React.CSSProperties = {

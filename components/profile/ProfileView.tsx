@@ -9,6 +9,7 @@ import { StatsTab } from "@/components/profile/tabs/StatsTab";
 import { ReviewsTab } from "@/components/profile/tabs/ReviewsTab";
 import { ListsTab } from "@/components/profile/tabs/ListsTab";
 import { PassportModal } from "@/components/profile/PassportModal";
+import { FollowListModal } from "@/components/profile/FollowListModal";
 import type { ProfileData, ProfileTabId } from "@/lib/profile-types";
 
 interface ProfileViewProps {
@@ -27,7 +28,10 @@ function TabContent({
   switch (activeTab) {
     case "activity":
       return (
-        <ActivityTab activity={data.activity} />
+        <ActivityTab
+          activity={data.activity}
+          showFriendsLink={data.isOwnProfile}
+        />
       );
     case "stats":
       return (
@@ -72,6 +76,10 @@ export function ProfileView({
   sharePath,
 }: ProfileViewProps): React.JSX.Element {
   const [passportOpen, setPassportOpen] = useState(false);
+  const [followListOpen, setFollowListOpen] = useState(false);
+  const [followListType, setFollowListType] = useState<"followers" | "following">(
+    "followers"
+  );
 
   const unlockedBadges = data.badges.filter((b) => b.earned);
   const lockedBadges = data.badges.filter((b) => !b.earned);
@@ -89,6 +97,13 @@ export function ProfileView({
         isOwnProfile={data.isOwnProfile}
         sharePath={sharePath}
         rank={data.rank}
+        initialIsFollowing={data.isFollowing}
+        initialFollowerCount={data.user.followersCount}
+        initialFollowingCount={data.user.followingCount}
+        onOpenFollowList={(type) => {
+          setFollowListType(type);
+          setFollowListOpen(true);
+        }}
         onOpenPassport={() => setPassportOpen(true)}
       />
       <Suspense fallback={null}>
@@ -119,6 +134,15 @@ export function ProfileView({
           }))}
           tasteProfile={data.tasteGenres.slice(0, 5).map((g) => ({ genre: g.name, count: g.count }))}
           badges={passportBadges}
+        />
+      ) : null}
+
+      {data.user.username ? (
+        <FollowListModal
+          isOpen={followListOpen}
+          onClose={() => setFollowListOpen(false)}
+          username={data.user.username}
+          type={followListType}
         />
       ) : null}
     </div>

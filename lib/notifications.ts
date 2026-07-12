@@ -29,5 +29,3 @@ export async function createNotification(
 
   return notif;
 }
-
-// TODO: call createNotification for NEW_FOLLOWER when the follow system is implemented
