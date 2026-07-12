@@ -19,6 +19,7 @@ interface ProfileTabProps {
   favouriteManga: FavouriteSlot[];
   tasteGenres: GenreCount[];
   badges: BadgeDisplay[];
+  onFavouritesSaved?: (type: "anime" | "manga", slots: FavouriteSlot[]) => void;
 }
 
 function toAnimeCard(media: ProfileMedia): AnimeCardType {
@@ -165,9 +166,8 @@ export function ProfileTab({
   favouriteManga,
   tasteGenres,
   badges,
+  onFavouritesSaved,
 }: ProfileTabProps): React.JSX.Element {
-  const [animeSlots, setAnimeSlots] = useState(favouriteAnime);
-  const [mangaSlots, setMangaSlots] = useState(favouriteManga);
   const [pickerType, setPickerType] = useState<"anime" | "manga" | null>(null);
   const unlocked = badges.filter((b) => b.earned);
 
@@ -186,7 +186,7 @@ export function ProfileTab({
             title="TOP 3 ANIME"
             onEdit={isOwnProfile ? () => setPickerType("anime") : undefined}
           />
-          <FavRow items={animeSlots} isOwnProfile={isOwnProfile} />
+          <FavRow items={favouriteAnime} isOwnProfile={isOwnProfile} />
         </section>
 
         <section>
@@ -194,7 +194,7 @@ export function ProfileTab({
             title="TOP 3 MANGA"
             onEdit={isOwnProfile ? () => setPickerType("manga") : undefined}
           />
-          <FavRow items={mangaSlots} isOwnProfile={isOwnProfile} />
+          <FavRow items={favouriteManga} isOwnProfile={isOwnProfile} />
         </section>
       </div>
 
@@ -283,13 +283,12 @@ export function ProfileTab({
           type={pickerType}
           initialSelected={
             pickerType === "anime"
-              ? animeSlots.map((s) => s.mediaId)
-              : mangaSlots.map((s) => s.mediaId)
+              ? favouriteAnime.map((s) => s.mediaId)
+              : favouriteManga.map((s) => s.mediaId)
           }
           onClose={() => setPickerType(null)}
           onSaved={(slots) => {
-            if (pickerType === "anime") setAnimeSlots(slots);
-            else setMangaSlots(slots);
+            onFavouritesSaved?.(pickerType, slots);
           }}
         />
       ) : null}

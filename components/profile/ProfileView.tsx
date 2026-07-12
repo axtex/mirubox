@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { ProfileTab } from "@/components/profile/tabs/ProfileTab";
@@ -10,7 +11,7 @@ import { ReviewsTab } from "@/components/profile/tabs/ReviewsTab";
 import { ListsTab } from "@/components/profile/tabs/ListsTab";
 import { PassportModal } from "@/components/profile/PassportModal";
 import { FollowListModal } from "@/components/profile/FollowListModal";
-import type { ProfileData, ProfileTabId } from "@/lib/profile-types";
+import type { FavouriteSlot, ProfileData, ProfileTabId } from "@/lib/profile-types";
 
 interface ProfileViewProps {
   data: ProfileData;
@@ -18,12 +19,27 @@ interface ProfileViewProps {
   sharePath: string;
 }
 
+function toPassportCovers(
+  slots: FavouriteSlot[]
+): { title: string; coverImage: string }[] {
+  return slots.map((f) => ({
+    title: f.media.title,
+    coverImage: f.media.coverImage ?? "",
+  }));
+}
+
 function TabContent({
   data,
   activeTab,
+  favouriteAnime,
+  favouriteManga,
+  onFavouritesSaved,
 }: {
   data: ProfileData;
   activeTab: ProfileTabId;
+  favouriteAnime: FavouriteSlot[];
+  favouriteManga: FavouriteSlot[];
+  onFavouritesSaved: (type: "anime" | "manga", slots: FavouriteSlot[]) => void;
 }): React.JSX.Element {
   switch (activeTab) {
     case "activity":
@@ -61,10 +77,11 @@ function TabContent({
       return (
         <ProfileTab
           isOwnProfile={data.isOwnProfile}
-          favouriteAnime={data.favouriteAnime}
-          favouriteManga={data.favouriteManga}
+          favouriteAnime={favouriteAnime}
+          favouriteManga={favouriteManga}
           tasteGenres={data.tasteGenres}
           badges={data.badges}
+          onFavouritesSaved={onFavouritesSaved}
         />
       );
   }
@@ -75,11 +92,28 @@ export function ProfileView({
   activeTab,
   sharePath,
 }: ProfileViewProps): React.JSX.Element {
+  const router = useRouter();
   const [passportOpen, setPassportOpen] = useState(false);
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListType, setFollowListType] = useState<"followers" | "following">(
     "followers"
   );
+  const [favouriteAnime, setFavouriteAnime] = useState(data.favouriteAnime);
+  const [favouriteManga, setFavouriteManga] = useState(data.favouriteManga);
+
+  useEffect(() => {
+    setFavouriteAnime(data.favouriteAnime);
+    setFavouriteManga(data.favouriteManga);
+  }, [data.favouriteAnime, data.favouriteManga]);
+
+  function handleFavouritesSaved(
+    type: "anime" | "manga",
+    slots: FavouriteSlot[]
+  ): void {
+    if (type === "anime") setFavouriteAnime(slots);
+    else setFavouriteManga(slots);
+    router.refresh();
+  }
 
   const unlockedBadges = data.badges.filter((b) => b.earned);
   const lockedBadges = data.badges.filter((b) => !b.earned);
@@ -109,7 +143,13 @@ export function ProfileView({
       <Suspense fallback={null}>
         <ProfileTabs activeTab={activeTab} />
       </Suspense>
-      <TabContent data={data} activeTab={activeTab} />
+      <TabContent
+        data={data}
+        activeTab={activeTab}
+        favouriteAnime={favouriteAnime}
+        favouriteManga={favouriteManga}
+        onFavouritesSaved={handleFavouritesSaved}
+      />
 
       {data.isOwnProfile ? (
         <PassportModal
@@ -124,14 +164,8 @@ export function ProfileView({
           nextRankXP={data.rank.isMax ? data.rank.minXP : (data.rank.nextMinXP ?? data.rank.minXP)}
           rankMinXP={data.rank.minXP}
           stats={data.stats}
-          favouriteAnime={data.favouriteAnime.map((f) => ({
-            title: f.media.title,
-            coverImage: f.media.coverImage ?? "",
-          }))}
-          favouriteManga={data.favouriteManga.map((f) => ({
-            title: f.media.title,
-            coverImage: f.media.coverImage ?? "",
-          }))}
+          favouriteAnime={toPassportCovers(favouriteAnime)}
+          favouriteManga={toPassportCovers(favouriteManga)}
           tasteProfile={data.tasteGenres.slice(0, 5).map((g) => ({ genre: g.name, count: g.count }))}
           badges={passportBadges}
         />
