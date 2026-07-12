@@ -1,7 +1,6 @@
+import { Suspense } from "react";
 import {
-  getTrending,
-  getPopular,
-  getSeasonalAnime,
+  getHomePageMedia,
   getCurrentSeason,
   getNextSeason,
   getDisplayTitle,
@@ -16,28 +15,66 @@ import { ContinueStrip } from "@/components/home/ContinueStrip";
 import { DiscoverSection } from "@/components/home/DiscoverSection";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
+import { AnimeCardSkeleton } from "@/components/anime/AnimeCardSkeleton";
 import { takeUnique } from "@/lib/homepage";
-import type { MediaPage } from "@/types/anilist";
 
 const HERO_COUNT = 8;
 
-const EMPTY_MEDIA_PAGE: MediaPage = {
-  pageInfo: { total: 0, currentPage: 1, lastPage: 1, hasNextPage: false },
-  media: [],
-};
+function SectionRowSkeleton({ title }: { title: string }): React.JSX.Element {
+  return (
+    <section>
+      <div className="section-header">
+        <div className="section-header-row">
+          <h2 className="text-headline-md font-display uppercase">{title}</h2>
+        </div>
+        <div className="section-underline" />
+      </div>
+      <div className="flex gap-3 overflow-hidden">
+        {Array.from({ length: 7 }, (_, i) => (
+          <AnimeCardSkeleton key={i} size="md" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CuratedListsSkeleton(): React.JSX.Element {
+  return (
+    <section>
+      <div className="section-header">
+        <div className="section-header-row">
+          <h2 className="text-headline-md font-display uppercase">CURATED LISTS</h2>
+        </div>
+        <div className="section-underline" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div
+            key={i}
+            className="shimmer"
+            style={{ height: 160, borderRadius: 4, border: "1px solid var(--border)" }}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default async function HomePage() {
   const session = await auth();
   const { season, year } = getCurrentSeason();
   const { season: nextSeason, year: nextYear } = getNextSeason();
 
-  const challengeData = session?.user?.id
-    ? await getSeasonChallenge(session.user.id)
-    : null;
+  const userId = session?.user?.id;
 
-  const continueItems = session?.user?.id
-    ? await getContinueItems(session.user.id)
-    : [];
+  // Public AniList (cached 1h) runs in parallel with logged-in DB work
+  const [homeMedia, challengeData, continueItems] = await Promise.all([
+    getHomePageMedia(season, year, nextSeason, nextYear),
+    userId ? getSeasonChallenge(userId) : Promise.resolve(null),
+    userId ? getContinueItems(userId) : Promise.resolve([]),
+  ]);
+
+  const { trending, seasonal, upcoming, manga } = homeMedia;
 
   const showContinueStrip =
     continueItems.length > 0 || (challengeData?.showOnHome ?? false);
@@ -46,31 +83,6 @@ export default async function HomePage() {
     challengeData?.showOnHome
       ? toContinueStripSeasonChallenge(challengeData)
       : null;
-
-  const [trendingResult, seasonalResult, upcomingResult, mangaResult] = await Promise.allSettled([
-    getTrending("ANIME", 1, 28),
-    getSeasonalAnime(season, year, 1, 20),
-    getSeasonalAnime(nextSeason, nextYear, 1, 20),
-    getPopular("MANGA", 1, 7),
-  ]);
-
-  const trending = trendingResult.status === "fulfilled" ? trendingResult.value : EMPTY_MEDIA_PAGE;
-  const seasonal = seasonalResult.status === "fulfilled" ? seasonalResult.value : EMPTY_MEDIA_PAGE;
-  const upcoming = upcomingResult.status === "fulfilled" ? upcomingResult.value : EMPTY_MEDIA_PAGE;
-  const manga = mangaResult.status === "fulfilled" ? mangaResult.value : EMPTY_MEDIA_PAGE;
-
-  if (trendingResult.status === "rejected") {
-    console.error("Home trending fetch failed:", trendingResult.reason);
-  }
-  if (seasonalResult.status === "rejected") {
-    console.error("Home seasonal fetch failed:", seasonalResult.reason);
-  }
-  if (upcomingResult.status === "rejected") {
-    console.error("Home upcoming fetch failed:", upcomingResult.reason);
-  }
-  if (mangaResult.status === "rejected") {
-    console.error("Home manga fetch failed:", mangaResult.reason);
-  }
 
   const shownIds = new Set<number>();
 
@@ -104,7 +116,9 @@ export default async function HomePage() {
           />
         )}
 
-        <DiscoverSection type="ANIME" maxItems={24} />
+        <Suspense fallback={<SectionRowSkeleton title="DISCOVER" />}>
+          <DiscoverSection type="ANIME" maxItems={24} />
+        </Suspense>
 
         {trendingRow.length > 0 && (
           <SectionRow
@@ -138,7 +152,9 @@ export default async function HomePage() {
           />
         )}
 
-        <CuratedListsSection />
+        <Suspense fallback={<CuratedListsSkeleton />}>
+          <CuratedListsSection />
+        </Suspense>
       </div>
     </div>
   );

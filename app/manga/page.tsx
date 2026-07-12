@@ -1,4 +1,5 @@
-import { getTrending, searchMedia } from "@/lib/anilist";
+import { Suspense } from "react";
+import { getMangaBrowseMedia } from "@/lib/anilist";
 import { SectionRow } from "@/components/anime/SectionRow";
 import { DiscoverSection } from "@/components/home/DiscoverSection";
 import { CuratedListsSection } from "@/components/home/CuratedListsSection";
@@ -6,11 +7,7 @@ import { CuratedListsSection } from "@/components/home/CuratedListsSection";
 export const revalidate = 3600;
 
 export default async function MangaPage() {
-  const [trending, publishing, allTime] = await Promise.all([
-    getTrending("MANGA", 1, 14),
-    searchMedia("", "MANGA", { status: "RELEASING", sort: "POPULARITY_DESC" }, 1, 14),
-    searchMedia("", "MANGA", { sort: "SCORE_DESC" }, 1, 14),
-  ]);
+  const { trending, publishing, allTime } = await getMangaBrowseMedia();
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
@@ -33,9 +30,13 @@ export default async function MangaPage() {
           items={allTime.media}
         />
 
-        <DiscoverSection type="MANGA" maxItems={24} />
+        <Suspense fallback={null}>
+          <DiscoverSection type="MANGA" maxItems={24} />
+        </Suspense>
 
-        <CuratedListsSection />
+        <Suspense fallback={null}>
+          <CuratedListsSection />
+        </Suspense>
       </div>
     </div>
   );

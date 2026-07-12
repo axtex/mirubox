@@ -1,7 +1,6 @@
+import { Suspense } from "react";
 import {
-  getTrending,
-  getSeasonalAnime,
-  getTopRated,
+  getAnimeBrowseMedia,
   getCurrentSeason,
   getNextSeason,
   formatSeasonLabel,
@@ -16,12 +15,12 @@ export default async function AnimeBrowsePage() {
   const { season, year } = getCurrentSeason();
   const { season: nextSeason, year: nextYear } = getNextSeason();
 
-  const [trending, seasonal, upcoming, topRated] = await Promise.all([
-    getTrending("ANIME", 1, 20),
-    getSeasonalAnime(season, year, 1, 20),
-    getSeasonalAnime(nextSeason, nextYear, 1, 20),
-    getTopRated("ANIME", 1, 20),
-  ]);
+  const { trending, seasonal, upcoming, topRated } = await getAnimeBrowseMedia(
+    season,
+    year,
+    nextSeason,
+    nextYear,
+  );
 
   const currentSeasonLabel = `CURRENT SEASON — ${formatSeasonLabel(season).toUpperCase()} ${year}`;
   const upcomingSeasonLabel = `UPCOMING — ${formatSeasonLabel(nextSeason).toUpperCase()} ${nextYear}`;
@@ -61,9 +60,13 @@ export default async function AnimeBrowsePage() {
           />
         )}
 
-        <DiscoverSection type="ANIME" maxItems={24} />
+        <Suspense fallback={null}>
+          <DiscoverSection type="ANIME" maxItems={24} />
+        </Suspense>
 
-        <CuratedListsSection />
+        <Suspense fallback={null}>
+          <CuratedListsSection />
+        </Suspense>
       </div>
     </div>
   );
