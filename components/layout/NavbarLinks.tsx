@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useSyncExternalStore } from "react";
+import { useState, useRef, useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
@@ -30,36 +30,7 @@ function isCommunityActive(pathname: string): boolean {
   return pathname.startsWith("/community") || pathname.startsWith("/lists");
 }
 
-function subscribeToUrl(onChange: () => void): () => void {
-  const origPush = history.pushState.bind(history);
-  const origReplace = history.replaceState.bind(history);
-  history.pushState = (...args: Parameters<History["pushState"]>) => {
-    origPush(...args);
-    onChange();
-  };
-  history.replaceState = (...args: Parameters<History["replaceState"]>) => {
-    origReplace(...args);
-    onChange();
-  };
-  window.addEventListener("popstate", onChange);
-  return () => {
-    history.pushState = origPush;
-    history.replaceState = origReplace;
-    window.removeEventListener("popstate", onChange);
-  };
-}
-
-function getClientUrl(): string {
-  return `${window.location.pathname}${window.location.search}`;
-}
-
-function resolveCommunityTab(urlPathAndSearch: string): CommunityTab | null {
-  const qIndex = urlPathAndSearch.indexOf("?");
-  const pathname =
-    qIndex === -1 ? urlPathAndSearch : urlPathAndSearch.slice(0, qIndex);
-  const search = qIndex === -1 ? "" : urlPathAndSearch.slice(qIndex + 1);
-  const tabParam = new URLSearchParams(search).get("tab");
-
+function resolveCommunityTab(pathname: string, tabParam: string | null): CommunityTab | null {
   if (pathname.startsWith("/lists")) return "lists";
   if (!pathname.startsWith("/community")) return null;
   if (
@@ -108,15 +79,7 @@ function NavLink({
 function CommunityNavDropdown(): React.JSX.Element {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const serverUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
-
-  const clientUrl = useSyncExternalStore(
-    subscribeToUrl,
-    getClientUrl,
-    () => serverUrl
-  );
-
-  const currentTab = resolveCommunityTab(clientUrl || serverUrl);
+  const currentTab = resolveCommunityTab(pathname, searchParams.get("tab"));
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const isActive = isCommunityActive(pathname);
