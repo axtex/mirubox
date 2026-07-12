@@ -8,8 +8,8 @@ import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { generateEmbeddings, getAnimeEmbeddingText, toVectorLiteral, EMBEDDING_DIMS } from "@/lib/embeddings";
 import type { AnimeCard } from "@/types/anilist";
 
-// Pro / fluid compute: allow long embedding runs (8000 anime + 2000 manga)
-export const maxDuration = 600;
+// Hobby plan max is 300s; long runs may need to be resumed via multiple POSTs
+export const maxDuration = 300;
 
 interface RawAnimeRow {
   id: number;
