@@ -35,7 +35,7 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "mirubox — Track. Discover. Explore.",
+  title: "mirubox — track and discover",
   description: "Intelligent anime & manga discovery platform",
   metadataBase: new URL("https://mirubox.vercel.app"),
   openGraph: {
