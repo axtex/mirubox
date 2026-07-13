@@ -41,7 +41,46 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
   return <p style={LABEL_STYLE}>{children}</p>;
 }
 
-// ─── Section 1 — Ranks ──────────────────────────────────────────────────────
+// ─── Section 1 — What you can do ────────────────────────────────────────────
+
+interface FeatureRow {
+  name: string;
+  description: string;
+}
+
+const FEATURES: FeatureRow[] = [
+  {
+    name: "Track titles",
+    description:
+      "Add anime and manga, mark progress, rate and review what you've watched.",
+  },
+  {
+    name: "Vibe-based search",
+    description:
+      "Search by mood or feel — not just title — and find anime and manga that match the vibe you're after.",
+  },
+  {
+    name: "Follow friends",
+    description: "Find other users, follow them, and see what they're watching and finishing.",
+  },
+  {
+    name: "Taste match",
+    description:
+      "Compare overlap with friends — see how aligned your anime and manga taste really is.",
+  },
+  {
+    name: "View & share passports",
+    description:
+      "Your profile passport summarizes rank, XP, and taste. View others' and share yours as an image.",
+  },
+  {
+    name: "Season challenges",
+    description:
+      "Watch or complete titles from the current season to earn seasonal badges and bonus XP.",
+  },
+];
+
+// ─── Section 2 — Ranks ──────────────────────────────────────────────────────
 
 const RANK_META: Record<string, { emoji: string; color: string }> = {
   WATCHER: { emoji: "👁", color: "#9e9ea8" },
@@ -53,7 +92,7 @@ const RANK_META: Record<string, { emoji: string; color: string }> = {
   LEGEND: { emoji: "👑", color: "#e8c864" },
 };
 
-// ─── Section 2 — How you earn XP ───────────────────────────────────────────
+// ─── Section 3 — How you earn XP ───────────────────────────────────────────
 
 interface XPRow {
   name: string;
@@ -111,7 +150,7 @@ const XP_GROUPS: Array<{ title: string; note?: string; rows: XPRow[] }> = [
   },
 ];
 
-// ─── Section 3 — Badges ─────────────────────────────────────────────────────
+// ─── Section 4 — Badges ─────────────────────────────────────────────────────
 
 interface BadgeRow {
   icon: string;
@@ -244,7 +283,49 @@ export default function HowItWorksPage() {
 
         <Divider />
 
-        {/* ── Section 1 — Ranks ─────────────────────────────────────────── */}
+        {/* ── Section 1 — What you can do ───────────────────────────────── */}
+        <SectionHeader>WHAT YOU CAN DO</SectionHeader>
+        <p style={{ ...PROSE_STYLE, marginBottom: 14 }}>
+          Beyond ranks and badges, mirubox is built around how you track and share taste.
+        </p>
+
+        <div style={{ border: "1px solid #1f1f22", borderRadius: 2, marginBottom: 28 }}>
+          {FEATURES.map((feature, i) => (
+            <div
+              key={feature.name}
+              style={{
+                padding: "9px 12px",
+                borderBottom: i === FEATURES.length - 1 ? "none" : "1px solid #1a1a1d",
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: "var(--font-space-mono)",
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: "#e4e1e6",
+                  marginBottom: 2,
+                }}
+              >
+                {feature.name}
+              </p>
+              <p
+                style={{
+                  fontFamily: "var(--font-space-mono)",
+                  fontSize: 10,
+                  color: "#9e9ea8",
+                  lineHeight: 1.5,
+                }}
+              >
+                {feature.description}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <Divider />
+
+        {/* ── Section 2 — Ranks ─────────────────────────────────────────── */}
         <SectionHeader>RANKS</SectionHeader>
         <p style={{ ...PROSE_STYLE, marginBottom: 14 }}>
           As you use mirubox you earn XP. Your rank increases as your XP grows, unlocking new
@@ -295,7 +376,7 @@ export default function HowItWorksPage() {
 
         <Divider />
 
-        {/* ── Section 2 — How you earn XP ───────────────────────────────── */}
+        {/* ── Section 3 — How you earn XP ───────────────────────────────── */}
         <SectionHeader>HOW YOU EARN XP</SectionHeader>
         <p style={{ ...PROSE_STYLE, marginBottom: 14 }}>
           XP is earned by engaging with mirubox — tracking, rating, reviewing, and discovering new
@@ -366,7 +447,7 @@ export default function HowItWorksPage() {
 
         <Divider />
 
-        {/* ── Section 3 — Badges ────────────────────────────────────────── */}
+        {/* ── Section 4 — Badges ────────────────────────────────────────── */}
         <SectionHeader>BADGES</SectionHeader>
         <p style={{ ...PROSE_STYLE, marginBottom: 20 }}>
           Badges are earned for specific achievements — separate from your rank. A new user can
