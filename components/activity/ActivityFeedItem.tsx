@@ -115,11 +115,8 @@ export function ActivityFeedItem({
 }: ActivityFeedItemProps): React.JSX.Element {
   const router = useRouter();
   const showPoster = !!item.media?.coverImage;
-  // Social feed: badge icons only when there is no title-card poster
-  const style =
-    variant === "profile" || (variant === "social" && !showPoster)
-      ? actionIcon(item.action)
-      : null;
+  // Badge icons only when there is no title-card poster
+  const style = !showPoster ? actionIcon(item.action) : null;
   const text =
     variant === "social" ? socialActionText(item) : actionText(item);
   const sub = variant === "social" ? null : subText(item);
@@ -201,54 +198,35 @@ export function ActivityFeedItem({
       }}
     >
       {style ? (
-        variant === "social" ? (
+        <div
+          style={{
+            width: 26,
+            height: 36,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <div
             style={{
               width: 26,
-              height: 36,
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 11,
-                background: style.bg,
-                border: `1px solid ${style.border}`,
-              }}
-            >
-              {style.icon}
-            </div>
-          </div>
-        ) : (
-          <div
-            style={{
-              width: 28,
-              height: 28,
+              height: 26,
               borderRadius: "50%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 12,
-              flexShrink: 0,
+              fontSize: 11,
               background: style.bg,
               border: `1px solid ${style.border}`,
             }}
           >
             {style.icon}
           </div>
-        )
+        </div>
       ) : null}
 
-      {variant === "profile" || showPoster ? (
+      {showPoster && item.media?.coverImage ? (
         <div
           style={{
             width: 26,
@@ -257,18 +235,16 @@ export function ActivityFeedItem({
             flexShrink: 0,
             position: "relative",
             overflow: "hidden",
-            background: showPoster ? "var(--bg-elevated)" : "transparent",
+            background: "var(--bg-elevated)",
           }}
         >
-          {showPoster && item.media?.coverImage ? (
-            <ImageWithFallback
-              src={item.media.coverImage}
-              alt=""
-              fill
-              sizes="26px"
-              className="object-cover"
-            />
-          ) : null}
+          <ImageWithFallback
+            src={item.media.coverImage}
+            alt=""
+            fill
+            sizes="26px"
+            className="object-cover"
+          />
         </div>
       ) : null}
 

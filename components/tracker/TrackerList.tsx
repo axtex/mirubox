@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { useRouter } from "next/navigation";
-import { ChevronRight, List, LayoutGrid } from "lucide-react";
+import { ChevronRight, List, LayoutGrid, Download } from "lucide-react";
 import { FilterSelect } from "@/components/FilterSelect";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import { STATUS_TABS, TYPE_TABS, statusToSlug, slugToStatus } from "@/app/tracker/types";
@@ -148,6 +148,20 @@ export function TrackerList({
             style={viewBtnStyle(view === "grid")}
           >
             <LayoutGrid className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/import")}
+            title="Import from AniList or MAL"
+            style={viewBtnStyle(false)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "var(--fg)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "var(--fg-subtle)";
+            }}
+          >
+            <Download className="w-4 h-4" />
           </button>
         </div>
       </div>

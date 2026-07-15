@@ -11,6 +11,7 @@ import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import { AddToListButton } from "@/components/lists/AddToListModal";
 import { ReviewModal } from "@/components/detail/ReviewModal";
 import { useToast } from "@/context/ToastContext";
+import { ProgressCountInput } from "@/components/tracker/ProgressCountInput";
 import { trackerProgressPct } from "@/lib/tracker-progress";
 
 interface ReviewData {
@@ -91,19 +92,23 @@ export function TrackerSidebarBlock({
     return res.ok;
   }
 
-  async function handleProgress(delta: number) {
+  async function commitProgress(next: number) {
     if (!status) return;
+    const clamped = Math.max(0, total !== null ? Math.min(total, next) : next);
+    if (clamped === progress) return;
     const prev = progress;
-    const next = Math.max(0, progress + delta);
-    if (total !== null && next > total) return;
-    setProgress(next);
+    setProgress(clamped);
     try {
-      const ok = await patchProgress(next, status);
+      const ok = await patchProgress(clamped, status);
       if (!ok) throw new Error("Failed to update progress");
     } catch {
       setProgress(prev);
       showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     }
+  }
+
+  async function handleProgress(delta: number) {
+    await commitProgress(progress + delta);
   }
 
   async function handleRating(score: number) {
@@ -154,18 +159,29 @@ export function TrackerSidebarBlock({
           <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "space-between" }}>
             {/* Progress */}
             <div style={{ marginTop: 12 }}>
-              <p
+              <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
                   fontFamily: "var(--font-space-mono)",
                   fontSize: 9,
                   color: "#9e9ea8",
-                  textAlign: "center",
                   marginBottom: 4,
                 }}
               >
-                {unit} {progress}
-                {total != null ? `/${total}` : ""}
-              </p>
+                <span>{unit}</span>
+                <ProgressCountInput
+                  value={progress}
+                  total={total}
+                  ariaLabel={`${unit} progress`}
+                  onCommit={(next) => { void commitProgress(next); }}
+                  fontSize={9}
+                  color="#9e9ea8"
+                />
+                {total != null ? <span>/{total}</span> : null}
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"

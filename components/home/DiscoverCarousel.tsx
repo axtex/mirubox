@@ -97,12 +97,12 @@ export function DiscoverCarousel({ picks, maxItems = 7 }: DiscoverCarouselProps)
 
       <div
         ref={containerRef}
-        className="discover-scroll-track relative w-full min-w-0 overflow-hidden"
+        className="discover-scroll-track relative w-full min-w-0 overflow-x-auto md:overflow-hidden"
         style={{ "--discover-card-width": `${cardWidth}px` } as CSSProperties}
       >
         {!atEnd && canScroll && (
           <div
-            className="absolute pointer-events-none"
+            className="hidden md:block absolute pointer-events-none"
             style={{
               right: 0,
               top: 0,
@@ -114,7 +114,7 @@ export function DiscoverCarousel({ picks, maxItems = 7 }: DiscoverCarouselProps)
           />
         )}
         <div
-          className="flex w-max flex-nowrap items-stretch transition-transform"
+          className="flex w-max flex-nowrap items-stretch md:transition-transform"
           style={{
             gap: GAP,
             transform: `translateX(-${clampedOffset}px)`,

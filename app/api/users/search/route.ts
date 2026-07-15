@@ -12,6 +12,40 @@ export interface UserSearchResult {
   totalXP: number;
 }
 
+const RESULT_LIMIT = 8;
+
+const USER_SELECT = {
+  id: true,
+  username: true,
+  displayName: true,
+  name: true,
+  email: true,
+  avatarUrl: true,
+  totalXP: true,
+} as const;
+
+type DbUser = {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+  name: string | null;
+  email: string | null;
+  avatarUrl: string | null;
+  totalXP: number;
+};
+
+function toResults(users: DbUser[]): UserSearchResult[] {
+  return users
+    .filter((u): u is DbUser & { username: string } => !!u.username)
+    .map((u) => ({
+      id: u.id,
+      username: u.username,
+      displayName: followListDisplayName(u),
+      avatarUrl: u.avatarUrl,
+      totalXP: u.totalXP,
+    }));
+}
+
 export async function GET(request: Request): Promise<NextResponse> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -32,37 +66,42 @@ export async function GET(request: Request): Promise<NextResponse> {
     return NextResponse.json({ users: [] satisfies UserSearchResult[] });
   }
 
-  const users = await prisma.user.findMany({
+  const prefixUsers = await prisma.user.findMany({
     where: {
       username: { not: null },
       OR: [
-        { username: { contains: raw, mode: "insensitive" } },
-        { displayName: { contains: raw, mode: "insensitive" } },
+        { username: { startsWith: raw, mode: "insensitive" } },
+        { displayName: { startsWith: raw, mode: "insensitive" } },
       ],
       NOT: { id: session.user.id },
     },
-    select: {
-      id: true,
-      username: true,
-      displayName: true,
-      name: true,
-      email: true,
-      avatarUrl: true,
-      totalXP: true,
-    },
+    select: USER_SELECT,
     orderBy: { username: "asc" },
-    take: 8,
+    take: RESULT_LIMIT,
   });
 
-  const results: UserSearchResult[] = users
-    .filter((u): u is typeof u & { username: string } => !!u.username)
-    .map((u) => ({
-      id: u.id,
-      username: u.username,
-      displayName: followListDisplayName(u),
-      avatarUrl: u.avatarUrl,
-      totalXP: u.totalXP,
-    }));
+  let containsUsers: DbUser[] = [];
+  if (prefixUsers.length < RESULT_LIMIT) {
+    containsUsers = await prisma.user.findMany({
+      where: {
+        username: { not: null },
+        OR: [
+          { username: { contains: raw, mode: "insensitive" } },
+          { displayName: { contains: raw, mode: "insensitive" } },
+        ],
+        NOT: {
+          id: {
+            in: [session.user.id, ...prefixUsers.map((u) => u.id)],
+          },
+        },
+      },
+      select: USER_SELECT,
+      orderBy: { username: "asc" },
+      take: RESULT_LIMIT - prefixUsers.length,
+    });
+  }
+
+  const results = toResults([...prefixUsers, ...containsUsers]);
 
   return NextResponse.json({ users: results });
 }

@@ -131,7 +131,6 @@ export default async function MangaDetailPage({ params }: PageProps) {
   ]);
 
   // getMediaById returns null on AniList failure (does not throw).
-  let anilistError = false;
   let media: AnimeDetail;
 
   if (anilistMedia) {
@@ -173,7 +172,9 @@ export default async function MangaDetailPage({ params }: PageProps) {
     void cacheRelationsIfMissing(media.id);
     void cacheStreamingIfMissing(media.id, "MANGA");
   } else if (cachedSections) {
-    anilistError = true;
+    console.warn(
+      `[manga/${numId}] AniList unreachable — serving cached data (may be slightly outdated).`,
+    );
     media = dbMediaToAnilistShape(cachedSections);
   } else {
     notFound();
@@ -283,20 +284,6 @@ export default async function MangaDetailPage({ params }: PageProps) {
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-
-      {anilistError && (
-        <div
-          style={{
-            fontFamily: "var(--font-space-mono)",
-            fontSize: 9,
-            letterSpacing: "0.06em",
-            color: "#5a5a65",
-            padding: "10px 0 0",
-          }}
-        >
-          Data may be slightly outdated. We&apos;re having trouble reaching AniList.
-        </div>
-      )}
 
       {/* ═══ HERO ═══════════════════════════════════════════════════════════ */}
       <div className="relative">

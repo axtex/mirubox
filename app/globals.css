@@ -79,7 +79,6 @@ html {
   font-family: var(--font-geist), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  scroll-behavior: smooth;
 }
 
 body {
@@ -733,7 +732,7 @@ span.detail-sidebar-genre-link:hover {
 .discover-scroll-track {
   width: 100%;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding-bottom: 4px;
@@ -741,6 +740,12 @@ span.detail-sidebar-genre-link:hover {
 
 .discover-scroll-track::-webkit-scrollbar {
   display: none;
+}
+
+@media (min-width: 768px) {
+  .discover-scroll-track {
+    overflow: hidden;
+  }
 }
 
 .discover-scroll-track .discover-ai-cell {

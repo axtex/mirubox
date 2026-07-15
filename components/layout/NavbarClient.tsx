@@ -116,8 +116,9 @@ export function NavbarClient() {
           </div>
 
           {[
-            { href: "/profile",   label: "PROFILE" },
-            { href: "/settings",  label: "SETTINGS" },
+            { href: "/profile",  label: "PROFILE" },
+            { href: "/import",   label: "IMPORT LIST" },
+            { href: "/settings", label: "SETTINGS" },
           ].map(({ href, label }) => (
             <DropdownLink key={href} href={href} onNavigate={() => setOpen(false)}>
               {label}

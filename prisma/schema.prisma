@@ -27,6 +27,10 @@ model User {
   seasonChallengeFromSeason String?
   seasonChallengeFromYear   Int?
 
+  lastAnilistImport DateTime?
+  lastMalImport     DateTime?
+  anilistUsername   String?
+
   accounts             Account[]
   sessions             Session[]
   trackerEntries       TrackerEntry[]

@@ -13,6 +13,8 @@ import { AuthModalLazy } from "@/components/auth/AuthModalLazy";
 import { ToastProvider } from "@/context/ToastContext";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { SessionProviderWrapper } from "@/components/providers/SessionProviderWrapper";
+import { ScrollToTop } from "@/components/layout/ScrollToTop";
+import { Suspense } from "react";
 
 const anybody = Anybody({
   subsets: ["latin"],
@@ -78,6 +80,9 @@ export default function RootLayout({
               <SeasonChallengeHost />
               <AuthModalProvider>
                 <LoginXPTracker />
+                <Suspense fallback={null}>
+                  <ScrollToTop />
+                </Suspense>
                 <Navbar />
                 <MobileNav />
                 <main className="flex flex-1 flex-col min-h-0 pb-[56px] md:pb-0">

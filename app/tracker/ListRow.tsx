@@ -9,6 +9,7 @@ import { RatingBadge } from "@/components/tracker/RatingBadge";
 import { formatEntryMetadata } from "./types";
 import type { EntryData } from "./types";
 import { TRACKER_BADGE } from "@/components/tracker/badgeStyles";
+import { ProgressCountInput } from "@/components/tracker/ProgressCountInput";
 import { trackerProgressPct } from "@/lib/tracker-progress";
 
 interface Props {
@@ -80,11 +81,21 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
     });
   }
 
-  function adjustProgress(delta: number) {
-    const next = Math.max(0, Math.min(total ?? 9999, localProgress + delta));
-    setLocalProgress(next);
+  function setProgressValue(next: number) {
+    const clamped = Math.max(0, Math.min(total ?? 9999, next));
+    setLocalProgress(clamped);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => { void doCommit(next); }, 1500);
+    debounceRef.current = setTimeout(() => { void doCommit(clamped); }, 1500);
+  }
+
+  function adjustProgress(delta: number) {
+    setProgressValue(localProgress + delta);
+  }
+
+  function commitProgressInput(next: number) {
+    const clamped = Math.max(0, Math.min(total ?? 9999, next));
+    setLocalProgress(clamped);
+    void doCommit(clamped);
   }
 
   async function handleRate(score: number) {
@@ -160,16 +171,22 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
             onClick={(e) => e.stopPropagation()}
           >
             <span
-              className="shrink-0 whitespace-nowrap"
+              className="shrink-0 whitespace-nowrap inline-flex items-center gap-1"
               style={{
                 fontFamily: "var(--font-space-mono)",
                 fontSize: 10,
                 color: "var(--fg-muted)",
-                textAlign: "center",
                 lineHeight: 1,
               }}
             >
-              {progressLabel} {localProgress}{total ? ` / ${total}` : ""}
+              {progressLabel}
+              <ProgressCountInput
+                value={localProgress}
+                total={total}
+                ariaLabel={`${progressLabel} progress`}
+                onCommit={commitProgressInput}
+              />
+              {total ? ` / ${total}` : ""}
             </span>
             <button type="button" onClick={() => adjustProgress(1)} className="shrink-0" style={btnStyle} aria-label="Increase progress">+</button>
             <div
