@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
-import { getMediaById } from "@/lib/anilist";
+import { getMediaCardsByIds } from "@/lib/anilist";
 import { awardXP, type ToastNotification } from "@/lib/xp";
 import { getSeasonChallenge } from "@/lib/season-challenge";
 import { toContinueStripSeasonChallenge } from "@/lib/season-challenge-client";
@@ -109,13 +109,14 @@ export async function POST(req: Request) {
     where: { userId_animeId: { userId: session.user.id, animeId } },
   });
 
-  // Ensure anime exists in DB cache (refresh if manga is missing chapter counts)
+  // Ensure anime exists in DB cache (refresh if manga is missing chapter counts).
+  // Use the lightweight card query — never the full Media detail payload.
   let cached = await prisma.anime.findUnique({ where: { id: animeId } });
   const needsRefresh = !cached || (cached.type === "MANGA" && cached.chapters == null);
   if (needsRefresh) {
-    const media = await getMediaById(animeId);
+    const [media] = await getMediaCardsByIds([animeId]);
     if (media) {
-      await cacheAnimeCard(media);
+      await cacheAnimeCard(media, { force: true });
       cached = await prisma.anime.findUnique({ where: { id: animeId } });
     }
   }

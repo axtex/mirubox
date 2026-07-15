@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { useRouter } from "next/navigation";
 import { ChevronRight, List, LayoutGrid, Download } from "lucide-react";
 import { FilterSelect } from "@/components/FilterSelect";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
-import { STATUS_TABS, TYPE_TABS, statusToSlug, slugToStatus } from "@/app/tracker/types";
+import { STATUS_TABS, TYPE_TABS, statusToSlug } from "@/app/tracker/types";
 import { ListRow } from "@/app/tracker/ListRow";
 import { GridCard } from "@/app/tracker/GridCard";
 import type { EntryData, TrackerStatus, MediaType, SortKey, MediaCounts } from "@/app/tracker/types";
@@ -24,6 +24,8 @@ interface Props {
   entries: EntryData[];
   /** counts[status] = count, scoped to current mediaType filter */
   counts: Record<string, number>;
+  /** Optional per-type status counts for instant client filters */
+  countsByType?: Record<"ALL" | "ANIME" | "MANGA", Record<string, number>>;
   mediaCounts: MediaCounts;
   mediaType: MediaType;
   activeStatus: TrackerStatus;
@@ -33,22 +35,45 @@ interface Props {
   favouriteCount?: number;
 }
 
+function sortEntries(list: EntryData[], sort: SortKey): EntryData[] {
+  const next = [...list];
+  if (sort === "rating") {
+    next.sort((a, b) => (b.userScore ?? 0) - (a.userScore ?? 0));
+  } else if (sort === "title") {
+    next.sort((a, b) =>
+      (a.anime.titleEnglish ?? a.anime.title).localeCompare(b.anime.titleEnglish ?? b.anime.title),
+    );
+  } else if (sort === "release") {
+    next.sort((a, b) => (b.anime.seasonYear ?? 0) - (a.anime.seasonYear ?? 0));
+  } else {
+    next.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+  return next;
+}
+
 export function TrackerList({
   entries,
-  counts,
+  counts: countsProp,
+  countsByType,
   mediaCounts,
-  mediaType,
-  activeStatus,
-  sort,
+  mediaType: initialMediaType,
+  activeStatus: initialStatus,
+  sort: initialSort,
   baseUrl = "/tracker",
   showFavourites = false,
   favouriteCount = 0,
 }: Props) {
   const router = useRouter();
   const [view, setView] = useState<"list" | "grid">("list");
-  const [localEntries, setLocalEntries] = useState(entries);
+  const [library, setLibrary] = useState(entries);
+  const [filterType, setFilterType] = useState<MediaType>(initialMediaType);
+  const [filterStatus, setFilterStatus] = useState<TrackerStatus>(initialStatus);
+  const [filterSort, setFilterSort] = useState<SortKey>(initialSort);
 
-  useEffect(() => { setLocalEntries(entries); }, [entries]);
+  useEffect(() => { setLibrary(entries); }, [entries]);
+  useEffect(() => { setFilterType(initialMediaType); }, [initialMediaType]);
+  useEffect(() => { setFilterStatus(initialStatus); }, [initialStatus]);
+  useEffect(() => { setFilterSort(initialSort); }, [initialSort]);
 
   useEffect(() => {
     const stored = localStorage.getItem("mirubox-tracker-view");
@@ -78,18 +103,22 @@ export function TrackerList({
     return url.pathname + (url.search || "");
   }
 
+  /** Update filters without a server round-trip (URL stays shareable). */
+  function applyFilters(type: MediaType, status: TrackerStatus, s: SortKey): void {
+    setFilterType(type);
+    setFilterStatus(status);
+    setFilterSort(s);
+    window.history.replaceState(null, "", buildHref(type, status, s));
+  }
+
   function handleEntryUpdate(animeId: number, updates: Partial<EntryData>) {
-    setLocalEntries((prev) => {
-      const next = prev.map((e) => (e.animeId === animeId ? { ...e, ...updates } : e));
-      if (activeStatus !== "ALL" && "status" in updates && updates.status !== activeStatus) {
-        return next.filter((e) => e.animeId !== animeId);
-      }
-      return next;
-    });
+    setLibrary((prev) =>
+      prev.map((e) => (e.animeId === animeId ? { ...e, ...updates } : e)),
+    );
   }
 
   function handleEntryRemove(animeId: number) {
-    setLocalEntries((prev) => prev.filter((e) => e.animeId !== animeId));
+    setLibrary((prev) => prev.filter((e) => e.animeId !== animeId));
   }
 
   function handleFavouriteChange(animeId: number, isFavourite: boolean) {
@@ -99,6 +128,26 @@ export function TrackerList({
   function handleFavouriteOnlyTrack(animeId: number, status: string) {
     handleEntryUpdate(animeId, { isFavouriteOnly: false, status });
   }
+
+  const mediaType = showFavourites ? "ALL" : filterType;
+  const activeStatus = showFavourites ? "ALL" : filterStatus;
+  const sort = filterSort;
+  const counts =
+    !showFavourites && countsByType
+      ? countsByType[filterType]
+      : countsProp;
+
+  const localEntries = useMemo(() => {
+    if (showFavourites) return sortEntries(library, sort);
+    let next = library;
+    if (filterType !== "ALL") {
+      next = next.filter((e) => e.mediaType === filterType);
+    }
+    if (filterStatus !== "ALL") {
+      next = next.filter((e) => e.status === filterStatus);
+    }
+    return sortEntries(next, sort);
+  }, [library, showFavourites, filterType, filterStatus, sort]);
 
   const totalStatus = Object.values(counts).reduce((a, b) => a + b, 0);
 
@@ -128,9 +177,14 @@ export function TrackerList({
         <div className="flex items-center gap-2 shrink-0 md:mt-1 ml-auto">
           <FilterSelect
             value={sort}
-            onChange={(s) => router.push(
-              showFavourites ? buildFavouritesHref(s as SortKey) : buildHref(mediaType, activeStatus, s as SortKey)
-            )}
+            onChange={(s) => {
+              const next = s as SortKey;
+              if (showFavourites) {
+                router.push(buildFavouritesHref(next));
+              } else {
+                applyFilters(filterType, filterStatus, next);
+              }
+            }}
             options={SORT_OPTIONS}
             active={sort !== "recent"}
             variant="control"
@@ -176,28 +230,41 @@ export function TrackerList({
               ? mediaCounts.anime
               : mediaCounts.manga;
           const active = !showFavourites && mediaType === value;
+          const pillStyle = {
+            fontFamily: "var(--font-space-mono)",
+            fontSize: 10,
+            letterSpacing: "0.06em",
+            padding: "5px 14px",
+            borderRadius: 2,
+            background: active ? "var(--primary)" : "var(--bg-elevated)",
+            color: active ? "#fff" : "var(--fg-muted)",
+            border: active ? "none" : "1px solid var(--bg-card-high, #2a2a2d)",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            cursor: "pointer",
+          } as const;
+
+          if (showFavourites) {
+            return (
+              <Link key={value} href={buildHref(value, "ALL", sort)} style={pillStyle}>
+                {label}
+                <span style={{ fontSize: 9, opacity: 0.6 }}>{count}</span>
+              </Link>
+            );
+          }
+
           return (
-            <Link
+            <button
               key={value}
-              href={buildHref(value, activeStatus, sort)}
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 10,
-                letterSpacing: "0.06em",
-                padding: "5px 14px",
-                borderRadius: 2,
-                background: active ? "var(--primary)" : "var(--bg-elevated)",
-                color: active ? "#fff" : "var(--fg-muted)",
-                border: active ? "none" : "1px solid var(--bg-card-high, #2a2a2d)",
-                textDecoration: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-              }}
+              type="button"
+              onClick={() => applyFilters(value, filterStatus, filterSort)}
+              style={pillStyle}
             >
               {label}
               <span style={{ fontSize: 9, opacity: 0.6 }}>{count}</span>
-            </Link>
+            </button>
           );
         })}
         <Link
@@ -232,9 +299,10 @@ export function TrackerList({
             const count = value === "ALL" ? totalStatus : (counts[value] ?? 0);
             const active = activeStatus === value;
             return (
-              <Link
+              <button
                 key={value}
-                href={buildHref(mediaType, value, sort)}
+                type="button"
+                onClick={() => applyFilters(filterType, value, filterSort)}
                 className="shrink-0 flex items-center gap-2 transition-colors"
                 style={{
                   fontFamily: "var(--font-space-mono)",
@@ -245,13 +313,18 @@ export function TrackerList({
                   borderBottom: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
                   marginBottom: -1,
                   whiteSpace: "nowrap",
+                  background: "none",
+                  borderTop: "none",
+                  borderLeft: "none",
+                  borderRight: "none",
+                  cursor: "pointer",
                 }}
               >
                 {label}
                 {count > 0 && (
                   <span style={{ color: "var(--fg-subtle)", fontSize: 9 }}>{count}</span>
                 )}
-              </Link>
+              </button>
             );
           })}
         </div>

@@ -68,6 +68,10 @@ async function anilistRequest<T>(
         continue;
       }
       if (controller.signal.aborted) {
+        if (attempt < maxAttempts - 1) {
+          await sleep(500 * (attempt + 1));
+          continue;
+        }
         throw new Error("AniList request timed out", { cause: err });
       }
       // Surface GraphQL messages (e.g. page-depth cap) instead of a generic wrap
@@ -612,6 +616,7 @@ export async function searchMedia(
 }
 
 const MEDIA_CARD_BATCH_SIZE = 50;
+const MEDIA_CHAPTER_BATCH_SIZE = 25;
 
 export async function getMediaCardsByIds(ids: number[]): Promise<AnimeCard[]> {
   if (ids.length === 0) return [];
@@ -636,6 +641,43 @@ export async function getMediaCardsByIds(ids: number[]): Promise<AnimeCard[]> {
       perPage: chunk.length,
     });
     results.push(...data.Page.media);
+  }
+
+  return results;
+}
+
+/** Lean fetch for backfilling missing manga chapter counts. */
+export async function getMediaChaptersByIds(
+  ids: number[],
+): Promise<{ id: number; chapters: number | null }[]> {
+  if (ids.length === 0) return [];
+
+  const unique = [...new Set(ids)];
+  const results: { id: number; chapters: number | null }[] = [];
+  const query = gql`
+    query GetMediaChapters($id_in: [Int], $perPage: Int) {
+      Page(perPage: $perPage) {
+        media(id_in: $id_in, isAdult: false) {
+          id
+          chapters
+        }
+      }
+    }
+  `;
+
+  for (let i = 0; i < unique.length; i += MEDIA_CHAPTER_BATCH_SIZE) {
+    const chunk = unique.slice(i, i + MEDIA_CHAPTER_BATCH_SIZE);
+    try {
+      const data = await anilistRequest<{
+        Page: { media: { id: number; chapters: number | null }[] };
+      }>(query, {
+        id_in: chunk,
+        perPage: chunk.length,
+      });
+      results.push(...data.Page.media);
+    } catch (err) {
+      console.error("AniList chapter batch failed:", { count: chunk.length, err });
+    }
   }
 
   return results;

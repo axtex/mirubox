@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getMediaCardsByIds } from "@/lib/anilist";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
@@ -27,6 +28,25 @@ const GENRE_POOL: GenreTile[] = [
   { genre: "Slice of Life", descriptor: "Quiet, warm, deeply human",        tint: "rgba(180,160,100,0.10)", href: "/search?genre=Slice+of+Life&mode=browse" },
   { genre: "Thriller",      descriptor: "Paranoia, twists, can't look away",tint: "rgba(60,80,100,0.15)",   href: "/search?genre=Thriller&mode=browse"      },
 ];
+
+const DISCOVER_DB_SELECT = {
+  id: true,
+  title: true,
+  titleEnglish: true,
+  titleNative: true,
+  coverImage: true,
+  bannerImage: true,
+  genres: true,
+  episodes: true,
+  chapters: true,
+  status: true,
+  season: true,
+  seasonYear: true,
+  averageScore: true,
+  popularity: true,
+  format: true,
+  type: true,
+} as const;
 
 export function getDaySeededGenres(): GenreTile[] {
   const day = Math.floor(Date.now() / 86400000);
@@ -79,7 +99,10 @@ async function loadMediaMap(
   const map = new Map<number, AnimeCard>();
 
   try {
-    const rows = await prisma.anime.findMany({ where: { id: { in: ids } } });
+    const rows = await prisma.anime.findMany({
+      where: { id: { in: ids } },
+      select: DISCOVER_DB_SELECT,
+    });
     for (const row of rows) {
       if (row.type === type) map.set(row.id, dbRowToAnimeCard(row));
     }
@@ -88,20 +111,23 @@ async function loadMediaMap(
   const missing = ids.filter((id) => !map.has(id));
   if (missing.length === 0) return map;
 
-  const fetched = await getMediaCardsByIds(missing);
-  for (const card of fetched) {
-    if (card.type !== type) continue;
-    map.set(card.id, card);
-    // Don't block the page on cache writes — upsert in the background.
-    void cacheAnimeCard(card);
+  // AniList can timeout / 429 under load — keep DB hits and skip missing IDs.
+  try {
+    const fetched = await getMediaCardsByIds(missing);
+    for (const card of fetched) {
+      if (card.type !== type) continue;
+      map.set(card.id, card);
+      // Don't block the page on cache writes — upsert in the background.
+      void cacheAnimeCard(card);
+    }
+  } catch (err) {
+    console.error("Discover AniList fallback failed:", err);
   }
 
   return map;
 }
 
-export async function fetchDiscoverPicks(
-  type: DiscoverMediaType = "ANIME",
-): Promise<DiscoverPick[]> {
+async function loadDiscoverPicks(type: DiscoverMediaType): Promise<DiscoverPick[]> {
   const entries = DISCOVER_ENTRIES[type];
   const allIds = [...new Set(entries.map((entry) => entry.id))];
   const mediaMap = await loadMediaMap(allIds, type);
@@ -113,4 +139,46 @@ export async function fetchDiscoverPicks(
   }
 
   return picks;
+}
+
+const getCachedDiscoverPicks = unstable_cache(
+  async (type: DiscoverMediaType) => loadDiscoverPicks(type),
+  ["discover-picks"],
+  { revalidate: 3600, tags: ["discover-picks"] },
+);
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Shuffle + dedupe on the server so the client can paint immediately. */
+export function selectDiscoverPicks(
+  picks: DiscoverPick[],
+  maxItems: number,
+): DiscoverPick[] {
+  const shuffled = shuffle(picks);
+  const seenIds = new Set<number>();
+  const seenLabels = new Set<string>();
+  const unique: DiscoverPick[] = [];
+
+  for (const pick of shuffled) {
+    if (seenIds.has(pick.anime.id) || seenLabels.has(pick.label)) continue;
+    seenIds.add(pick.anime.id);
+    seenLabels.add(pick.label);
+    unique.push(pick);
+    if (unique.length >= maxItems) break;
+  }
+
+  return unique;
+}
+
+export async function fetchDiscoverPicks(
+  type: DiscoverMediaType = "ANIME",
+): Promise<DiscoverPick[]> {
+  return getCachedDiscoverPicks(type);
 }

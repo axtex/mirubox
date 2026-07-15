@@ -1,26 +1,12 @@
 import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getMediaById, getDisplayTitle, splitLastWord } from "@/lib/anilist";
+import { getDisplayTitle, splitLastWord } from "@/lib/anilist";
 import { cleanDescription } from "@/lib/clean-description";
-import { cacheAnimeAdaptationFlag } from "@/lib/anilist-cache";
-import { embedIfMissing } from "@/lib/embed-if-missing";
 import {
-  cacheCharactersIfMissing,
-  cacheRelationsIfMissing,
-  cacheStreamingIfMissing,
-  dbCharToEdge,
-  dbMediaToAnilistShape,
-  dbRelationToEdge,
-  dbStreamingToExternalLink,
+  resolveMediaDetailForPage,
   resolveMediaForMetadata,
 } from "@/lib/cache-media-details";
-import {
-  CHARACTER_TTL_MS,
-  RELATION_TTL_MS,
-  STREAMING_TTL_MS,
-  isStale,
-} from "@/lib/cache-utils";
 import { filterStreamingLinks, buildSearchFallbacks } from "@/lib/streaming-links";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -117,68 +103,12 @@ export default async function MangaDetailPage({ params }: PageProps) {
   const numId = Number(id);
   if (isNaN(numId)) notFound();
 
-  const [anilistMedia, cachedSections, session] = await Promise.all([
-    getMediaById(numId),
-    prisma.anime.findUnique({
-      where: { id: numId },
-      include: {
-        characters: { orderBy: { order: "asc" } },
-        relationsFrom: true,
-        streamingLinks: true,
-      },
-    }),
+  const [media, session] = await Promise.all([
+    resolveMediaDetailForPage(numId, "MANGA"),
     auth(),
   ]);
 
-  // getMediaById returns null on AniList failure (does not throw).
-  let media: AnimeDetail;
-
-  if (anilistMedia) {
-    media = anilistMedia;
-
-    const useDbChars =
-      !isStale(cachedSections?.charactersCachedAt, CHARACTER_TTL_MS) &&
-      (cachedSections?.characters.length ?? 0) > 0;
-    const useDbRelations = !isStale(
-      cachedSections?.relationsCachedAt,
-      RELATION_TTL_MS
-    );
-    const useDbStreaming =
-      !isStale(cachedSections?.streamingCachedAt, STREAMING_TTL_MS) &&
-      (cachedSections?.streamingLinks.length ?? 0) > 0;
-
-    if (useDbChars && cachedSections) {
-      media = {
-        ...media,
-        characters: { edges: cachedSections.characters.map(dbCharToEdge) },
-      };
-    }
-    if (useDbRelations && cachedSections) {
-      media = {
-        ...media,
-        relations: { edges: cachedSections.relationsFrom.map(dbRelationToEdge) },
-      };
-    }
-    if (useDbStreaming && cachedSections) {
-      media = {
-        ...media,
-        externalLinks: cachedSections.streamingLinks.map(dbStreamingToExternalLink),
-      };
-    }
-
-    void cacheAnimeAdaptationFlag(media);
-    void embedIfMissing(media);
-    void cacheCharactersIfMissing(media.id, "MANGA");
-    void cacheRelationsIfMissing(media.id);
-    void cacheStreamingIfMissing(media.id, "MANGA");
-  } else if (cachedSections) {
-    console.warn(
-      `[manga/${numId}] AniList unreachable — serving cached data (may be slightly outdated).`,
-    );
-    media = dbMediaToAnilistShape(cachedSections);
-  } else {
-    notFound();
-  }
+  if (!media) notFound();
 
   const title = getDisplayTitle(media.title);
   const nativeTitle =

@@ -1,7 +1,9 @@
 import type { Character, MediaRelation, StreamingLink as DbStreamingLink } from "@prisma/client";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMediaById } from "@/lib/anilist";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
+import { embedIfMissing } from "@/lib/embed-if-missing";
 import {
   CHARACTER_TTL_MS,
   RELATION_TTL_MS,
@@ -45,17 +47,7 @@ export type MetadataMedia = {
 export async function resolveMediaForMetadata(
   id: number
 ): Promise<MetadataMedia | null> {
-  const media = await getMediaById(id);
-  if (media) {
-    return {
-      title: media.title,
-      description: media.description,
-      bannerImage: media.bannerImage,
-      coverImage: media.coverImage,
-      seasonYear: media.seasonYear,
-    };
-  }
-
+  // Prefer DB so metadata never waits on AniList.
   const cached = await prisma.anime.findUnique({
     where: { id },
     select: {
@@ -68,21 +60,31 @@ export async function resolveMediaForMetadata(
       seasonYear: true,
     },
   });
-  if (!cached) return null;
+  if (cached?.title) {
+    return {
+      title: {
+        romaji: cached.title,
+        english: cached.titleEnglish,
+        native: cached.titleNative,
+      },
+      description: cached.description,
+      bannerImage: cached.bannerImage,
+      coverImage: {
+        large: cached.coverImage,
+        extraLarge: cached.coverImage,
+      },
+      seasonYear: cached.seasonYear,
+    };
+  }
 
+  const media = await getMediaById(id);
+  if (!media) return null;
   return {
-    title: {
-      romaji: cached.title,
-      english: cached.titleEnglish,
-      native: cached.titleNative,
-    },
-    description: cached.description,
-    bannerImage: cached.bannerImage,
-    coverImage: {
-      large: cached.coverImage,
-      extraLarge: cached.coverImage,
-    },
-    seasonYear: cached.seasonYear,
+    title: media.title,
+    description: media.description,
+    bannerImage: media.bannerImage,
+    coverImage: media.coverImage,
+    seasonYear: media.seasonYear,
   };
 }
 
@@ -384,4 +386,58 @@ export async function cacheStreamingIfMissing(
   } finally {
     cachingStreaming.delete(mediaId);
   }
+}
+
+const DETAIL_INCLUDE = {
+  characters: { orderBy: { order: "asc" as const } },
+  relationsFrom: true,
+  streamingLinks: true,
+} as const;
+
+function scheduleDetailRefresh(mediaId: number, type: "ANIME" | "MANGA"): void {
+  after(() => {
+    void (async () => {
+      try {
+        const media = await getMediaById(mediaId);
+        if (!media) return;
+        await cacheAnimeCard(media, { force: true });
+        await Promise.all([
+          embedIfMissing(media),
+          cacheCharactersIfMissing(mediaId, type),
+          cacheRelationsIfMissing(mediaId),
+          cacheStreamingIfMissing(mediaId, type),
+        ]);
+      } catch (err) {
+        console.error(`[detail-refresh] ${type.toLowerCase()}/${mediaId}`, err);
+      }
+    })();
+  });
+}
+
+/**
+ * Serve detail pages from DB when present — never wait on AniList for a warm cache.
+ * Cold titles still hit AniList once.
+ */
+export async function resolveMediaDetailForPage(
+  mediaId: number,
+  type: "ANIME" | "MANGA",
+): Promise<AnimeDetail | null> {
+  const cached = await prisma.anime.findUnique({
+    where: { id: mediaId },
+    include: DETAIL_INCLUDE,
+  });
+
+  if (cached?.title && cached.coverImage) {
+    scheduleDetailRefresh(mediaId, type);
+    return dbMediaToAnilistShape(cached);
+  }
+
+  const anilistMedia = await getMediaById(mediaId);
+  if (!anilistMedia) {
+    return cached ? dbMediaToAnilistShape(cached) : null;
+  }
+
+  await cacheAnimeCard(anilistMedia, { force: true });
+  scheduleDetailRefresh(mediaId, type);
+  return anilistMedia;
 }

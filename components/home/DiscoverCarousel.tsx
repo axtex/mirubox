@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AiPicksClient } from "@/components/home/AiPicksClient";
 import type { DiscoverPick } from "@/lib/discover-picks";
@@ -19,19 +19,13 @@ function getCardWidth(containerWidth: number): number {
 
 interface DiscoverCarouselProps {
   picks: DiscoverPick[];
-  maxItems?: number;
 }
 
-export function DiscoverCarousel({ picks, maxItems = 7 }: DiscoverCarouselProps) {
+export function DiscoverCarousel({ picks }: DiscoverCarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState(0);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [itemCount, setItemCount] = useState(0);
-
-  const handleCountChange = useCallback((count: number) => {
-    setItemCount(count);
-    setOffset(0);
-  }, []);
+  const itemCount = picks.length;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -122,11 +116,7 @@ export function DiscoverCarousel({ picks, maxItems = 7 }: DiscoverCarouselProps)
             transitionTimingFunction: "ease",
           }}
         >
-          <AiPicksClient
-            picks={picks}
-            maxItems={maxItems}
-            onCountChange={handleCountChange}
-          />
+          <AiPicksClient picks={picks} />
         </div>
       </div>
     </section>

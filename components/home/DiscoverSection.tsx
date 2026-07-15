@@ -1,4 +1,8 @@
-import { fetchDiscoverPicks, type DiscoverMediaType } from "@/lib/discover-picks";
+import {
+  fetchDiscoverPicks,
+  selectDiscoverPicks,
+  type DiscoverMediaType,
+} from "@/lib/discover-picks";
 import { DiscoverCarousel } from "@/components/home/DiscoverCarousel";
 
 interface DiscoverSectionProps {
@@ -7,6 +11,15 @@ interface DiscoverSectionProps {
 }
 
 export async function DiscoverSection({ type = "ANIME", maxItems = 7 }: DiscoverSectionProps) {
-  const picks = await fetchDiscoverPicks(type);
-  return <DiscoverCarousel picks={picks} maxItems={maxItems} />;
+  let picks;
+  try {
+    picks = selectDiscoverPicks(await fetchDiscoverPicks(type), maxItems);
+  } catch (err) {
+    console.error("DiscoverSection failed:", err);
+    return null;
+  }
+
+  if (picks.length === 0) return null;
+
+  return <DiscoverCarousel picks={picks} />;
 }

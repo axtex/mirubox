@@ -1,12 +1,5 @@
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
-  fetchHomePageMedia,
-  fetchAnimeBrowseMedia,
-  fetchMangaBrowseMedia,
-  getCurrentSeason,
-  getNextSeason,
-} from "@/lib/anilist";
 import { syncBrowseShelves, type BrowseShelfKey } from "@/lib/browse-sync";
 import type { AnimeCard } from "@/types/anilist";
 
@@ -89,7 +82,7 @@ function scheduleShelfSync(): void {
   });
 }
 
-/** Load a browse shelf from Postgres. Empty → schedule sync; caller may use AniList fallback. */
+/** Load a browse shelf from Postgres. Empty → schedule sync; never block on live AniList. */
 export async function getShelfCards(key: BrowseShelfKey): Promise<AnimeCard[]> {
   try {
     const shelf = await prisma.browseShelf.findUnique({ where: { key } });
@@ -125,25 +118,15 @@ export async function getHomeShelves(): Promise<HomeShelves> {
   ]);
 
   if (
-    trending.length > 0 ||
-    seasonal.length > 0 ||
-    upcoming.length > 0 ||
-    manga.length > 0
+    trending.length === 0 &&
+    seasonal.length === 0 &&
+    upcoming.length === 0 &&
+    manga.length === 0
   ) {
-    return { trending, seasonal, upcoming, manga };
+    scheduleShelfSync();
   }
 
-  // Cold start: serve live AniList once while background sync fills shelves
-  const { season, year } = getCurrentSeason();
-  const { season: nextSeason, year: nextYear } = getNextSeason();
-  const live = await fetchHomePageMedia(season, year, nextSeason, nextYear);
-  scheduleShelfSync();
-  return {
-    trending: live.trending.media,
-    seasonal: live.seasonal.media,
-    upcoming: live.upcoming.media,
-    manga: live.manga.media,
-  };
+  return { trending, seasonal, upcoming, manga };
 }
 
 export interface AnimeBrowseShelves {
@@ -162,24 +145,15 @@ export async function getAnimeBrowseShelves(): Promise<AnimeBrowseShelves> {
   ]);
 
   if (
-    trending.length > 0 ||
-    seasonal.length > 0 ||
-    upcoming.length > 0 ||
-    topRated.length > 0
+    trending.length === 0 &&
+    seasonal.length === 0 &&
+    upcoming.length === 0 &&
+    topRated.length === 0
   ) {
-    return { trending, seasonal, upcoming, topRated };
+    scheduleShelfSync();
   }
 
-  const { season, year } = getCurrentSeason();
-  const { season: nextSeason, year: nextYear } = getNextSeason();
-  const live = await fetchAnimeBrowseMedia(season, year, nextSeason, nextYear);
-  scheduleShelfSync();
-  return {
-    trending: live.trending.media,
-    seasonal: live.seasonal.media,
-    upcoming: live.upcoming.media,
-    topRated: live.topRated.media,
-  };
+  return { trending, seasonal, upcoming, topRated };
 }
 
 export interface MangaBrowseShelves {
@@ -195,15 +169,9 @@ export async function getMangaBrowseShelves(): Promise<MangaBrowseShelves> {
     getShelfCards("manga:allTime"),
   ]);
 
-  if (trending.length > 0 || publishing.length > 0 || allTime.length > 0) {
-    return { trending, publishing, allTime };
+  if (trending.length === 0 && publishing.length === 0 && allTime.length === 0) {
+    scheduleShelfSync();
   }
 
-  const live = await fetchMangaBrowseMedia();
-  scheduleShelfSync();
-  return {
-    trending: live.trending.media,
-    publishing: live.publishing.media,
-    allTime: live.allTime.media,
-  };
+  return { trending, publishing, allTime };
 }

@@ -18,6 +18,8 @@ import { CuratedListsSection } from "@/components/home/CuratedListsSection";
 import { AnimeCardSkeleton } from "@/components/anime/AnimeCardSkeleton";
 import { takeUnique } from "@/lib/homepage";
 
+export const revalidate = 3600;
+
 const HERO_COUNT = 8;
 
 function SectionRowSkeleton({ title }: { title: string }): React.JSX.Element {
@@ -60,28 +62,40 @@ function CuratedListsSkeleton(): React.JSX.Element {
   );
 }
 
-export default async function HomePage() {
+/** Auth-gated home strip — streams in after the public shelf shell. */
+async function HomeContinueIsland(): Promise<React.JSX.Element | null> {
   const session = await auth();
-  const { season, year } = getCurrentSeason();
-  const { season: nextSeason, year: nextYear } = getNextSeason();
-
   const userId = session?.user?.id;
+  if (!userId) return null;
 
-  const [homeShelves, challengeData, continueItems] = await Promise.all([
-    getHomeShelves(),
-    userId ? getSeasonChallenge(userId) : Promise.resolve(null),
-    userId ? getContinueItems(userId) : Promise.resolve([]),
+  const [continueItems, challengeData] = await Promise.all([
+    getContinueItems(userId),
+    getSeasonChallenge(userId),
   ]);
-
-  const { trending, seasonal, upcoming, manga } = homeShelves;
 
   const showContinueStrip =
     continueItems.length > 0 || (challengeData?.showOnHome ?? false);
+  if (!showContinueStrip) return null;
 
   const seasonChallenge =
     challengeData?.showOnHome
       ? toContinueStripSeasonChallenge(challengeData)
       : null;
+
+  return (
+    <ContinueStrip
+      items={continueItems}
+      seasonChallenge={seasonChallenge}
+    />
+  );
+}
+
+export default async function HomePage() {
+  const { season, year } = getCurrentSeason();
+  const { season: nextSeason, year: nextYear } = getNextSeason();
+
+  const homeShelves = await getHomeShelves();
+  const { trending, seasonal, upcoming, manga } = homeShelves;
 
   const shownIds = new Set<number>();
 
@@ -108,12 +122,9 @@ export default async function HomePage() {
       {heroSlides.length > 0 && <HeroCarousel slides={heroSlides} />}
 
       <div className="flex flex-col" style={{ gap: 72, paddingTop: 56, paddingBottom: 56 }}>
-        {showContinueStrip && (
-          <ContinueStrip
-            items={continueItems}
-            seasonChallenge={seasonChallenge}
-          />
-        )}
+        <Suspense fallback={null}>
+          <HomeContinueIsland />
+        </Suspense>
 
         <Suspense fallback={<SectionRowSkeleton title="DISCOVER" />}>
           <DiscoverSection type="ANIME" maxItems={24} />
