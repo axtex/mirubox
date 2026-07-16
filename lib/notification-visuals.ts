@@ -4,6 +4,7 @@ export type NotifVisualType =
   | "LIST_LIKED"
   | "NEW_FOLLOWER"
   | "EPISODE_AVAILABLE"
+  | "CHAPTER_AVAILABLE"
   | "XP"
   | "ERROR";
 
@@ -18,6 +19,7 @@ const BASE: Record<Exclude<NotifVisualType, "RANK_UP">, NotifVisual> = {
   LIST_LIKED: { bg: "rgba(232,23,63,0.1)", border: "rgba(232,23,63,0.2)", emoji: "♥" },
   NEW_FOLLOWER: { bg: "rgba(100,180,230,0.1)", border: "rgba(100,180,230,0.2)", emoji: "👤" },
   EPISODE_AVAILABLE: { bg: "rgba(100,180,230,0.1)", border: "rgba(100,180,230,0.2)", emoji: "▶" },
+  CHAPTER_AVAILABLE: { bg: "rgba(29,158,117,0.12)", border: "rgba(29,158,117,0.25)", emoji: "📖" },
   XP: { bg: "rgba(83,74,183,0.1)", border: "rgba(83,74,183,0.2)", emoji: "⚡" },
   ERROR: { bg: "rgba(232,23,63,0.1)", border: "rgba(232,23,63,0.3)", emoji: "✕" },
 };

@@ -33,6 +33,8 @@ function getLinkTarget(n: NotificationItem): string | null {
       return n.fromUser?.username ? `/u/${n.fromUser.username}` : null;
     case "EPISODE_AVAILABLE":
       return n.mediaId != null ? `/anime/${n.mediaId}` : null;
+    case "CHAPTER_AVAILABLE":
+      return n.mediaId != null ? `/manga/${n.mediaId}` : null;
     default:
       return null;
   }

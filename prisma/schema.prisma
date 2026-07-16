@@ -32,6 +32,7 @@ model User {
   anilistUsername   String?
 
   episodeNotifications Boolean @default(true)
+  chapterNotifications Boolean @default(true)
 
   accounts             Account[]
   sessions             Session[]
@@ -174,6 +175,9 @@ model Anime {
   nextAiringEp        Int?
   nextAiringAt        Int?
   episodesRefreshedAt DateTime?
+  mangaDexId          String?
+  latestChapter       Float?
+  chaptersRefreshedAt DateTime?
   cachedAt     DateTime @default(now())
   embedding    Unsupported("vector(1536)")?
 
@@ -276,6 +280,7 @@ model TrackerEntry {
   total           Int?
   favourite       Boolean  @default(false)
   lastNotifiedEp  Int?
+  lastNotifiedChapter Float?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -438,6 +443,7 @@ enum NotifType {
   LIST_LIKED
   NEW_FOLLOWER
   EPISODE_AVAILABLE
+  CHAPTER_AVAILABLE
 }
 
 enum XPAction {

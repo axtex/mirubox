@@ -27,8 +27,12 @@ export const ANIME_STREAMING_SITES = new Set([
 ]);
 
 export const MANGA_READING_SITES = new Set([
+  "MangaDex",
   "MangaPlus",
   "Viz",
+  "Crunchyroll Manga",
+  "BookWalker",
+  "Azuki",
   "Comikey",
   "Tapas",
   "ComicWalker",
@@ -46,13 +50,17 @@ const ANIME_SITE_PRIORITY: Record<string, number> = {
 };
 
 const MANGA_SITE_PRIORITY: Record<string, number> = {
-  MangaPlus: 1,
-  Viz: 2,
-  "Official Site": 3,
-  Comikey: 4,
-  ComicWalker: 5,
-  "K Manga": 6,
-  Tapas: 7,
+  MangaDex: 1,
+  MangaPlus: 2,
+  Viz: 3,
+  "Crunchyroll Manga": 4,
+  BookWalker: 5,
+  Azuki: 6,
+  "Official Site": 7,
+  Comikey: 8,
+  ComicWalker: 9,
+  "K Manga": 10,
+  Tapas: 11,
 };
 
 export function filterStreamingLinks(

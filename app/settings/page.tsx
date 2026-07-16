@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { EpisodeNotificationsToggle } from "@/components/settings/EpisodeNotificationsToggle";
+import { ChapterNotificationsToggle } from "@/components/settings/ChapterNotificationsToggle";
 
 export const metadata: Metadata = {
   title: "Settings — mirubox",
@@ -37,6 +38,7 @@ export default async function SettingsPage() {
       displayName: true,
       username: true,
       episodeNotifications: true,
+      chapterNotifications: true,
     },
   });
 
@@ -73,6 +75,9 @@ export default async function SettingsPage() {
         <SettingsSection title="NOTIFICATIONS">
           <EpisodeNotificationsToggle
             initialValue={user?.episodeNotifications ?? true}
+          />
+          <ChapterNotificationsToggle
+            initialValue={user?.chapterNotifications ?? true}
           />
           <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-subtle)" }}>
             Email preferences coming soon.
