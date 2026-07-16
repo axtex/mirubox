@@ -91,10 +91,22 @@ async function runEpisodeCheck(): Promise<{
   if (needsRefresh.length > 0) {
     const airingData = await getAiringData(needsRefresh);
     airingDataMap = new Map(airingData.map((m) => [m.id, m]));
+    const nowSec = Math.floor(Date.now() / 1000);
 
     await Promise.all(
-      airingData.map((m) =>
-        prisma.anime
+      airingData.map((m) => {
+        const prev = inProgressEntries.find((e) => e.animeId === m.id)?.anime;
+        const lastAiredFields =
+          prev?.nextAiringAt != null &&
+          prev.nextAiringEp != null &&
+          prev.nextAiringAt <= nowSec
+            ? {
+                lastAiredEp: prev.nextAiringEp,
+                lastAiredAt: new Date(prev.nextAiringAt * 1000),
+              }
+            : {};
+
+        return prisma.anime
           .update({
             where: { id: m.id },
             data: {
@@ -102,6 +114,7 @@ async function runEpisodeCheck(): Promise<{
               nextAiringAt: m.nextAiringEpisode?.airingAt ?? null,
               airingStatus: m.status,
               episodesRefreshedAt: new Date(),
+              ...lastAiredFields,
               ...(m.status === "FINISHED" && m.episodes
                 ? { episodes: m.episodes }
                 : {}),
@@ -109,8 +122,8 @@ async function runEpisodeCheck(): Promise<{
           })
           .catch((err) => {
             console.error("[episode-check] update failed for", m.id, err);
-          }),
-      ),
+          });
+      }),
     );
   }
 
@@ -144,20 +157,16 @@ async function runEpisodeCheck(): Promise<{
 
     const title =
       entry.anime.titleEnglish ?? entry.anime.title ?? "Unknown title";
-    const newEpCount = availableEp - entry.progress;
 
     try {
       await createNotification({
         userId: entry.userId,
         type: "EPISODE_AVAILABLE",
-        title:
-          newEpCount === 1
-            ? `EP ${availableEp} of ${title} is out`
-            : `${newEpCount} new episodes of ${title} available`,
+        title: `EP ${availableEp} of ${title} is out`,
         body:
-          newEpCount === 1
+          entry.progress > 0
             ? `You're on EP ${entry.progress} — EP ${availableEp} is now available`
-            : `You're on EP ${entry.progress} — EPs ${entry.progress + 1}–${availableEp} are now available`,
+            : `EP ${availableEp} is now available`,
         mediaId: entry.animeId,
       });
 

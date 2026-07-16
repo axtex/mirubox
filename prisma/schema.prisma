@@ -174,10 +174,13 @@ model Anime {
   airingStatus        String?
   nextAiringEp        Int?
   nextAiringAt        Int?
+  lastAiredEp         Int?
+  lastAiredAt         DateTime?
   episodesRefreshedAt DateTime?
-  mangaDexId          String?
-  latestChapter       Float?
-  chaptersRefreshedAt DateTime?
+  mangaDexId                 String?
+  latestChapter              Float?
+  latestChapterPublishedAt   DateTime?
+  chaptersRefreshedAt        DateTime?
   cachedAt     DateTime @default(now())
   embedding    Unsupported("vector(1536)")?
 

@@ -145,3 +145,56 @@ export async function getLatestChapter(
     return null;
   }
 }
+
+export interface LatestChapterData {
+  chapter: number;
+  /** When this chapter was published on MangaDex */
+  publishAt: Date;
+}
+
+/** Latest English chapter number + publish date, or null if none. */
+export async function getLatestChapterWithDate(
+  mangaDexId: string,
+): Promise<LatestChapterData | null> {
+  try {
+    await new Promise((r) => setTimeout(r, DELAY_MS));
+
+    const data = (await mangaDexRequest("/chapter", {
+      manga: mangaDexId,
+      "translatedLanguage[]": "en",
+      "order[chapter]": "desc",
+      limit: "5",
+      "contentRating[]": [
+        "safe",
+        "suggestive",
+        "erotica",
+        "pornographic",
+      ],
+    })) as { data: MangaDexChapter[] };
+
+    if (!data?.data?.length) return null;
+
+    const valid = data.data
+      .filter(
+        (c) =>
+          c.attributes.chapter !== null &&
+          !isNaN(parseFloat(c.attributes.chapter ?? "")),
+      )
+      .sort(
+        (a, b) =>
+          parseFloat(b.attributes.chapter ?? "0") -
+          parseFloat(a.attributes.chapter ?? "0"),
+      );
+
+    if (!valid.length) return null;
+
+    const latest = valid[0];
+    return {
+      chapter: parseFloat(latest.attributes.chapter ?? "0"),
+      publishAt: new Date(latest.attributes.publishAt),
+    };
+  } catch (err) {
+    console.error("[getLatestChapterWithDate] failed for", mangaDexId, err);
+    return null;
+  }
+}

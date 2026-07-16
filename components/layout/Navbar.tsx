@@ -4,6 +4,7 @@ import { NavbarLinks } from "./NavbarLinks";
 import { NavbarSearch } from "./NavbarSearch";
 import { NavbarClient } from "./NavbarClient";
 import { NotificationBell } from "./NotificationBell";
+import { ScheduleNavIcon } from "./ScheduleNavIcon";
 
 export function Navbar() {
   return (
@@ -32,10 +33,11 @@ export function Navbar() {
           </Suspense>
         </div>
 
-        {/* Search + auth */}
+        {/* Search + schedule + auth */}
         <div className="flex items-center shrink-0 gap-2">
           <NavbarSearch />
           <NotificationBell />
+          <ScheduleNavIcon />
           <NavbarClient />
         </div>
       </div>

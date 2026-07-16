@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { resolveMangaDexId, getLatestChapter } from "@/lib/mangadex";
+import { resolveMangaDexId, getLatestChapterWithDate } from "@/lib/mangadex";
 import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
@@ -120,16 +120,17 @@ async function runChapterCheck(): Promise<{
         continue;
       }
 
-      const latest = await getLatestChapter(mdId);
+      const latest = await getLatestChapterWithDate(mdId);
       if (latest === null) continue;
 
-      latestChapterMap.set(manga.id, latest);
+      latestChapterMap.set(manga.id, latest.chapter);
 
       await prisma.anime.update({
         where: { id: manga.id },
         data: {
           mangaDexId: mdId,
-          latestChapter: latest,
+          latestChapter: latest.chapter,
+          latestChapterPublishedAt: latest.publishAt,
           chaptersRefreshedAt: new Date(),
         },
       });
@@ -162,18 +163,17 @@ async function runChapterCheck(): Promise<{
     const title =
       entry.anime.titleEnglish ?? entry.anime.title ?? "Unknown manga";
 
-    const newChapters = Math.floor(latestChapter - userProgress);
     const chapterText = `CH ${latestChapter}`;
 
     try {
       await createNotification({
         userId: entry.userId,
         type: "CHAPTER_AVAILABLE",
-        title:
-          newChapters <= 1
-            ? `${chapterText} of ${title} is out`
-            : `${newChapters} new chapters of ${title} available`,
-        body: `You're on CH ${userProgress} — ${chapterText} is now available`,
+        title: `${chapterText} of ${title} is out`,
+        body:
+          userProgress > 0
+            ? `You're on CH ${userProgress} — ${chapterText} is now available`
+            : `${chapterText} is now available`,
         mediaId: entry.animeId,
       });
 
