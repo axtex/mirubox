@@ -1,7 +1,7 @@
 import type { Character, MediaRelation, StreamingLink as DbStreamingLink } from "@prisma/client";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getMediaById } from "@/lib/anilist";
+import { getMediaById, getAiringData } from "@/lib/anilist";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { embedIfMissing } from "@/lib/embed-if-missing";
 import {
@@ -110,6 +110,9 @@ export type AnimeWithDetailCache = {
   source: string | null;
   duration: number | null;
   type: string;
+  airingStatus?: string | null;
+  nextAiringEp?: number | null;
+  nextAiringAt?: number | null;
   characters: Character[];
   relationsFrom: MediaRelation[];
   streamingLinks: DbStreamingLink[];
@@ -193,7 +196,7 @@ export function dbMediaToAnilistShape(cached: AnimeWithDetailCache): AnimeDetail
     episodes: cached.episodes,
     chapters: cached.chapters,
     volumes: cached.volumes,
-    status: cached.status,
+    status: cached.airingStatus ?? cached.status,
     season: cached.season,
     seasonYear: cached.seasonYear,
     averageScore: cached.averageScore,
@@ -212,7 +215,10 @@ export function dbMediaToAnilistShape(cached: AnimeWithDetailCache): AnimeDetail
       edges: cached.relationsFrom.map(dbRelationToEdge),
     },
     externalLinks: cached.streamingLinks.map(dbStreamingToExternalLink),
-    nextAiringEpisode: null,
+    nextAiringEpisode:
+      cached.nextAiringEp != null && cached.nextAiringAt != null
+        ? { episode: cached.nextAiringEp, airingAt: cached.nextAiringAt }
+        : null,
     streamingEpisodes: [],
     recommendations: { nodes: [] },
     studios: { nodes: [] },
@@ -416,7 +422,8 @@ function scheduleDetailRefresh(mediaId: number, type: "ANIME" | "MANGA"): void {
 
 /**
  * Serve detail pages from DB when present — never wait on AniList for a warm cache.
- * Cold titles still hit AniList once.
+ * Cold titles still hit AniList once. RELEASING anime missing airing data get a
+ * lightweight next-episode fetch so the sidebar countdown can render.
  */
 export async function resolveMediaDetailForPage(
   mediaId: number,
@@ -429,7 +436,39 @@ export async function resolveMediaDetailForPage(
 
   if (cached?.title && cached.coverImage) {
     scheduleDetailRefresh(mediaId, type);
-    return dbMediaToAnilistShape(cached);
+    let media = dbMediaToAnilistShape(cached);
+
+    const looksReleasing =
+      type === "ANIME" &&
+      (cached.status === "RELEASING" || cached.airingStatus === "RELEASING");
+    if (looksReleasing && media.nextAiringEpisode == null) {
+      try {
+        const [airing] = await getAiringData([mediaId]);
+        if (airing) {
+          media = {
+            ...media,
+            status: airing.status ?? media.status,
+            episodes: airing.episodes ?? media.episodes,
+            nextAiringEpisode: airing.nextAiringEpisode,
+          };
+          void prisma.anime
+            .update({
+              where: { id: mediaId },
+              data: {
+                airingStatus: airing.status,
+                nextAiringEp: airing.nextAiringEpisode?.episode ?? null,
+                nextAiringAt: airing.nextAiringEpisode?.airingAt ?? null,
+                ...(airing.episodes != null ? { episodes: airing.episodes } : {}),
+              },
+            })
+            .catch(() => undefined);
+        }
+      } catch (err) {
+        console.error(`[airing-fill] anime/${mediaId}`, err);
+      }
+    }
+
+    return media;
   }
 
   const anilistMedia = await getMediaById(mediaId);

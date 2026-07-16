@@ -66,20 +66,3 @@ export function filterStreamingLinks(
     .filter((link) => sites.has(link.site) && !link.isDisabled && link.url)
     .sort((a, b) => (priority[a.site] ?? 99) - (priority[b.site] ?? 99));
 }
-
-export function buildSearchFallbacks(
-  title: string,
-  mediaType: "ANIME" | "MANGA"
-): StreamingLink[] {
-  const encoded = encodeURIComponent(title);
-  if (mediaType === "ANIME") {
-    return [
-      { site: "Crunchyroll", url: `https://www.crunchyroll.com/search?q=${encoded}` },
-      { site: "Netflix", url: `https://www.netflix.com/search?q=${encoded}` },
-    ];
-  }
-  return [
-    { site: "MangaPlus", url: `https://mangaplus.shueisha.co.jp/search_result?keyword=${encoded}` },
-    { site: "Viz", url: `https://www.viz.com/search?word=${encoded}` },
-  ];
-}

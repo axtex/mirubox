@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/browse-sync",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/episode-check",
+      "schedule": "0 14 * * *"
     }
   ]
 }

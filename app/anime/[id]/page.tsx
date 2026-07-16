@@ -7,7 +7,7 @@ import {
   resolveMediaDetailForPage,
   resolveMediaForMetadata,
 } from "@/lib/cache-media-details";
-import { filterStreamingLinks, buildSearchFallbacks } from "@/lib/streaming-links";
+import { filterStreamingLinks } from "@/lib/streaming-links";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
@@ -153,9 +153,6 @@ export default async function AnimeDetailPage({ params }: PageProps) {
   );
 
   const streamingLinks = filterStreamingLinks(media.externalLinks, "ANIME");
-  const displayLinks = streamingLinks.length > 0
-    ? streamingLinks
-    : buildSearchFallbacks(title, "ANIME");
 
   const recs = media.recommendations.nodes
     .map((n) => n.mediaRecommendation)
@@ -224,9 +221,9 @@ export default async function AnimeDetailPage({ params }: PageProps) {
       details={sidebarDetails}
       watchSection={{
         title: "WHERE TO WATCH",
-        links: displayLinks,
+        links: streamingLinks,
         isFallback: streamingLinks.length === 0,
-        fallbackNote: "No direct streaming links found. Search on:",
+        fallbackNote: "No direct streaming links found.",
       }}
       nextEpisodeLabel={airingLabel}
     />

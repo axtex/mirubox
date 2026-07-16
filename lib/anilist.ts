@@ -815,6 +815,57 @@ export async function getTopRated(
   return data.Page;
 }
 
+export interface AiringMedia {
+  id: number;
+  status: string;
+  episodes: number | null;
+  nextAiringEpisode: {
+    episode: number;
+    airingAt: number;
+  } | null;
+}
+
+const GET_AIRING_DATA = `
+  query ($ids: [Int]) {
+    Page(perPage: 50) {
+      media(id_in: $ids, type: ANIME) {
+        id
+        status
+        episodes
+        nextAiringEpisode {
+          episode
+          airingAt
+        }
+      }
+    }
+  }
+`;
+
+/** Lightweight airing-status fetch for episode-drop notifications. Batches of 50. */
+export async function getAiringData(mediaIds: number[]): Promise<AiringMedia[]> {
+  if (mediaIds.length === 0) return [];
+
+  const results: AiringMedia[] = [];
+
+  for (let i = 0; i < mediaIds.length; i += 50) {
+    const batch = mediaIds.slice(i, i + 50);
+    try {
+      const data = await anilistRequest<{ Page: { media: AiringMedia[] } }>(
+        GET_AIRING_DATA,
+        { ids: batch },
+      );
+      results.push(...(data?.Page?.media ?? []));
+      if (i + 50 < mediaIds.length) {
+        await sleep(1000);
+      }
+    } catch (err) {
+      console.error("[getAiringData] batch failed:", err);
+    }
+  }
+
+  return results;
+}
+
 export {
   getCurrentSeason,
   getNextSeason,

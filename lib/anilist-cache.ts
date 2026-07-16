@@ -48,11 +48,15 @@ function toDbAnime(media: AnimeCard | AnimeDetail) {
   // Only write detail-only fields when we have a full Media payload —
   // card-only upserts must not null out source/duration/meanScore.
   if ("description" in media) {
+    const detail = media as AnimeDetail;
     return {
       ...base,
-      source: media.source ?? null,
-      duration: media.duration ?? null,
-      meanScore: media.meanScore ?? null,
+      source: detail.source ?? null,
+      duration: detail.duration ?? null,
+      meanScore: detail.meanScore ?? null,
+      airingStatus: detail.status ?? null,
+      nextAiringEp: detail.nextAiringEpisode?.episode ?? null,
+      nextAiringAt: detail.nextAiringEpisode?.airingAt ?? null,
     };
   }
 

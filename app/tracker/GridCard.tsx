@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function GridCard({ entry, onUpdate, onRemove, onFavouriteChange }: Props) {
-  const { animeId, anime, status, mediaType, progress } = entry;
+  const { animeId, anime, mediaType, progress } = entry;
   const title = anime.titleEnglish ?? anime.title;
   const isManga = mediaType === "MANGA";
   const href = isManga ? `/manga/${animeId}` : `/anime/${animeId}`;
@@ -56,21 +56,26 @@ export function GridCard({ entry, onUpdate, onRemove, onFavouriteChange }: Props
             iconSize="sm"
             opaque
             onTrackerChange={(nextStatus) => {
-              if (nextStatus === null) onRemove(animeId);
-              else onUpdate(animeId, { status: nextStatus });
+              if (nextStatus === null) {
+                onRemove(animeId);
+                return;
+              }
+              if (nextStatus === "COMPLETED" && total != null && total > 0) {
+                onUpdate(animeId, { status: nextStatus, progress: total });
+                return;
+              }
+              onUpdate(animeId, { status: nextStatus });
             }}
             onFavouriteChange={(isFavourite) => onFavouriteChange?.(animeId, isFavourite)}
           />
         </div>
 
-        {status === "IN_PROGRESS" && progress > 0 && (
-          <div
-            className="absolute bottom-0 left-0 right-0 z-[2] pointer-events-none"
-            style={{ height: 3, background: "rgba(0,0,0,0.45)" }}
-          >
-            <div style={{ height: "100%", width: `${progressPct}%`, background: "var(--primary)" }} />
-          </div>
-        )}
+        <div
+          className="absolute bottom-0 left-0 right-0 z-[2] pointer-events-none"
+          style={{ height: 3, background: "rgba(0,0,0,0.45)" }}
+        >
+          <div style={{ height: "100%", width: `${progressPct}%`, background: "var(--primary)" }} />
+        </div>
       </div>
 
       <div style={{ padding: "6px 8px 8px" }}>

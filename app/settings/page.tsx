@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
+import { EpisodeNotificationsToggle } from "@/components/settings/EpisodeNotificationsToggle";
 
 export const metadata: Metadata = {
   title: "Settings — mirubox",
@@ -30,7 +31,13 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, email: true, displayName: true, username: true },
+    select: {
+      name: true,
+      email: true,
+      displayName: true,
+      username: true,
+      episodeNotifications: true,
+    },
   });
 
   const displayName = user?.displayName || user?.name || user?.email?.split("@")[0] || "";
@@ -64,6 +71,9 @@ export default async function SettingsPage() {
         </SettingsSection>
 
         <SettingsSection title="NOTIFICATIONS">
+          <EpisodeNotificationsToggle
+            initialValue={user?.episodeNotifications ?? true}
+          />
           <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-subtle)" }}>
             Email preferences coming soon.
           </p>

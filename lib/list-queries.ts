@@ -21,7 +21,7 @@ export async function getLists(
     take: 20,
     orderBy: { createdAt: "desc" },
     include: {
-      user: { select: { name: true } },
+      user: { select: { username: true } },
       _count: { select: { entries: true, likes: true } },
       entries: {
         take: 4,
@@ -58,7 +58,7 @@ export async function getLists(
     title: list.title,
     description: list.description,
     isOfficial: list.isOfficial,
-    username: list.user?.name ?? null,
+    username: list.user?.username ?? null,
     entryCount: list._count.entries,
     likeCount: list._count.likes,
     coverPosters: list.entries.map((e) => mediaMap.get(e.mediaId) ?? null),

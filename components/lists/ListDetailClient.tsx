@@ -287,16 +287,20 @@ export function ListDetailClient({
           <span aria-hidden>·</span>
           <span>
             by{" "}
-            <Link
-              href={`/u/${username}`}
-              style={{
-                color: "var(--fg)",
-                textDecoration: "underline",
-                textUnderlineOffset: 2,
-              }}
-            >
-              {username}
-            </Link>
+            {isOfficial ? (
+              <span style={{ color: "var(--fg)" }}>{username}</span>
+            ) : (
+              <Link
+                href={`/u/${username}`}
+                style={{
+                  color: "var(--fg)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: 2,
+                }}
+              >
+                {username}
+              </Link>
+            )}
           </span>
           <span aria-hidden>·</span>
           <span>updated {updatedLabel}</span>

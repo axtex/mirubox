@@ -46,7 +46,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     orderBy: { createdAt: "desc" },
     include: {
-      user: { select: { name: true } },
+      user: { select: { username: true } },
       _count: { select: { entries: true, likes: true } },
       entries: {
         take: 4,
@@ -102,7 +102,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     isOfficial: list.isOfficial,
     isPublic: list.isPublic,
     userId: list.userId,
-    username: list.user?.name ?? null,
+    username: list.user?.username ?? null,
     entryCount: list._count.entries,
     likeCount: list._count.likes,
     isLikedByCurrentUser: Array.isArray(list.likes) ? list.likes.length > 0 : false,

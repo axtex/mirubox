@@ -21,11 +21,15 @@ interface ScrollableCardRowProps {
 const GAP = 8;
 const IMG_H = 96;
 
-function getInitial(name: string): string {
-  return name.trim().charAt(0).toUpperCase() || "?";
+/** AniList serves default.jpg when a character/staff has no photo. */
+function hasRealImage(url: string | null): url is string {
+  if (!url) return false;
+  return !/\/default\.jpg(?:\?|$)/i.test(url);
 }
 
 function Card({ item, cardWidth }: { item: ScrollCardItem; cardWidth: number }) {
+  const showImage = hasRealImage(item.image);
+
   return (
     <div className="flex flex-col shrink-0" style={{ width: cardWidth }}>
       <div
@@ -34,11 +38,12 @@ function Card({ item, cardWidth }: { item: ScrollCardItem; cardWidth: number }) 
           width: cardWidth,
           height: IMG_H,
           borderRadius: 2,
-          border: "1px solid #1f1f22",
+          border: "1px solid var(--bg-card)",
           marginBottom: 4,
+          background: "var(--bg-elevated)",
         }}
       >
-        {item.image ? (
+        {showImage ? (
           <Image
             src={item.image}
             alt={item.name}
@@ -48,11 +53,22 @@ function Card({ item, cardWidth }: { item: ScrollCardItem; cardWidth: number }) 
           />
         ) : (
           <div
-            className="w-full h-full flex items-center justify-center"
-            style={{ background: "#1b1b1e" }}
+            className="w-full h-full flex items-center justify-center px-1"
+            style={{ background: "var(--primary-dim)" }}
           >
-            <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 12, color: "#3a3a45" }}>
-              {getInitial(item.name)}
+            <span
+              style={{
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 8,
+                fontWeight: 500,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                textAlign: "center",
+                lineHeight: 1.35,
+                color: "color-mix(in srgb, var(--primary) 55%, var(--fg-muted))",
+              }}
+            >
+              no image
             </span>
           </div>
         )}
@@ -62,7 +78,7 @@ function Card({ item, cardWidth }: { item: ScrollCardItem; cardWidth: number }) 
         style={{
           fontSize: 9,
           fontWeight: 500,
-          color: "#e4e1e6",
+          color: "var(--fg)",
           maxWidth: cardWidth,
           marginBottom: 1,
         }}
@@ -74,7 +90,7 @@ function Card({ item, cardWidth }: { item: ScrollCardItem; cardWidth: number }) 
         style={{
           fontSize: 8,
           fontFamily: "var(--font-space-mono)",
-          color: "#5a5a65",
+          color: "var(--fg-subtle)",
           maxWidth: cardWidth,
         }}
       >

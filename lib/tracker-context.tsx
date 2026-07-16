@@ -36,6 +36,8 @@ interface TrackerContextValue {
   favouriteIds: Set<number>;
   addToTracker: (mediaId: number, mediaType: string, status?: string) => Promise<void>;
   updateStatus: (mediaId: number, status: string) => Promise<void>;
+  /** Update status badge locally after progress/API already persisted the change. */
+  syncTrackerStatus: (mediaId: number, status: string) => void;
   removeFromTracker: (mediaId: number) => Promise<void>;
   toggleFavourite: (mediaId: number, mediaType: string) => Promise<void>;
 }
@@ -46,6 +48,7 @@ const TrackerContext = createContext<TrackerContextValue>({
   favouriteIds: new Set(),
   addToTracker: async () => {},
   updateStatus: async () => {},
+  syncTrackerStatus: () => {},
   removeFromTracker: async () => {},
   toggleFavourite: async () => {},
 });
@@ -153,6 +156,13 @@ export function TrackerProvider({
     }
   }, [showToast]);
 
+  const syncTrackerStatus = useCallback((mediaId: number, status: string) => {
+    const prev = mapRef.current.get(mediaId);
+    setTrackerMap((m) =>
+      new Map(m).set(mediaId, { status, favourite: prev?.favourite ?? false }),
+    );
+  }, []);
+
   const removeFromTracker = useCallback(async (mediaId: number) => {
     const prev = mapRef.current.get(mediaId);
     setTrackerMap((m) => {
@@ -212,7 +222,7 @@ export function TrackerProvider({
 
   return (
     <TrackerContext.Provider
-      value={{ isLoggedIn, trackerMap, favouriteIds, addToTracker, updateStatus, removeFromTracker, toggleFavourite }}
+      value={{ isLoggedIn, trackerMap, favouriteIds, addToTracker, updateStatus, syncTrackerStatus, removeFromTracker, toggleFavourite }}
     >
       {children}
     </TrackerContext.Provider>

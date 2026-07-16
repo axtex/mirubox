@@ -143,7 +143,7 @@ async function loadLists(
       include: {
         list: {
           include: {
-            user: { select: { username: true, name: true } },
+            user: { select: { username: true } },
             _count: { select: { entries: true, likes: true } },
             entries: {
               take: 4,
@@ -199,7 +199,7 @@ async function loadLists(
   return {
     yourLists: userLists.map((l) => toCard(l, null)),
     likedLists: liked.map((ll) =>
-      toCard(ll.list, ll.list.user?.username ?? ll.list.user?.name ?? null)
+      toCard(ll.list, ll.list.user?.username ?? null)
     ),
   };
 }

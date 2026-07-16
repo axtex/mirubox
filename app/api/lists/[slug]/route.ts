@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext): Promise<NextRes
   const list = await prisma.list.findUnique({
     where: { slug },
     include: {
-      user: { select: { name: true } },
+      user: { select: { username: true } },
       _count: { select: { likes: true } },
       entries: {
         orderBy: { order: "asc" },
@@ -56,7 +56,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext): Promise<NextRes
     isOfficial: list.isOfficial,
     isPublic: list.isPublic,
     userId: list.userId,
-    username: list.user?.name ?? null,
+    username: list.user?.username ?? null,
     likeCount: list._count.likes,
     isLikedByCurrentUser: Array.isArray(list.likes) ? list.likes.length > 0 : false,
     isOwner: !list.isOfficial && list.userId === session?.user?.id,

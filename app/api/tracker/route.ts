@@ -126,22 +126,87 @@ export async function POST(req: Request) {
       ? body.mediaType
       : (cached?.type === "MANGA" ? "MANGA" : "ANIME");
 
+  // Prefer explicit total, then stored entry total, then media episode/chapter count.
+  const resolvedTotal: number | null =
+    total !== undefined
+      ? total
+      : existing?.total != null && existing.total > 0
+        ? existing.total
+        : mediaType === "MANGA"
+          ? (cached?.chapters ?? null)
+          : (cached?.episodes ?? null);
+
+  let nextStatus = statusStr;
+  const becomingCompleted =
+    nextStatus === "COMPLETED" && (!existing || existing.status !== "COMPLETED");
+
+  // Marking COMPLETED fills progress to the known total (e.g. 12/12).
+  let nextProgress: number | undefined;
+  if (becomingCompleted && resolvedTotal != null && resolvedTotal > 0) {
+    nextProgress = resolvedTotal;
+  } else if (progress !== null) {
+    nextProgress = progress;
+  }
+
+  // Lowering EP/CH below total while Completed → drop back to In Progress.
+  const finalProgressForCheck =
+    nextProgress ?? existing?.progress ?? 0;
+  if (
+    nextStatus === "COMPLETED" &&
+    resolvedTotal != null &&
+    resolvedTotal > 0 &&
+    finalProgressForCheck < resolvedTotal
+  ) {
+    nextStatus = "IN_PROGRESS";
+  }
+
+  // Hitting the full total → Completed (e.g. 12/12).
+  if (
+    nextStatus !== "FAVOURITE" &&
+    resolvedTotal != null &&
+    resolvedTotal > 0 &&
+    finalProgressForCheck >= resolvedTotal
+  ) {
+    nextStatus = "COMPLETED";
+    if (nextProgress === undefined && becomingCompleted === false) {
+      // Keep progress at total when promoting via count.
+      nextProgress = resolvedTotal;
+    }
+  }
+
+  // Any EP/CH change while Planned → In Progress (full total already becomes Completed above).
+  if (
+    nextStatus === "PLANNED" &&
+    progress !== null &&
+    (!existing || existing.status === "PLANNED") &&
+    (!existing || progress !== existing.progress)
+  ) {
+    nextStatus = "IN_PROGRESS";
+  }
+
+  const createProgress = nextProgress ?? 0;
+  const updateProgress = nextProgress;
+
   const entry = await prisma.trackerEntry.upsert({
     where: { userId_animeId: { userId: session.user.id, animeId } },
     create: {
       userId: session.user.id,
       animeId,
-      status: statusStr,
+      status: nextStatus,
       mediaType,
-      progress: progress ?? 0,
-      ...(total !== undefined ? { total } : {}),
+      progress: createProgress,
+      ...(resolvedTotal != null ? { total: resolvedTotal } : total !== undefined ? { total } : {}),
       ...(favourite !== undefined ? { favourite } : {}),
     },
     update: {
-      status: statusStr,
+      status: nextStatus,
       mediaType,
-      ...(progress !== null ? { progress } : {}),
-      ...(total !== undefined ? { total } : {}),
+      ...(updateProgress !== undefined ? { progress: updateProgress } : {}),
+      ...(resolvedTotal != null && (nextStatus === "COMPLETED" || total !== undefined)
+        ? { total: resolvedTotal }
+        : total !== undefined
+          ? { total }
+          : {}),
       ...(favourite !== undefined ? { favourite } : {}),
     },
   });
@@ -154,7 +219,7 @@ export async function POST(req: Request) {
     seasonYear: cached?.seasonYear ?? null,
   };
 
-  if (statusStr !== "FAVOURITE") {
+  if (nextStatus !== "FAVOURITE") {
     if (!existing) {
       await initSeasonChallengeStart(session.user.id);
 
@@ -164,7 +229,7 @@ export async function POST(req: Request) {
         if (result) notifications.push(...result.notifications);
       }
 
-      if (statusStr === "COMPLETED") {
+      if (nextStatus === "COMPLETED") {
         const result = await awardXP(session.user.id, "MARK_COMPLETED_DIRECT", { mediaId: animeId });
         if (result) notifications.push(...result.notifications);
         const sync = await syncSeasonChallenge(session.user.id, seasonMeta);
@@ -177,8 +242,8 @@ export async function POST(req: Request) {
       const wasPlanned = existing.status === "PLANNED";
       const wasWatching = existing.status === "IN_PROGRESS";
       const wasCompleted = existing.status === "COMPLETED";
-      const nowWatching = statusStr === "IN_PROGRESS";
-      const nowCompleted = statusStr === "COMPLETED";
+      const nowWatching = nextStatus === "IN_PROGRESS";
+      const nowCompleted = nextStatus === "COMPLETED";
 
       if (wasPlanned && nowWatching) {
         const result = await awardXP(session.user.id, "MARK_IN_PROGRESS", { mediaId: animeId });

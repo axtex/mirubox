@@ -11,6 +11,7 @@ import type { EntryData } from "./types";
 import { TRACKER_BADGE } from "@/components/tracker/badgeStyles";
 import { ProgressCountInput } from "@/components/tracker/ProgressCountInput";
 import { trackerProgressPct } from "@/lib/tracker-progress";
+import { useTracker } from "@/lib/tracker-context";
 
 interface Props {
   entry: EntryData;
@@ -21,6 +22,7 @@ interface Props {
 
 export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props) {
   const { animeId, anime, status, mediaType, progress, userScore, hasReview } = entry;
+  const { syncTrackerStatus } = useTracker();
   const title = anime.titleEnglish ?? anime.title;
   const isManga = mediaType === "MANGA";
   const href = isManga ? `/manga/${animeId}` : `/anime/${animeId}`;
@@ -40,8 +42,16 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
 
   const trackerCallbacks = {
     onTrackerChange: (nextStatus: string | null) => {
-      if (nextStatus === null) onRemove(animeId);
-      else onUpdate(animeId, { status: nextStatus });
+      if (nextStatus === null) {
+        onRemove(animeId);
+        return;
+      }
+      if (nextStatus === "COMPLETED" && total != null && total > 0) {
+        setLocalProgress(total);
+        onUpdate(animeId, { status: nextStatus, progress: total });
+        return;
+      }
+      onUpdate(animeId, { status: nextStatus });
     },
     onFavouriteChange: (isFavourite: boolean) => onFavouriteChange?.(animeId, isFavourite),
   };
@@ -73,11 +83,18 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = null;
     if (p === progress) return;
-    onUpdate(animeId, { progress: p });
+    let nextStatus = status;
+    if (total != null && total > 0) {
+      if (status === "COMPLETED" && p < total) nextStatus = "IN_PROGRESS";
+      else if (status !== "COMPLETED" && p >= total) nextStatus = "COMPLETED";
+    }
+    if (nextStatus === "PLANNED") nextStatus = "IN_PROGRESS";
+    onUpdate(animeId, { progress: p, ...(nextStatus !== status ? { status: nextStatus } : {}) });
+    if (nextStatus !== status) syncTrackerStatus(animeId, nextStatus);
     await fetch("/api/tracker", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ animeId, status, progress: p }),
+      body: JSON.stringify({ animeId, status: nextStatus, progress: p }),
     });
   }
 
@@ -155,49 +172,45 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
       </div>
 
       {/* Mobile-only progress bar */}
-      {status === "IN_PROGRESS" && (
-        <div className="flex md:hidden absolute left-0 right-0 bottom-0" style={{ height: 2 }}>
-          <div style={{ height: "100%", width: `${progressPct}%`, background: "var(--primary)" }} />
-        </div>
-      )}
+      <div className="flex md:hidden absolute left-0 right-0 bottom-0" style={{ height: 2 }}>
+        <div style={{ height: "100%", width: `${progressPct}%`, background: "var(--primary)" }} />
+      </div>
 
       {/* Progress + rating + review + status/heart */}
       <div className="flex items-center gap-3 shrink-0">
         <div className="hidden md:flex items-center gap-3">
-        {status === "IN_PROGRESS" && (
-          <div
-            className="flex items-center gap-1.5 shrink-0"
-            style={{ height: TRACKER_BADGE.minHeight }}
-            onClick={(e) => e.stopPropagation()}
+        <div
+          className="flex items-center gap-1.5 shrink-0"
+          style={{ height: TRACKER_BADGE.minHeight }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span
+            className="shrink-0 whitespace-nowrap inline-flex items-center gap-1"
+            style={{
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 10,
+              color: "var(--fg-muted)",
+              lineHeight: 1,
+            }}
           >
-            <span
-              className="shrink-0 whitespace-nowrap inline-flex items-center gap-1"
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 10,
-                color: "var(--fg-muted)",
-                lineHeight: 1,
-              }}
-            >
-              {progressLabel}
-              <ProgressCountInput
-                value={localProgress}
-                total={total}
-                ariaLabel={`${progressLabel} progress`}
-                onCommit={commitProgressInput}
-              />
-              {total ? ` / ${total}` : ""}
-            </span>
-            <button type="button" onClick={() => adjustProgress(1)} className="shrink-0" style={btnStyle} aria-label="Increase progress">+</button>
-            <div
-              className="shrink-0"
-              style={{ width: 48, height: 4, background: "var(--border)", borderRadius: 2, overflow: "hidden" }}
-            >
-              <div style={{ height: "100%", width: `${progressPct}%`, background: "var(--primary)", borderRadius: 2 }} />
-            </div>
-            <button type="button" onClick={() => adjustProgress(-1)} className="shrink-0" style={btnStyle} aria-label="Decrease progress">−</button>
+            {progressLabel}
+            <ProgressCountInput
+              value={localProgress}
+              total={total}
+              ariaLabel={`${progressLabel} progress`}
+              onCommit={commitProgressInput}
+            />
+            {total ? ` / ${total}` : ""}
+          </span>
+          <button type="button" onClick={() => adjustProgress(1)} className="shrink-0" style={btnStyle} aria-label="Increase progress">+</button>
+          <div
+            className="shrink-0"
+            style={{ width: 48, height: 4, background: "var(--border)", borderRadius: 2, overflow: "hidden" }}
+          >
+            <div style={{ height: "100%", width: `${progressPct}%`, background: "var(--primary)", borderRadius: 2 }} />
           </div>
-        )}
+          <button type="button" onClick={() => adjustProgress(-1)} className="shrink-0" style={btnStyle} aria-label="Decrease progress">−</button>
+        </div>
 
         <div className="relative flex items-center shrink-0">
           <RatingBadge

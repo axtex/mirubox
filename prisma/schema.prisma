@@ -31,6 +31,8 @@ model User {
   lastMalImport     DateTime?
   anilistUsername   String?
 
+  episodeNotifications Boolean @default(true)
+
   accounts             Account[]
   sessions             Session[]
   trackerEntries       TrackerEntry[]
@@ -168,6 +170,10 @@ model Anime {
   charactersCachedAt  DateTime?
   relationsCachedAt   DateTime?
   streamingCachedAt   DateTime?
+  airingStatus        String?
+  nextAiringEp        Int?
+  nextAiringAt        Int?
+  episodesRefreshedAt DateTime?
   cachedAt     DateTime @default(now())
   embedding    Unsupported("vector(1536)")?
 
@@ -261,16 +267,17 @@ model StreamingLink {
 }
 
 model TrackerEntry {
-  id        String   @id @default(cuid())
-  userId    String
-  animeId   Int
-  status    String   @default("PLANNED")
-  mediaType String   @default("ANIME")
-  progress  Int      @default(0)
-  total     Int?
-  favourite Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  userId          String
+  animeId         Int
+  status          String   @default("PLANNED")
+  mediaType       String   @default("ANIME")
+  progress        Int      @default(0)
+  total           Int?
+  favourite       Boolean  @default(false)
+  lastNotifiedEp  Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   anime Anime @relation(fields: [animeId], references: [id])
@@ -430,6 +437,7 @@ enum NotifType {
   RANK_UP
   LIST_LIKED
   NEW_FOLLOWER
+  EPISODE_AVAILABLE
 }
 
 enum XPAction {

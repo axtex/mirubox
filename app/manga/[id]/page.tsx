@@ -7,7 +7,7 @@ import {
   resolveMediaDetailForPage,
   resolveMediaForMetadata,
 } from "@/lib/cache-media-details";
-import { filterStreamingLinks, buildSearchFallbacks } from "@/lib/streaming-links";
+import { filterStreamingLinks } from "@/lib/streaming-links";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
@@ -153,9 +153,6 @@ export default async function MangaDetailPage({ params }: PageProps) {
   );
 
   const readingLinks = filterStreamingLinks(media.externalLinks, "MANGA");
-  const displayLinks = readingLinks.length > 0
-    ? readingLinks
-    : buildSearchFallbacks(title, "MANGA");
 
   const recs = media.recommendations.nodes
     .map((n) => n.mediaRecommendation)
@@ -205,9 +202,9 @@ export default async function MangaDetailPage({ params }: PageProps) {
       details={sidebarDetails}
       watchSection={{
         title: "WHERE TO READ",
-        links: displayLinks,
+        links: readingLinks,
         isFallback: readingLinks.length === 0,
-        fallbackNote: "No direct reading links found. Search on:",
+        fallbackNote: "No direct reading links found.",
       }}
     />
   );

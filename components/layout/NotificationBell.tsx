@@ -17,6 +17,7 @@ interface NotificationItem {
   read: boolean;
   createdAt: string;
   listId: string | null;
+  mediaId: number | null;
   fromUser: { username: string | null; displayName: string | null; avatarUrl: string | null } | null;
   list: { slug: string } | null;
 }
@@ -30,6 +31,8 @@ function getLinkTarget(n: NotificationItem): string | null {
       return n.list?.slug ? `/lists/${n.list.slug}` : null;
     case "NEW_FOLLOWER":
       return n.fromUser?.username ? `/u/${n.fromUser.username}` : null;
+    case "EPISODE_AVAILABLE":
+      return n.mediaId != null ? `/anime/${n.mediaId}` : null;
     default:
       return null;
   }

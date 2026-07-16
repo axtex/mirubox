@@ -9,6 +9,7 @@ interface PatchBody {
   displayName?: unknown;
   avatarUrl?: unknown;
   onboarded?: unknown;
+  episodeNotifications?: unknown;
 }
 
 export async function PATCH(req: Request) {
@@ -29,6 +30,7 @@ export async function PATCH(req: Request) {
     name?: string;
     avatarUrl?: string | null;
     onboarded?: boolean;
+    episodeNotifications?: boolean;
   } = {};
 
   if (body.username !== undefined) {
@@ -72,6 +74,16 @@ export async function PATCH(req: Request) {
     data.onboarded = Boolean(body.onboarded);
   }
 
+  if (body.episodeNotifications !== undefined) {
+    if (typeof body.episodeNotifications !== "boolean") {
+      return NextResponse.json(
+        { error: "episodeNotifications must be a boolean" },
+        { status: 400 },
+      );
+    }
+    data.episodeNotifications = body.episodeNotifications;
+  }
+
   if (data.onboarded === true) {
     const existing = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -92,6 +104,7 @@ export async function PATCH(req: Request) {
       displayName: true,
       avatarUrl: true,
       onboarded: true,
+      episodeNotifications: true,
     },
   });
 

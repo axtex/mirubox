@@ -58,7 +58,7 @@ export function TrackerSidebarBlock({
   initialRating,
   initialReview,
 }: TrackerSidebarBlockProps) {
-  const { trackerMap, isLoggedIn } = useTracker();
+  const { trackerMap, isLoggedIn, syncTrackerStatus } = useTracker();
   const { showToast } = useToast();
 
   const entry = trackerMap.get(mediaId) ?? null;
@@ -97,10 +97,19 @@ export function TrackerSidebarBlock({
     const clamped = Math.max(0, total !== null ? Math.min(total, next) : next);
     if (clamped === progress) return;
     const prev = progress;
+    let nextStatus = status;
+    if (total != null && total > 0) {
+      if (status === "COMPLETED" && clamped < total) nextStatus = "IN_PROGRESS";
+      else if (status !== "COMPLETED" && clamped >= total) nextStatus = "COMPLETED";
+    }
+    if (nextStatus === "PLANNED") nextStatus = "IN_PROGRESS";
     setProgress(clamped);
     try {
-      const ok = await patchProgress(clamped, status);
+      const ok = await patchProgress(clamped, nextStatus);
       if (!ok) throw new Error("Failed to update progress");
+      if (nextStatus !== status) {
+        syncTrackerStatus(mediaId, nextStatus);
+      }
     } catch {
       setProgress(prev);
       showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
@@ -153,6 +162,11 @@ export function TrackerSidebarBlock({
           iconSize="md"
           sidebar
           onPickerOpenChange={setPickerOpen}
+          onTrackerChange={(nextStatus) => {
+            if (nextStatus === "COMPLETED" && total != null && total > 0) {
+              setProgress(total);
+            }
+          }}
         />
 
         {isLoggedIn && isTracked && status && !pickerOpen && (

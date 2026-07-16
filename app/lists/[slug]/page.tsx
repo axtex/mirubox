@@ -40,7 +40,7 @@ export default async function ListDetailPage({ params }: PageProps) {
   const list = await prisma.list.findUnique({
     where: { slug },
     include: {
-      user: { select: { name: true } },
+      user: { select: { username: true } },
       _count: { select: { likes: true } },
       entries: {
         orderBy: { order: "asc" },
@@ -114,7 +114,7 @@ export default async function ListDetailPage({ params }: PageProps) {
     })
     .filter((x): x is { card: AnimeCardType; note: string | null } => x !== null);
 
-  const username = list.isOfficial ? "mirubox" : (list.user?.name ?? "unknown");
+  const username = list.isOfficial ? "mirubox" : (list.user?.username ?? "unknown");
   const mediaType =
     list.entries[0]?.mediaType === "MANGA" ? ("MANGA" as const) : ("ANIME" as const);
 

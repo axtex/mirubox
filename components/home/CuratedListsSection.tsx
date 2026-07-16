@@ -16,7 +16,7 @@ async function fetchTopLists() {
     take: 8,
     orderBy: { createdAt: "desc" },
     include: {
-      user: { select: { name: true } },
+      user: { select: { username: true } },
       _count: { select: { entries: true, likes: true } },
       entries: {
         take: 4,
@@ -45,7 +45,7 @@ async function fetchTopLists() {
         title: l.title,
         description: l.description,
         isOfficial: l.isOfficial,
-        username: l.user?.name ?? null,
+        username: l.user?.username ?? null,
         entryCount: l._count.entries,
         likeCount: l._count.likes,
         coverPosters: l.entries.map((e) => mediaMap.get(e.mediaId) ?? null),
