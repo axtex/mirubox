@@ -28,7 +28,7 @@ function hasRealImage(url: string | null): url is string {
 }
 
 function Card({ item, cardWidth }: { item: ScrollCardItem; cardWidth: number }) {
-  const showImage = hasRealImage(item.image);
+  const image = hasRealImage(item.image) ? item.image : null;
 
   return (
     <div className="flex flex-col shrink-0" style={{ width: cardWidth }}>
@@ -43,9 +43,9 @@ function Card({ item, cardWidth }: { item: ScrollCardItem; cardWidth: number }) 
           background: "var(--bg-elevated)",
         }}
       >
-        {showImage ? (
+        {image ? (
           <Image
-            src={item.image}
+            src={image}
             alt={item.name}
             fill
             sizes={`${cardWidth}px`}
