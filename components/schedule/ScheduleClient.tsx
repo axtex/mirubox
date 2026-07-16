@@ -120,22 +120,6 @@ function GroupLabel({
   );
 }
 
-function SparseNote(): React.JSX.Element {
-  return (
-    <p
-      style={{
-        fontFamily: "var(--font-space-mono)",
-        fontSize: 9,
-        color: "var(--fg-subtle)",
-        textAlign: "center",
-        padding: "8px 0 4px",
-      }}
-    >
-      Schedule data grows as you track more titles. Episode times update daily.
-    </p>
-  );
-}
-
 function EmptyState({
   title,
   body,
@@ -269,8 +253,6 @@ export function ScheduleClient({
     return Object.entries(grouped);
   }, [recent]);
 
-  const activeCount = view === "upcoming" ? upcoming.length : recent.length;
-
   return (
     <>
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-4 mb-5">
@@ -307,8 +289,6 @@ export function ScheduleClient({
           <span style={{ fontSize: 9, opacity: 0.6 }}>{recent.length}</span>
         </button>
       </div>
-
-      {activeCount > 0 && activeCount < 3 && <SparseNote />}
 
       {view === "upcoming" ? (
         upcoming.length === 0 ? (
