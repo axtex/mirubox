@@ -87,14 +87,14 @@ function TitleCard({
         )}
         {score != null && (
           <span
-            className="absolute top-1.5 right-1.5"
+            className="absolute top-1.5 right-1.5 leading-none font-bold pointer-events-none"
             style={{
               fontFamily: "var(--font-space-mono)",
-              fontSize: 9,
-              color: "var(--fg)",
-              background: "rgba(0,0,0,0.65)",
-              padding: "2px 4px",
+              fontSize: 10,
+              background: "var(--primary)",
+              color: "#fff",
               borderRadius: 2,
+              padding: "2px 5px",
             }}
           >
             {score}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { SeasonChallengeModal } from "@/components/home/SeasonChallengeModal";
 import { useTracker } from "@/lib/tracker-context";
 import {
@@ -13,6 +14,7 @@ import {
 
 export function SeasonChallengeHost(): React.JSX.Element | null {
   const { isLoggedIn } = useTracker();
+  const pathname = usePathname();
   const [data, setData] = useState<ContinueStripSeasonChallenge | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -31,17 +33,18 @@ export function SeasonChallengeHost(): React.JSX.Element | null {
   }, []);
 
   useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
     if (!isLoggedIn) return;
 
     const onSync = (event: Event) => {
       const detail = (event as CustomEvent<SeasonChallengeSyncDetail>).detail;
       if (detail?.challenge) {
         setData(detail.challenge);
-        if (detail.justEarned && detail.challenge.isEarned) {
-          setOpen(true);
-          return;
-        }
       }
+      // Always refresh so earned popups get snapshotted completed titles.
       void refresh(detail?.justEarned);
     };
 

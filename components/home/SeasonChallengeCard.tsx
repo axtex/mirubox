@@ -99,14 +99,14 @@ function SuggestionCard({
         )}
         {score != null && (
           <span
-            className="absolute top-1.5 right-1.5"
+            className="absolute top-1.5 right-1.5 leading-none font-bold pointer-events-none"
             style={{
               fontFamily: "var(--font-space-mono)",
-              fontSize: 9,
-              color: "var(--fg)",
-              background: "rgba(0,0,0,0.65)",
-              padding: "2px 4px",
+              fontSize: 10,
+              background: "var(--primary)",
+              color: "#fff",
               borderRadius: 2,
+              padding: "2px 5px",
             }}
           >
             {score}
@@ -217,7 +217,8 @@ export function SeasonChallengeCard({
           margin: "0 0 10px",
         }}
       >
-        Complete {target} {seasonName} anime to earn the {badgeLabel}. Only counts toward seasons from when you started tracking.
+        Complete {target} finished-airing {seasonName} anime to earn the{" "}
+        {badgeLabel}. Drops if you move them off Completed this season.
       </p>
 
       <div

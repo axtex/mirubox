@@ -9,8 +9,8 @@ import {
   parseSeasonKey,
 } from "@/lib/season";
 import {
-  countCompletedForSeasonChallenge,
   getSeasonChallengeStart,
+  seasonChallengeDisplayAnimeFilter,
 } from "@/lib/season-challenge-sync";
 import {
   SEASON_CHALLENGE_SUGGESTIONS,
@@ -34,10 +34,10 @@ function daysSince(date: Date): number {
   return Math.floor(ms / (1000 * 60 * 60 * 24));
 }
 
-async function getSeasonChallengeEarnedAt(
+async function getSeasonChallengeEarnedMeta(
   userId: string,
-  key: string
-): Promise<Date | null> {
+  key: string,
+): Promise<{ id: string; earnedAt: Date; mediaIds: number[] } | null> {
   const tx = await prisma.xPTransaction.findFirst({
     where: {
       userId,
@@ -45,9 +45,19 @@ async function getSeasonChallengeEarnedAt(
       meta: { path: ["season"], equals: key },
     },
     orderBy: { createdAt: "desc" },
-    select: { createdAt: true },
+    select: { id: true, createdAt: true, meta: true },
   });
-  return tx?.createdAt ?? null;
+  if (!tx) return null;
+
+  const meta = tx.meta as { season?: string; mediaIds?: unknown } | null;
+  const mediaIds = Array.isArray(meta?.mediaIds)
+    ? meta.mediaIds.filter(
+        (id): id is number =>
+          typeof id === "number" && Number.isInteger(id) && id > 0,
+      )
+    : [];
+
+  return { id: tx.id, earnedAt: tx.createdAt, mediaIds };
 }
 
 export async function getPastSeasonChallenges(
@@ -100,42 +110,46 @@ export async function getSeasonChallenge(
     return null;
   }
 
-  const count = await countCompletedForSeasonChallenge(
-    userId,
-    season,
-    year,
-    from
-  );
+  const ANIME_TITLE_SELECT = {
+    id: true,
+    title: true,
+    titleEnglish: true,
+    coverImage: true,
+  } as const;
 
-  const [progress, completedEntries, suggestions, earnedAt] =
+  type CompletedEntry = {
+    animeId: number;
+    anime: {
+      id: number;
+      title: string;
+      titleEnglish: string | null;
+      coverImage: string | null;
+    };
+  };
+
+  const completedWhere = {
+    userId,
+    status: "COMPLETED" as const,
+    mediaType: "ANIME" as const,
+    // Covers + n/3 include still-airing Completed; badge/XP still require finished airing.
+    anime: seasonChallengeDisplayAnimeFilter(season, year),
+  };
+
+  const [progress, earnedMeta, liveCompletedEntries, displayCount, suggestions] =
     await Promise.all([
       prisma.seasonalProgress.findUnique({
         where: { userId_season: { userId, season: key } },
       }),
+      getSeasonChallengeEarnedMeta(userId, key),
       prisma.trackerEntry.findMany({
-        where: {
-          userId,
-          status: "COMPLETED",
-          mediaType: "ANIME",
-          anime: {
-            season,
-            seasonYear: year,
-            type: "ANIME",
-          },
-        },
+        where: completedWhere,
         include: {
-          anime: {
-            select: {
-              id: true,
-              title: true,
-              titleEnglish: true,
-              coverImage: true,
-            },
-          },
+          anime: { select: ANIME_TITLE_SELECT },
         },
         orderBy: { updatedAt: "desc" },
         take: SEASON_CHALLENGE_TARGET,
       }),
+      prisma.trackerEntry.count({ where: completedWhere }),
       prisma.anime.findMany({
         where: {
           season,
@@ -152,22 +166,45 @@ export async function getSeasonChallenge(
           averageScore: true,
         },
       }),
-      getSeasonChallengeEarnedAt(userId, key),
     ]);
+
+  const isEarned = progress?.completed ?? false;
+  const earnedAt = earnedMeta?.earnedAt ?? null;
+
+  const completedEntries: CompletedEntry[] = liveCompletedEntries.map((e) => ({
+    animeId: e.animeId,
+    anime: e.anime,
+  }));
+
+  if (
+    isEarned &&
+    earnedMeta &&
+    earnedMeta.mediaIds.length === 0 &&
+    liveCompletedEntries.length > 0
+  ) {
+    void prisma.xPTransaction
+      .update({
+        where: { id: earnedMeta.id },
+        data: {
+          meta: {
+            season: key,
+            mediaIds: liveCompletedEntries.map((e) => e.animeId),
+          },
+        },
+      })
+      .catch(() => undefined);
+  }
 
   const completedIds = new Set(completedEntries.map((e) => e.animeId));
   const filteredSuggestions = suggestions
     .filter((s) => !completedIds.has(s.id))
     .slice(0, SEASON_CHALLENGE_SUGGESTIONS);
 
-  const isEarned = progress?.completed ?? false;
-  const resolvedCount = Math.max(count, progress?.count ?? 0);
-  const resolvedEarnedAt = earnedAt;
   const daysSinceEarned =
-    resolvedEarnedAt != null ? daysSince(resolvedEarnedAt) : null;
+    earnedAt != null ? daysSince(earnedAt) : null;
   const showOnHome =
     !isEarned ||
-    resolvedEarnedAt == null ||
+    earnedAt == null ||
     (daysSinceEarned != null && daysSinceEarned < 7);
 
   return {
@@ -177,9 +214,9 @@ export async function getSeasonChallenge(
     emoji,
     key,
     target: SEASON_CHALLENGE_TARGET,
-    count: resolvedCount,
+    count: Math.min(displayCount, SEASON_CHALLENGE_TARGET),
     isEarned,
-    earnedAt: resolvedEarnedAt,
+    earnedAt,
     completedTitles: completedEntries.map((entry) => ({
       animeId: entry.animeId,
       anime: entry.anime,
