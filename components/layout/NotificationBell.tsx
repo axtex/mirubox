@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Bell } from "lucide-react";
 import { useNotificationPolling } from "@/hooks/useNotificationPolling";
@@ -43,7 +44,9 @@ function getLinkTarget(n: NotificationItem): string | null {
 export function NotificationBell() {
   const { data: session } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const { unreadCount, setUnreadCount } = useNotificationPolling();
+  const isLoggedIn = Boolean(session?.user);
 
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -53,10 +56,12 @@ export function NotificationBell() {
 
   const openDropdown = useCallback(async () => {
     setOpen(true);
+    if (!session?.user) return;
+
     setUnreadCount(0);
     setLoading(true);
     try {
-      const res = await fetch("/api/notifications?limit=10");
+      const res = await fetch("/api/notifications?limit=20");
       if (res.ok) {
         const data = (await res.json()) as { notifications: NotificationItem[] };
         setNotifications(data.notifications.map((n) => ({ ...n, read: true })));
@@ -67,7 +72,7 @@ export function NotificationBell() {
     } finally {
       setLoading(false);
     }
-  }, [setUnreadCount]);
+  }, [session?.user, setUnreadCount]);
 
   useEffect(() => {
     function handlePointerDown(e: MouseEvent) {
@@ -84,13 +89,13 @@ export function NotificationBell() {
     };
   }, []);
 
-  if (!session?.user) return null;
-
   function handleRowClick(n: NotificationItem) {
     const target = getLinkTarget(n);
     setOpen(false);
     if (target) router.push(target);
   }
+
+  const signInHref = `/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`;
 
   return (
     <div className="relative" ref={ref}>
@@ -118,7 +123,7 @@ export function NotificationBell() {
       >
         <span className="relative inline-flex">
           <Bell className="w-3.5 h-3.5" />
-          {unreadCount > 0 && (
+          {isLoggedIn && unreadCount > 0 && (
             <span
               aria-hidden
               style={{
@@ -149,7 +154,30 @@ export function NotificationBell() {
           }}
         >
           <div style={{ maxHeight: 400, overflowY: "auto" }}>
-            {loading && notifications.length === 0 ? (
+            {!isLoggedIn ? (
+              <p
+                style={{
+                  fontFamily: "var(--font-space-mono)",
+                  fontSize: 11,
+                  color: "var(--fg-muted)",
+                  textAlign: "center",
+                  padding: "28px 14px",
+                }}
+              >
+                <Link
+                  href={signInHref}
+                  onClick={() => setOpen(false)}
+                  style={{
+                    color: "var(--primary)",
+                    textDecoration: "underline",
+                    textUnderlineOffset: 3,
+                  }}
+                >
+                  Sign in
+                </Link>
+                {" "}to see notifications.
+              </p>
+            ) : loading && notifications.length === 0 ? (
               <StatusMessage block variant="faint" style={{ padding: "28px 14px" }}>
                 Loading…
               </StatusMessage>
@@ -163,29 +191,6 @@ export function NotificationBell() {
               ))
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              router.push("/profile?tab=activity");
-            }}
-            className="notif-footer"
-            style={{
-              display: "block",
-              width: "100%",
-              borderTop: "1px solid var(--bg-card)",
-              padding: "10px 14px",
-              textAlign: "center",
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 9,
-              color: "var(--primary)",
-              background: "none",
-              cursor: "pointer",
-            }}
-          >
-            View all
-          </button>
         </div>
       )}
     </div>
