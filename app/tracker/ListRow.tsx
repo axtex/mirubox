@@ -32,6 +32,8 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
   const [hovered, setHovered] = useState(false);
   const [localProgress, setLocalProgress] = useState(progress);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Last progress persisted (or queued) — distinct from entry.progress after optimistic bumps. */
+  const committedRef = useRef(progress);
 
   const [showRating, setShowRating] = useState(false);
   const [localScore, setLocalScore] = useState<number | null>(userScore);
@@ -58,6 +60,7 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
 
   useEffect(() => {
     setLocalProgress(progress);
+    committedRef.current = progress;
   }, [progress]);
 
   useEffect(() => {
@@ -66,7 +69,7 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
         if (debounceRef.current) {
           clearTimeout(debounceRef.current);
           debounceRef.current = null;
-          if (localProgress !== progress) void doCommit(localProgress);
+          if (localProgress !== committedRef.current) void doCommit(localProgress);
         }
         setShowRating(false);
       }
@@ -79,18 +82,32 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
     setLocalScore(userScore);
   }, [userScore]);
 
+  function nextStatusForProgress(p: number): string {
+    let next = status;
+    if (total != null && total > 0) {
+      if (status === "COMPLETED" && p < total) next = "IN_PROGRESS";
+      else if (status !== "COMPLETED" && p >= total) next = "COMPLETED";
+    }
+    if (next === "PLANNED") next = "IN_PROGRESS";
+    return next;
+  }
+
+  function applyProgressLocally(p: number): string {
+    const nextStatus = nextStatusForProgress(p);
+    onUpdate(animeId, {
+      progress: p,
+      ...(nextStatus !== status ? { status: nextStatus } : {}),
+    });
+    if (nextStatus !== status) syncTrackerStatus(animeId, nextStatus);
+    return nextStatus;
+  }
+
   async function doCommit(p: number) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = null;
-    if (p === progress) return;
-    let nextStatus = status;
-    if (total != null && total > 0) {
-      if (status === "COMPLETED" && p < total) nextStatus = "IN_PROGRESS";
-      else if (status !== "COMPLETED" && p >= total) nextStatus = "COMPLETED";
-    }
-    if (nextStatus === "PLANNED") nextStatus = "IN_PROGRESS";
-    onUpdate(animeId, { progress: p, ...(nextStatus !== status ? { status: nextStatus } : {}) });
-    if (nextStatus !== status) syncTrackerStatus(animeId, nextStatus);
+    if (p === committedRef.current) return;
+    committedRef.current = p;
+    const nextStatus = applyProgressLocally(p);
     await fetch("/api/tracker", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -101,6 +118,8 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
   function setProgressValue(next: number) {
     const clamped = Math.max(0, Math.min(total ?? 9999, next));
     setLocalProgress(clamped);
+    // Bump Most Recent order immediately; network persists after debounce.
+    applyProgressLocally(clamped);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => { void doCommit(clamped); }, 1500);
   }

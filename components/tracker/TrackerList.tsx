@@ -14,10 +14,9 @@ import type { EntryData, TrackerStatus, MediaType, SortKey, MediaCounts } from "
 import { StatusMessage } from "@/components/ui/StatusMessage";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: "recent",  label: "RECENTLY ADDED ↓" },
-  { value: "rating",  label: "RATING (HIGH–LOW)" },
-  { value: "title",   label: "TITLE A–Z" },
-  { value: "release", label: "RELEASE DATE" },
+  { value: "recent", label: "MOST RECENT ↓" },
+  { value: "rating", label: "RATING (HIGH–LOW)" },
+  { value: "title",  label: "TITLE A–Z" },
 ];
 
 interface Props {
@@ -43,8 +42,6 @@ function sortEntries(list: EntryData[], sort: SortKey): EntryData[] {
     next.sort((a, b) =>
       (a.anime.titleEnglish ?? a.anime.title).localeCompare(b.anime.titleEnglish ?? b.anime.title),
     );
-  } else if (sort === "release") {
-    next.sort((a, b) => (b.anime.seasonYear ?? 0) - (a.anime.seasonYear ?? 0));
   } else {
     next.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
@@ -54,7 +51,6 @@ function sortEntries(list: EntryData[], sort: SortKey): EntryData[] {
 export function TrackerList({
   entries,
   counts: countsProp,
-  countsByType,
   mediaCounts,
   mediaType: initialMediaType,
   activeStatus: initialStatus,
@@ -113,7 +109,17 @@ export function TrackerList({
 
   function handleEntryUpdate(animeId: number, updates: Partial<EntryData>) {
     setLibrary((prev) =>
-      prev.map((e) => (e.animeId === animeId ? { ...e, ...updates } : e)),
+      prev.map((e) => {
+        if (e.animeId !== animeId) return e;
+        const next = { ...e, ...updates };
+        // Status/progress bumps updatedAt so Most Recent sort puts the title on top.
+        const statusChanged = updates.status !== undefined && updates.status !== e.status;
+        const progressChanged = updates.progress !== undefined && updates.progress !== e.progress;
+        if (statusChanged || progressChanged) {
+          next.updatedAt = new Date().toISOString();
+        }
+        return next;
+      }),
     );
   }
 
@@ -132,10 +138,21 @@ export function TrackerList({
   const mediaType = showFavourites ? "ALL" : filterType;
   const activeStatus = showFavourites ? "ALL" : filterStatus;
   const sort = filterSort;
-  const counts =
-    !showFavourites && countsByType
-      ? countsByType[filterType]
-      : countsProp;
+
+  // Derive tab counts from live library so status changes update immediately.
+  const counts = useMemo(() => {
+    if (showFavourites) return countsProp;
+    const scoped =
+      filterType === "ALL"
+        ? library
+        : library.filter((e) => e.mediaType === filterType);
+    const result: Record<string, number> = {};
+    for (const e of scoped) {
+      if (e.isFavouriteOnly) continue;
+      result[e.status] = (result[e.status] ?? 0) + 1;
+    }
+    return result;
+  }, [library, filterType, showFavourites, countsProp]);
 
   const localEntries = useMemo(() => {
     if (showFavourites) return sortEntries(library, sort);

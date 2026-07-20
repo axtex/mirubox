@@ -11,7 +11,7 @@ interface PageProps {
   searchParams: Promise<{ status?: string; sort?: string; type?: string; favourites?: string }>;
 }
 
-const SORT_KEYS: SortKey[] = ["recent", "rating", "title", "release"];
+const SORT_KEYS: SortKey[] = ["recent", "rating", "title"];
 
 const ANIME_SELECT = {
   id: true, title: true, titleEnglish: true, coverImage: true,

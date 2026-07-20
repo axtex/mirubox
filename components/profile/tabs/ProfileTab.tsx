@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Pencil, Plus } from "lucide-react";
-import { AnimeCard } from "@/components/anime/AnimeCard";
+import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { GenreBars } from "@/components/profile/GenreBars";
 import { Top3PickerModal } from "@/components/profile/Top3PickerModal";
 import type {
@@ -11,7 +12,6 @@ import type {
   GenreCount,
   ProfileMedia,
 } from "@/lib/profile-types";
-import type { AnimeCard as AnimeCardType } from "@/types/anilist";
 
 interface ProfileTabProps {
   isOwnProfile: boolean;
@@ -22,32 +22,45 @@ interface ProfileTabProps {
   onFavouritesSaved?: (type: "anime" | "manga", slots: FavouriteSlot[]) => void;
 }
 
-function toAnimeCard(media: ProfileMedia): AnimeCardType {
-  return {
-    id: media.id,
-    title: {
-      romaji: media.title,
-      english: media.titleEnglish,
-      native: null,
-    },
-    coverImage: {
-      large: media.coverImage,
-      extraLarge: media.coverImage,
-    },
-    bannerImage: null,
-    genres: [],
-    episodes: media.episodes,
-    chapters: media.chapters,
-    status: null,
-    season: null,
-    seasonYear: media.seasonYear,
-    averageScore: null,
-    popularity: null,
-    format: media.format,
-    type: media.type,
-    tags: [],
-    rankings: [],
-  };
+function FavPoster({ media }: { media: ProfileMedia }): React.JSX.Element {
+  const title = media.titleEnglish ?? media.title;
+  const href = media.type === "MANGA" ? `/manga/${media.id}` : `/anime/${media.id}`;
+
+  return (
+    <Link
+      href={href}
+      prefetch
+      aria-label={`View ${title}`}
+      style={{
+        width: "100%",
+        borderRadius: 4,
+        border: "1px solid #1f1f22",
+        overflow: "hidden",
+        background: "var(--bg-elevated)",
+        display: "block",
+        position: "relative",
+        aspectRatio: "2 / 3",
+      }}
+    >
+      {media.coverImage ? (
+        <ImageWithFallback
+          src={media.coverImage}
+          alt={title}
+          fill
+          sizes="(max-width: 768px) 18vw, 160px"
+          quality={90}
+          className="object-cover"
+        />
+      ) : (
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ background: "var(--bg-elevated)" }}
+        >
+          <span style={{ fontSize: 24, opacity: 0.15 }}>✦</span>
+        </div>
+      )}
+    </Link>
+  );
 }
 
 function EmptyFavSlot({ isOwnProfile }: { isOwnProfile: boolean }): React.JSX.Element {
@@ -61,10 +74,11 @@ function EmptyFavSlot({ isOwnProfile }: { isOwnProfile: boolean }): React.JSX.El
         background: "var(--bg-elevated)",
         display: "flex",
         flexDirection: "column",
+        aspectRatio: "2 / 3",
       }}
     >
       <div
-        className="relative w-full aspect-[2/3] flex items-center justify-center"
+        className="relative w-full h-full flex items-center justify-center"
         style={{ background: "var(--bg-elevated)" }}
       >
         {isOwnProfile ? (
@@ -87,7 +101,6 @@ function FavRow({
 
   return (
     <div
-      className="grid"
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(3, 1fr)",
@@ -96,12 +109,7 @@ function FavRow({
     >
       {slots.map((slot, i) =>
         slot ? (
-          <AnimeCard
-            key={slot.mediaId}
-            anime={toAnimeCard(slot.media)}
-            size="sm"
-            hideTitle
-          />
+          <FavPoster key={slot.mediaId} media={slot.media} />
         ) : (
           <EmptyFavSlot key={`empty-${i}`} isOwnProfile={isOwnProfile} />
         )

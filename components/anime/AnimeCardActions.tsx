@@ -145,16 +145,17 @@ export function AnimeCardActions({
     async (value: string) => {
       setShowPicker(false);
       if (value === "__remove__") {
-        await removeFromTracker(mediaId);
+        // Optimistic list update — don't wait for the network.
         onTrackerChange?.(null);
+        await removeFromTracker(mediaId);
         return;
       }
+      onTrackerChange?.(value);
       if (!isTracked) {
         await addToTracker(mediaId, mediaType, value);
       } else {
         await updateStatus(mediaId, value);
       }
-      onTrackerChange?.(value);
     },
     [isTracked, mediaId, mediaType, addToTracker, updateStatus, removeFromTracker, onTrackerChange]
   );

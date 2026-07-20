@@ -1,6 +1,6 @@
 export type TrackerStatus = "ALL" | "IN_PROGRESS" | "COMPLETED" | "PLANNED" | "ON_HOLD" | "DROPPED";
 export type MediaType = "ALL" | "ANIME" | "MANGA";
-export type SortKey = "recent" | "rating" | "title" | "release";
+export type SortKey = "recent" | "rating" | "title";
 
 export interface MediaCounts {
   anime: number;

@@ -162,11 +162,8 @@ async function runEpisodeCheck(): Promise<{
       await createNotification({
         userId: entry.userId,
         type: "EPISODE_AVAILABLE",
-        title: `EP ${availableEp} of ${title} is out`,
-        body:
-          entry.progress > 0
-            ? `You're on EP ${entry.progress} — EP ${availableEp} is now available`
-            : `EP ${availableEp} is now available`,
+        title: `EP ${availableEp} is out`,
+        body: title,
         mediaId: entry.animeId,
       });
 

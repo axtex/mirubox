@@ -163,17 +163,12 @@ async function runChapterCheck(): Promise<{
     const title =
       entry.anime.titleEnglish ?? entry.anime.title ?? "Unknown manga";
 
-    const chapterText = `CH ${latestChapter}`;
-
     try {
       await createNotification({
         userId: entry.userId,
         type: "CHAPTER_AVAILABLE",
-        title: `${chapterText} of ${title} is out`,
-        body:
-          userProgress > 0
-            ? `You're on CH ${userProgress} — ${chapterText} is now available`
-            : `${chapterText} is now available`,
+        title: `CH ${latestChapter} is out`,
+        body: title,
         mediaId: entry.animeId,
       });
 
