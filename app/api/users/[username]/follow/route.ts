@@ -105,6 +105,7 @@ export async function POST(
       userId: target.id,
       type: "NEW_FOLLOWER",
       title: `${followerName} started following you`,
+      body: "Follow back!",
       fromUserId: session.user.id,
     }),
   ]);

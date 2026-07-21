@@ -1,7 +1,20 @@
+import type { LucideIcon } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  ClipboardList,
+  Dot,
+  Heart,
+  Medal,
+  PenLine,
+  Plus,
+  Star,
+  UserPlus,
+} from "lucide-react";
 import type { ActivityAction, ActivityItem } from "@/lib/profile-types";
 
 export type IconStyle = {
-  icon: string;
+  Icon: LucideIcon;
   bg: string;
   border: string;
 };
@@ -11,67 +24,67 @@ export function actionIcon(action: ActivityAction): IconStyle {
     case "FOLLOWING":
     case "NEW_FOLLOWER":
       return {
-        icon: "👤",
-        bg: "rgba(100,180,230,0.1)",
-        border: "rgba(100,180,230,0.2)",
+        Icon: UserPlus,
+        bg: "rgba(100,180,230,0.22)",
+        border: "rgba(100,180,230,0.4)",
       };
     case "LIST_LIKED":
     case "LIST_GOT_LIKED":
       return {
-        icon: "♥",
-        bg: "rgba(232,23,63,0.1)",
-        border: "rgba(232,23,63,0.2)",
+        Icon: Heart,
+        bg: "rgba(232,23,63,0.22)",
+        border: "rgba(232,23,63,0.4)",
       };
     case "ADD_TO_TRACKER":
     case "MARK_IN_PROGRESS":
     case "FIRST_TITLE":
       return {
-        icon: "+",
-        bg: "rgba(29,158,117,0.12)",
-        border: "rgba(29,158,117,0.25)",
+        Icon: Plus,
+        bg: "rgba(29,158,117,0.22)",
+        border: "rgba(29,158,117,0.4)",
       };
     case "MARK_COMPLETED":
     case "MARK_COMPLETED_DIRECT":
     case "COMPLETE_MOVIE_OVA":
       return {
-        icon: "✓",
-        bg: "rgba(83,74,183,0.15)",
-        border: "rgba(83,74,183,0.3)",
+        Icon: Check,
+        bg: "rgba(83,74,183,0.22)",
+        border: "rgba(83,74,183,0.4)",
       };
     case "RATE_TITLE":
       return {
-        icon: "★",
-        bg: "rgba(232,23,63,0.1)",
-        border: "rgba(232,23,63,0.2)",
+        Icon: Star,
+        bg: "rgba(232,23,63,0.22)",
+        border: "rgba(232,23,63,0.4)",
       };
     case "WRITE_REVIEW":
       return {
-        icon: "✍",
-        bg: "rgba(186,117,23,0.1)",
-        border: "rgba(186,117,23,0.2)",
+        Icon: PenLine,
+        bg: "rgba(186,117,23,0.22)",
+        border: "rgba(186,117,23,0.4)",
       };
     case "BADGE_UNLOCKED":
       return {
-        icon: "🏅",
-        bg: "rgba(232,200,100,0.1)",
-        border: "rgba(232,200,100,0.2)",
+        Icon: Medal,
+        bg: "rgba(232,200,100,0.22)",
+        border: "rgba(232,200,100,0.4)",
       };
     case "CREATE_LIST":
     case "ADD_TO_LIST":
       return {
-        icon: "📋",
-        bg: "rgba(100,180,230,0.1)",
-        border: "rgba(100,180,230,0.2)",
+        Icon: ClipboardList,
+        bg: "rgba(100,180,230,0.22)",
+        border: "rgba(100,180,230,0.4)",
       };
     case "DAILY_LOGIN":
       return {
-        icon: "📅",
-        bg: "rgba(100,180,230,0.1)",
-        border: "rgba(100,180,230,0.2)",
+        Icon: CalendarDays,
+        bg: "rgba(100,180,230,0.22)",
+        border: "rgba(100,180,230,0.4)",
       };
     default:
       return {
-        icon: "·",
+        Icon: Dot,
         bg: "var(--bg-elevated)",
         border: "var(--bg-card-high)",
       };

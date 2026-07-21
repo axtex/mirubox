@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Toast as ToastData } from "@/context/ToastContext";
-import { getNotifVisual } from "@/lib/notification-visuals";
+import { getNotifVisual, notifBodyText } from "@/lib/notification-visuals";
+import { IconCircle } from "@/components/ui/IconCircle";
 
 const AUTO_DISMISS_MS = 4000;
 const EXIT_DURATION_MS = 150;
@@ -60,7 +61,8 @@ export function Toast({ toast, onDismiss }: ToastProps) {
     tracking.current = false;
   }
 
-  const visual = getNotifVisual(toast.type, toast.body);
+  const visual = getNotifVisual(toast.type);
+  const body = notifBodyText(toast.type, toast.body);
 
   return (
     <div
@@ -72,20 +74,12 @@ export function Toast({ toast, onDismiss }: ToastProps) {
       onTouchEnd={handleTouchEnd}
       role="status"
     >
-      <span
-        className="flex items-center justify-center shrink-0"
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: "50%",
-          background: visual.bg,
-          border: `1px solid ${visual.border}`,
-          fontSize: 13,
-        }}
-        aria-hidden
-      >
-        {visual.emoji}
-      </span>
+      <IconCircle
+        Icon={visual.Icon}
+        bg={visual.bg}
+        border={visual.border}
+        color="#e4e1e6"
+      />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <p
@@ -100,7 +94,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
         >
           {toast.title}
         </p>
-        {toast.body && (
+        {body && (
           <p
             style={{
               fontFamily: "var(--font-space-mono)",
@@ -112,7 +106,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
               whiteSpace: "nowrap",
             }}
           >
-            {toast.body}
+            {body}
           </p>
         )}
       </div>

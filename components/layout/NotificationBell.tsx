@@ -6,9 +6,14 @@ import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Bell } from "lucide-react";
 import { useNotificationPolling } from "@/hooks/useNotificationPolling";
-import { getNotifVisual, type NotifVisualType } from "@/lib/notification-visuals";
+import {
+  getNotifVisual,
+  notifBodyText,
+  type NotifVisualType,
+} from "@/lib/notification-visuals";
 import { timeAgo } from "@/lib/time-ago";
 import { StatusMessage } from "@/components/ui/StatusMessage";
+import { IconCircle } from "@/components/ui/IconCircle";
 
 interface NotificationItem {
   id: string;
@@ -205,7 +210,8 @@ function NotificationRow({
   onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const visual = getNotifVisual(notification.type, notification.body);
+  const visual = getNotifVisual(notification.type);
+  const body = notifBodyText(notification.type, notification.body);
 
   return (
     <div
@@ -228,20 +234,7 @@ function NotificationRow({
         transition: "background 100ms",
       }}
     >
-      <span
-        className="flex items-center justify-center shrink-0"
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: "50%",
-          background: visual.bg,
-          border: `1px solid ${visual.border}`,
-          fontSize: 12,
-        }}
-        aria-hidden
-      >
-        {visual.emoji}
-      </span>
+      <IconCircle Icon={visual.Icon} bg={visual.bg} border={visual.border} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <p
@@ -256,7 +249,7 @@ function NotificationRow({
         >
           {notification.title}
         </p>
-        {notification.body && (
+        {body && (
           <p
             style={{
               fontFamily: "var(--font-space-mono)",
@@ -268,7 +261,7 @@ function NotificationRow({
               whiteSpace: "nowrap",
             }}
           >
-            {notification.body}
+            {body}
           </p>
         )}
       </div>

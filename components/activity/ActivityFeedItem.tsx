@@ -14,6 +14,7 @@ import {
   type ActionText,
 } from "@/lib/activity-display";
 import { timeAgo } from "@/lib/time-ago";
+import { IconCircle } from "@/components/ui/IconCircle";
 
 export interface ActivityFeedItemProps {
   item: ActivityItem;
@@ -208,21 +209,13 @@ export function ActivityFeedItem({
             justifyContent: "center",
           }}
         >
-          <div
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 11,
-              background: style.bg,
-              border: `1px solid ${style.border}`,
-            }}
-          >
-            {style.icon}
-          </div>
+          <IconCircle
+            Icon={style.Icon}
+            bg={style.bg}
+            border={style.border}
+            size={26}
+            iconSize={12}
+          />
         </div>
       ) : null}
 
