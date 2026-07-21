@@ -42,14 +42,14 @@ Live at [mirubox.vercel.app](https://mirubox.vercel.app)
 
 ## Browse shelves + cron
 
-Home, `/anime`, and `/manga` rows are served from Postgres (`BrowseShelf` + `Anime`), not live AniList on every request. A Vercel Cron refreshes shelves once daily (Hobby plan limit; Pro can go hourly).
+Home, `/anime`, and `/manga` rows are served from Postgres (`BrowseShelf` + `Anime`), not live AniList on every request. External cron (cron-jobs.org) hits the `/api/cron/*` routes with `Authorization: Bearer $CRON_SECRET`.
 
 1. Set `CRON_SECRET` in Vercel (and locally in `.env.local` for manual runs).
 2. Apply migrations: `npx prisma migrate deploy`
 3. Seed once after deploy (or locally):
 
 ```bash
-# Production (Vercel Cron auth)
+# Production (cron auth)
 curl -X GET "https://mirubox.vercel.app/api/cron/browse-sync" \
   -H "Authorization: Bearer $CRON_SECRET"
 
@@ -57,7 +57,7 @@ curl -X GET "https://mirubox.vercel.app/api/cron/browse-sync" \
 npx tsx scripts/seed-browse-shelves.ts
 ```
 
-Schedule is defined in `vercel.json` (`0 12 * * *` — daily at 12:00 UTC). Cold visits fall back to AniList once and schedule a background sync.
+Cold visits fall back to AniList once and schedule a background sync.
 
 ---
 
