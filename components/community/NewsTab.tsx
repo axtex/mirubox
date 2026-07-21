@@ -7,13 +7,20 @@ export interface NewsTabProps {
   articles: NewsArticle[];
 }
 
+/** ANN US edition — fixed TZ so Vercel (UTC) matches local "today". */
+const NEWS_TZ = "America/Los_Angeles";
+
+function calendarDayKey(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: NEWS_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 function isToday(date: Date): boolean {
-  const now = new Date();
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-  );
+  return calendarDayKey(date) === calendarDayKey(new Date());
 }
 
 function NewsSectionHeader({ title }: { title: string }): React.JSX.Element {

@@ -142,6 +142,15 @@ async function runChapterCheck(): Promise<{
   let notified = 0;
 
   for (const entry of inProgressEntries) {
+    // Skip catch-up on finished titles; allow if we just fetched a new chapter
+    // this run (finale / last drop).
+    if (
+      entry.anime.status === "FINISHED" &&
+      !latestChapterMap.has(entry.animeId)
+    ) {
+      continue;
+    }
+
     const latestChapter =
       latestChapterMap.get(entry.animeId) ??
       entry.anime.latestChapter ??

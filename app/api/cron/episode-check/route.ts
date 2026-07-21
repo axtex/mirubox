@@ -61,6 +61,7 @@ async function runEpisodeCheck(): Promise<{
           airingStatus: true,
           nextAiringEp: true,
           nextAiringAt: true,
+          lastAiredAt: true,
           episodesRefreshedAt: true,
         },
       },
@@ -76,6 +77,7 @@ async function runEpisodeCheck(): Promise<{
   }
 
   const TWO_HOURS = 2 * 60 * 60 * 1000;
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
   const now = Date.now();
 
   const needsRefresh = [
@@ -143,12 +145,26 @@ async function runEpisodeCheck(): Promise<{
 
     const totalEpisodes = fresh?.episodes ?? entry.anime.episodes ?? null;
 
+    // Release alerts only — no catch-up notifs on long-finished titles.
+    // FINISHED is allowed only when the finale just aired (recent last/next airing).
     let availableEp: number | null = null;
 
-    if (status === "FINISHED" && totalEpisodes) {
-      availableEp = totalEpisodes;
-    } else if (status === "RELEASING" && nextEp) {
+    if (status === "RELEASING" && nextEp) {
       availableEp = nextEp - 1;
+    } else if (status === "FINISHED" && totalEpisodes) {
+      const lastAiredMs = entry.anime.lastAiredAt?.getTime() ?? 0;
+      const pendingAirMs =
+        entry.anime.nextAiringAt != null
+          ? entry.anime.nextAiringAt * 1000
+          : 0;
+      const recentlyFinished =
+        (lastAiredMs > 0 && now - lastAiredMs < SEVEN_DAYS) ||
+        (pendingAirMs > 0 &&
+          pendingAirMs <= now &&
+          now - pendingAirMs < SEVEN_DAYS);
+      if (recentlyFinished) {
+        availableEp = totalEpisodes;
+      }
     }
 
     if (!availableEp) continue;
