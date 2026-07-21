@@ -50,6 +50,16 @@ const nextConfig: NextConfig = {
         hostname: "lh3.googleusercontent.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.animenewsnetwork.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.animenewsnetwork.com",
+        pathname: "/**",
+      },
     ],
   },
 };

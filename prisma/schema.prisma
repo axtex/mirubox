@@ -207,6 +207,18 @@ model BrowseShelf {
   syncedAt DateTime @default(now())
 }
 
+model NewsItem {
+  id          String   @id @default(cuid())
+  title       String
+  url         String   @unique
+  excerpt     String?  @db.Text
+  imageUrl    String?
+  source      String
+  // "ANN"
+  publishedAt DateTime
+  cachedAt    DateTime @default(now())
+}
+
 model Character {
   dbId    String   @id @default(cuid())
   id      Int

@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { getLists } from "@/lib/list-queries";
+import { getNewsArticles } from "@/lib/news-data";
 import { ListCard, CreateListButton } from "@/components/lists/ListCard";
 import { FriendsTab } from "@/components/community/FriendsTab";
+import { NewsTab, NewsTabSkeleton } from "@/components/community/NewsTab";
 import { NowWatchingSection } from "@/components/community/NowWatchingSection";
 import { RecentlyCompletedSection } from "@/components/community/RecentlyCompletedSection";
 import { RecentReviewsSection } from "@/components/community/RecentReviewsSection";
@@ -119,6 +122,16 @@ export default async function CommunityPage({ searchParams }: PageProps) {
     ? (typeParam ?? "official")
     : "official";
 
+  if (tab === "news") {
+    return (
+      <div className="py-8">
+        <Suspense fallback={<NewsTabSkeleton />}>
+          <NewsTabContent />
+        </Suspense>
+      </div>
+    );
+  }
+
   if (tab !== "lists") {
     return (
       <div className="py-8">
@@ -224,4 +237,9 @@ export default async function CommunityPage({ searchParams }: PageProps) {
       )}
     </div>
   );
+}
+
+async function NewsTabContent(): Promise<React.JSX.Element> {
+  const articles = await getNewsArticles(30);
+  return <NewsTab articles={articles} />;
 }
