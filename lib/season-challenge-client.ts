@@ -25,6 +25,12 @@ export interface ContinueStripSeasonChallenge {
     titleEnglish: string | null;
     coverImage: string | null;
   }[];
+  inProgressTitles: {
+    id: number;
+    title: string;
+    titleEnglish: string | null;
+    coverImage: string | null;
+  }[];
   suggestions: {
     id: number;
     title: string;
@@ -53,6 +59,7 @@ export function toContinueStripSeasonChallenge(
       titleEnglish: entry.anime.titleEnglish,
       coverImage: entry.anime.coverImage,
     })),
+    inProgressTitles: data.inProgressTitles,
     suggestions: data.suggestions,
   };
 }

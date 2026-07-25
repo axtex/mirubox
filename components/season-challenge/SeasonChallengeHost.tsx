@@ -78,6 +78,7 @@ export function SeasonChallengeHost(): React.JSX.Element | null {
       badgeLabel={data.badgeLabel}
       xpReward={data.xpReward}
       completedTitles={data.completedTitles}
+      inProgressTitles={data.inProgressTitles}
       suggestions={data.suggestions}
     />
   );

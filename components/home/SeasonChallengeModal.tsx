@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import Link from "next/link";
 import { getSeasonBrowseSearchHref } from "@/lib/season";
-import { SEASON_CHALLENGE_SUGGESTIONS } from "@/lib/season-challenge-types";
+import { SEASON_CHALLENGE_IN_PROGRESS, SEASON_CHALLENGE_SUGGESTIONS } from "@/lib/season-challenge-types";
 
 export interface SeasonChallengeModalProps {
   isOpen: boolean;
@@ -20,6 +20,12 @@ export interface SeasonChallengeModalProps {
   badgeLabel: string;
   xpReward: number;
   completedTitles: {
+    id: number;
+    title: string;
+    titleEnglish: string | null;
+    coverImage: string | null;
+  }[];
+  inProgressTitles: {
     id: number;
     title: string;
     titleEnglish: string | null;
@@ -236,6 +242,7 @@ export function SeasonChallengeModal({
   badgeLabel,
   xpReward,
   completedTitles,
+  inProgressTitles,
   suggestions,
 }: SeasonChallengeModalProps): React.JSX.Element | null {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -363,6 +370,12 @@ export function SeasonChallengeModal({
                 label="Completed"
                 titles={completedTitles}
                 limit={target}
+              />
+
+              <TitleGridSection
+                label="In Progress"
+                titles={inProgressTitles}
+                limit={SEASON_CHALLENGE_IN_PROGRESS}
               />
 
               <TitleGridSection

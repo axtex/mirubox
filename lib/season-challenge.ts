@@ -13,6 +13,7 @@ import {
   seasonChallengeDisplayAnimeFilter,
 } from "@/lib/season-challenge-sync";
 import {
+  SEASON_CHALLENGE_IN_PROGRESS,
   SEASON_CHALLENGE_SUGGESTIONS,
   SEASON_CHALLENGE_TARGET,
   type PastSeasonChallenge,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/season-challenge-types";
 
 export {
+  SEASON_CHALLENGE_IN_PROGRESS,
   SEASON_CHALLENGE_SUGGESTIONS,
   SEASON_CHALLENGE_TARGET,
   formatEarnedDate,
@@ -135,8 +137,14 @@ export async function getSeasonChallenge(
     anime: seasonChallengeDisplayAnimeFilter(season, year),
   };
 
-  const [progress, earnedMeta, liveCompletedEntries, displayCount, suggestions] =
-    await Promise.all([
+  const [
+    progress,
+    earnedMeta,
+    liveCompletedEntries,
+    displayCount,
+    inProgressEntries,
+    suggestions,
+  ] = await Promise.all([
       prisma.seasonalProgress.findUnique({
         where: { userId_season: { userId, season: key } },
       }),
@@ -150,6 +158,19 @@ export async function getSeasonChallenge(
         take: SEASON_CHALLENGE_TARGET,
       }),
       prisma.trackerEntry.count({ where: completedWhere }),
+      prisma.trackerEntry.findMany({
+        where: {
+          userId,
+          status: "IN_PROGRESS",
+          mediaType: "ANIME",
+          anime: seasonChallengeDisplayAnimeFilter(season, year),
+        },
+        include: {
+          anime: { select: ANIME_TITLE_SELECT },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: SEASON_CHALLENGE_IN_PROGRESS,
+      }),
       prisma.anime.findMany({
         where: {
           season,
@@ -195,9 +216,13 @@ export async function getSeasonChallenge(
       .catch(() => undefined);
   }
 
-  const completedIds = new Set(completedEntries.map((e) => e.animeId));
+  const inProgressTitles = inProgressEntries.map((entry) => entry.anime);
+  const excludeSuggestionIds = new Set([
+    ...completedEntries.map((e) => e.animeId),
+    ...inProgressTitles.map((a) => a.id),
+  ]);
   const filteredSuggestions = suggestions
-    .filter((s) => !completedIds.has(s.id))
+    .filter((s) => !excludeSuggestionIds.has(s.id))
     .slice(0, SEASON_CHALLENGE_SUGGESTIONS);
 
   const daysSinceEarned =
@@ -221,6 +246,7 @@ export async function getSeasonChallenge(
       animeId: entry.animeId,
       anime: entry.anime,
     })),
+    inProgressTitles,
     suggestions: filteredSuggestions,
     xpReward: XP_VALUES.SEASON_CHALLENGE,
     badgeLabel: formatSeasonBadgeLabel(key),

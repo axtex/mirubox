@@ -2,6 +2,7 @@ import type { Season } from "@/lib/season";
 
 export const SEASON_CHALLENGE_TARGET = 3;
 export const SEASON_CHALLENGE_SUGGESTIONS = 3;
+export const SEASON_CHALLENGE_IN_PROGRESS = 3;
 
 export interface SeasonChallengeMedia {
   id: number;
@@ -26,6 +27,7 @@ export interface SeasonChallengeData {
   isEarned: boolean;
   earnedAt: Date | null;
   completedTitles: SeasonChallengeCompletedTitle[];
+  inProgressTitles: SeasonChallengeMedia[];
   suggestions: Array<SeasonChallengeMedia & { averageScore: number | null }>;
   xpReward: number;
   badgeLabel: string;
