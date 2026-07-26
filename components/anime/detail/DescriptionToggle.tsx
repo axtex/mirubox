@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 
 interface DescriptionToggleProps {
@@ -16,9 +16,17 @@ const SECTION_TITLE_STYLE = {
   color: "#5a5a65",
 };
 
-export function DescriptionToggle({ description }: DescriptionToggleProps) {
-  const [expanded, setExpanded] = useState(true);
+export function DescriptionToggle({ description }: DescriptionToggleProps): React.JSX.Element {
   const isLong = description.length > 400;
+  // Collapsed by default on mobile; expand on desktop after mount
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      setExpanded(true);
+    }
+  }, []);
+
   const displayed = expanded || !isLong ? description : description.slice(0, 400) + "…";
 
   return (

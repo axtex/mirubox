@@ -11,6 +11,7 @@ import { NowWatchingSection } from "@/components/community/NowWatchingSection";
 import { RecentlyCompletedSection } from "@/components/community/RecentlyCompletedSection";
 import { RecentReviewsSection } from "@/components/community/RecentReviewsSection";
 import { TasteCompatibilitySection } from "@/components/community/TasteCompatibilitySection";
+import { CommunityMobileTabs } from "@/components/community/CommunityMobileTabs";
 import { loadFriendsPageData } from "@/lib/community-feed";
 
 const TABS = [
@@ -49,6 +50,14 @@ export async function generateMetadata({
   return { title: PAGE_TITLES[tab] };
 }
 
+function MobileTabs(): React.JSX.Element {
+  return (
+    <Suspense fallback={null}>
+      <CommunityMobileTabs />
+    </Suspense>
+  );
+}
+
 export default async function CommunityPage({ searchParams }: PageProps) {
   const session = await auth();
   const { tab: tabParam, type: typeParam } = await searchParams;
@@ -61,6 +70,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
     if (!session?.user?.id) {
       return (
         <div className="py-8 min-h-screen" style={{ background: "var(--bg)" }}>
+          <MobileTabs />
           <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
             <p
               style={{
@@ -90,6 +100,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
 
     return (
       <div className="py-8">
+        <MobileTabs />
         <FriendsTab
           initialFeed={data.feed}
           initialHasMore={data.hasMore}
@@ -125,6 +136,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
   if (tab === "news") {
     return (
       <div className="py-8">
+        <MobileTabs />
         <Suspense fallback={<NewsTabSkeleton />}>
           <NewsTabContent />
         </Suspense>
@@ -135,6 +147,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
   if (tab !== "lists") {
     return (
       <div className="py-8">
+        <MobileTabs />
         <h1 className="text-headline-lg font-display uppercase">{TAB_TITLES[tab]}</h1>
         <p
           style={{
@@ -162,6 +175,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
 
   return (
     <div className="py-8">
+      <MobileTabs />
       <div
         style={{
           display: "flex",

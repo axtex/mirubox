@@ -15,6 +15,7 @@ import {
   MANGA_READING_SITES,
 } from "@/lib/streaming-links";
 import type {
+  AnimeCard,
   AnimeDetail,
   AnimeTitle,
   CharacterEdge,
@@ -22,6 +23,8 @@ import type {
   ExternalLink,
   RelationEdge,
 } from "@/types/anilist";
+
+const RECOMMENDATION_TYPE = "RECOMMENDATION";
 
 const cachingCharacters = new Set<number>();
 const cachingRelations = new Set<number>();
@@ -162,6 +165,34 @@ export function dbRelationToEdge(rel: MediaRelation): RelationEdge {
   };
 }
 
+function dbRelationToAnimeCard(rel: MediaRelation): AnimeCard {
+  return {
+    id: rel.targetAnilistId,
+    title: {
+      romaji: rel.targetTitle,
+      english: rel.targetTitleEng,
+      native: null,
+    },
+    coverImage: {
+      large: rel.targetCover,
+      extraLarge: rel.targetCover,
+    },
+    bannerImage: null,
+    genres: [],
+    episodes: null,
+    chapters: null,
+    status: rel.targetStatus,
+    season: null,
+    seasonYear: null,
+    averageScore: null,
+    popularity: null,
+    format: rel.targetFormat,
+    type: rel.targetType ?? "ANIME",
+    tags: [],
+    rankings: [],
+  };
+}
+
 export function dbStreamingToExternalLink(link: DbStreamingLink): ExternalLink {
   return {
     id: Number.parseInt(link.id, 10) || 0,
@@ -212,7 +243,9 @@ export function dbMediaToAnilistShape(cached: AnimeWithDetailCache): AnimeDetail
       edges: cached.characters.map(dbCharToEdge),
     },
     relations: {
-      edges: cached.relationsFrom.map(dbRelationToEdge),
+      edges: cached.relationsFrom
+        .filter((r) => r.relationType !== RECOMMENDATION_TYPE)
+        .map(dbRelationToEdge),
     },
     externalLinks: cached.streamingLinks.map(dbStreamingToExternalLink),
     nextAiringEpisode:
@@ -220,7 +253,11 @@ export function dbMediaToAnilistShape(cached: AnimeWithDetailCache): AnimeDetail
         ? { episode: cached.nextAiringEp, airingAt: cached.nextAiringAt }
         : null,
     streamingEpisodes: [],
-    recommendations: { nodes: [] },
+    recommendations: {
+      nodes: cached.relationsFrom
+        .filter((r) => r.relationType === RECOMMENDATION_TYPE)
+        .map((r) => ({ mediaRecommendation: dbRelationToAnimeCard(r) })),
+    },
     studios: { nodes: [] },
   };
 }
@@ -294,7 +331,12 @@ export async function cacheRelationsIfMissing(mediaId: number): Promise<void> {
     select: { relationsCachedAt: true },
   });
 
-  if (!isStale(existing?.relationsCachedAt, RELATION_TTL_MS)) return;
+  const recCount = await prisma.mediaRelation.count({
+    where: { fromMediaId: mediaId, relationType: RECOMMENDATION_TYPE },
+  });
+
+  // Re-fetch when TTL expired OR recommendations were never cached (older rows).
+  if (!isStale(existing?.relationsCachedAt, RELATION_TTL_MS) && recCount > 0) return;
 
   cachingRelations.add(mediaId);
   try {
@@ -305,25 +347,46 @@ export async function cacheRelationsIfMissing(mediaId: number): Promise<void> {
 
     const edges = media.relations?.edges ?? [];
     const filtered = edges.filter((e) => KEEP_RELATIONS.has(e.relationType));
+    const recNodes = (media.recommendations?.nodes ?? [])
+      .map((n) => n.mediaRecommendation)
+      .filter((m): m is AnimeCard => m != null)
+      .slice(0, 6);
 
     await prisma.mediaRelation.deleteMany({ where: { fromMediaId: mediaId } });
 
-    if (filtered.length > 0) {
+    const rows = [
+      ...filtered.map((edge) => ({
+        id: `${mediaId}_${edge.node.id}_${edge.relationType}`,
+        fromMediaId: mediaId,
+        toMediaId: edge.node.id,
+        targetAnilistId: edge.node.id,
+        relationType: edge.relationType,
+        targetTitle: edge.node.title?.romaji ?? null,
+        targetTitleEng: edge.node.title?.english ?? null,
+        targetCover:
+          edge.node.coverImage?.extraLarge ?? edge.node.coverImage?.large ?? null,
+        targetFormat: edge.node.format ?? null,
+        targetType: edge.node.type ?? null,
+        targetStatus: edge.node.status ?? null,
+      })),
+      ...recNodes.map((rec) => ({
+        id: `${mediaId}_${rec.id}_${RECOMMENDATION_TYPE}`,
+        fromMediaId: mediaId,
+        toMediaId: rec.id,
+        targetAnilistId: rec.id,
+        relationType: RECOMMENDATION_TYPE,
+        targetTitle: rec.title?.romaji ?? null,
+        targetTitleEng: rec.title?.english ?? null,
+        targetCover: rec.coverImage?.extraLarge ?? rec.coverImage?.large ?? null,
+        targetFormat: rec.format ?? null,
+        targetType: rec.type ?? null,
+        targetStatus: rec.status ?? null,
+      })),
+    ];
+
+    if (rows.length > 0) {
       await prisma.mediaRelation.createMany({
-        data: filtered.map((edge) => ({
-          id: `${mediaId}_${edge.node.id}_${edge.relationType}`,
-          fromMediaId: mediaId,
-          toMediaId: edge.node.id,
-          targetAnilistId: edge.node.id,
-          relationType: edge.relationType,
-          targetTitle: edge.node.title?.romaji ?? null,
-          targetTitleEng: edge.node.title?.english ?? null,
-          targetCover:
-            edge.node.coverImage?.extraLarge ?? edge.node.coverImage?.large ?? null,
-          targetFormat: edge.node.format ?? null,
-          targetType: edge.node.type ?? null,
-          targetStatus: edge.node.status ?? null,
-        })),
+        data: rows,
         skipDuplicates: true,
       });
     }
@@ -437,6 +500,18 @@ export async function resolveMediaDetailForPage(
   if (cached?.title && cached.coverImage) {
     scheduleDetailRefresh(mediaId, type);
     let media = dbMediaToAnilistShape(cached);
+
+    // Older cache rows never stored recommendations — fill once from AniList.
+    if (media.recommendations.nodes.length === 0) {
+      try {
+        const fresh = await getMediaById(mediaId);
+        if (fresh?.recommendations?.nodes?.length) {
+          media = { ...media, recommendations: fresh.recommendations };
+        }
+      } catch (err) {
+        console.error(`[recs-fill] ${type.toLowerCase()}/${mediaId}`, err);
+      }
+    }
 
     const looksReleasing =
       type === "ANIME" &&

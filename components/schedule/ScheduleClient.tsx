@@ -261,7 +261,7 @@ export function ScheduleClient({
         </div>
       </div>
 
-      <div className="flex gap-1.5 mb-5">
+      <div className="flex flex-wrap gap-1.5 mb-5">
         <button
           type="button"
           onClick={() => setView("upcoming")}

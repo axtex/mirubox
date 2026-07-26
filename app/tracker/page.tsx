@@ -136,7 +136,9 @@ export default async function TrackerPage({ searchParams }: PageProps) {
   const slugStatus = statusParam?.toLowerCase().replace(/\s+/g, "-") ?? "";
   const candidateStatus = slugToStatus(slugStatus);
   const activeStatus: TrackerStatus =
-    STATUS_TABS.some(t => t.value === candidateStatus) && slugStatus ? candidateStatus : "ALL";
+    STATUS_TABS.some(t => t.value === candidateStatus) && slugStatus
+      ? candidateStatus
+      : "IN_PROGRESS";
 
   // Full library once — status/type/sort filter client-side for instant tabs.
   const [rawEntries, statusGroups, mediaGroups, ratings, reviews, favouriteCount] = await Promise.all([

@@ -48,7 +48,7 @@ export function RatingInput({ animeId, initialRating, isLoggedIn }: RatingInputP
             onClick={() => handleRate(n)}
             onMouseEnter={() => setHover(n)}
             onMouseLeave={() => setHover(null)}
-            className="flex items-center justify-center py-1.5 transition-all"
+            className="flex items-center justify-center transition-all"
             style={{
               fontFamily: "var(--font-space-mono)",
               fontSize: 13,
@@ -58,6 +58,8 @@ export function RatingInput({ animeId, initialRating, isLoggedIn }: RatingInputP
               background: active !== null && n <= active ? "var(--primary)" : "var(--bg-card)",
               color: active !== null && n <= active ? "#fff" : "var(--fg-subtle)",
               cursor: loading ? "not-allowed" : "pointer",
+              minHeight: 44,
+              padding: "8px 0",
             }}
             aria-label={`Rate ${n}`}
           >

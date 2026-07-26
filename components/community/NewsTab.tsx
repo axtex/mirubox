@@ -72,7 +72,7 @@ function HeadlineCard({ article }: { article: NewsArticle }): React.JSX.Element 
             src={article.imageUrl}
             alt=""
             fill
-            sizes="(max-width: 768px) 33vw, 280px"
+            sizes="(max-width: 768px) 100vw, 280px"
             className="object-cover"
           />
         ) : null}
@@ -145,7 +145,6 @@ function HeadlineCard({ article }: { article: NewsArticle }): React.JSX.Element 
             <span>ANN · {timeAgo(article.publishedAt)}</span>
           </div>
           <span
-            className="hidden md:inline"
             style={{
               fontFamily: "var(--font-space-mono)",
               fontSize: 9,
@@ -264,6 +263,8 @@ export function NewsTab({ articles }: NewsTabProps): React.JSX.Element {
   }
 
   const topNews = articles.slice(0, 3);
+  const hero = topNews[0];
+  const secondary = topNews.slice(1);
   const rest = articles.slice(3);
   const todayNews = rest.filter((a) => isToday(a.publishedAt));
   const previousNews = rest.filter((a) => !isToday(a.publishedAt));
@@ -272,9 +273,18 @@ export function NewsTab({ articles }: NewsTabProps): React.JSX.Element {
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <section>
         <NewsSectionHeader title="TOP NEWS" />
+        {/* Mobile: hero + compact list; desktop: 3-up cards */}
+        <div className="flex flex-col gap-0 md:hidden">
+          {hero ? <HeadlineCard article={hero} /> : null}
+          {secondary.length > 0 ? (
+            <div style={{ marginTop: 8 }}>
+              <CompactNewsList articles={secondary} />
+            </div>
+          ) : null}
+        </div>
         <div
+          className="hidden md:flex"
           style={{
-            display: "flex",
             gap: 10,
             alignItems: "stretch",
           }}
@@ -319,7 +329,29 @@ export function NewsTabSkeleton(): React.JSX.Element {
           </div>
           <div className="section-underline" />
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
+        <div className="flex flex-col gap-0 md:hidden">
+          <div
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
+              borderRadius: 2,
+              overflow: "hidden",
+            }}
+          >
+            <div className="shimmer" style={{ width: "100%", height: 100 }} />
+            <div style={{ padding: "10px 12px" }}>
+              <div
+                className="shimmer"
+                style={{ height: 14, width: "90%", borderRadius: 2, marginBottom: 6 }}
+              />
+              <div
+                className="shimmer"
+                style={{ height: 10, width: "70%", borderRadius: 2 }}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="hidden md:flex" style={{ gap: 10, alignItems: "stretch" }}>
           {Array.from({ length: 3 }, (_, i) => (
             <div
               key={i}

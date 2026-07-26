@@ -57,6 +57,7 @@ function ActionButton({
         fontSize: 9,
         borderRadius: 2,
         padding: "5px 12px",
+        minHeight: 44,
         cursor: disabled ? "default" : "pointer",
         opacity: disabled ? 0.6 : 1,
       }}
@@ -171,6 +172,7 @@ export function PassportModal({
         background: "rgba(0,0,0,0.92)",
         display: "flex",
         flexDirection: "column",
+        paddingTop: "env(safe-area-inset-top)",
       }}
     >
       {/* Header */}

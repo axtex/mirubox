@@ -111,23 +111,6 @@ export function ListCard({ list }: { list: ListCardData }) {
           >
             {list.title}
           </span>
-          {list.isOfficial && (
-            <span
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 9,
-                color: "#e8173f",
-                background: "rgba(232,23,63,0.1)",
-                border: "1px solid rgba(232,23,63,0.2)",
-                borderRadius: 2,
-                padding: "1px 4px",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-            >
-              ✦ OFFICIAL
-            </span>
-          )}
         </div>
 
         {list.description && (

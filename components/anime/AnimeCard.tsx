@@ -150,9 +150,10 @@ export function AnimeCard({
 
         {/* Desktop hover bar — gradient + action buttons, bottom of poster */}
         {/* pointer-events-none on the bar so clicks on the gradient fall through to the Link */}
+        {/* Hidden on mobile — permanent under-poster row handles actions there */}
         {!selectMode ? (
           <div
-            className="absolute bottom-0 left-0 right-0 z-[3] opacity-0 pointer-events-none
+            className="hidden md:block absolute bottom-0 left-0 right-0 z-[3] opacity-0 pointer-events-none
                        group-hover:opacity-100
                        transition-opacity duration-200"
             style={{

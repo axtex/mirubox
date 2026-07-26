@@ -35,10 +35,12 @@ export function ProfileTabs({
         borderBottom: "1px solid var(--bg-card)",
         overflowX: "auto",
         display: "flex",
+        position: "relative",
         scrollbarWidth: "none",
         msOverflowStyle: "none",
+        WebkitOverflowScrolling: "touch",
       }}
-      className="no-scrollbar"
+      className="no-scrollbar profile-tabs-nav"
     >
       {PROFILE_TABS.map(({ id, label }) => {
         const active = activeTab === id;

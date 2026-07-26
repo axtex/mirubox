@@ -182,25 +182,6 @@ export function ListDetailClient({
   return (
     <>
       <div style={{ marginBottom: 28 }}>
-        {isOfficial && (
-          <div style={{ marginBottom: 8 }}>
-            <span
-              style={{
-                fontFamily: "var(--font-space-mono)",
-                fontSize: 9,
-                color: "#e8173f",
-                background: "rgba(232,23,63,0.1)",
-                border: "1px solid rgba(232,23,63,0.2)",
-                borderRadius: 2,
-                padding: "2px 6px",
-                letterSpacing: "0.06em",
-              }}
-            >
-              ✦ OFFICIAL LIST
-            </span>
-          </div>
-        )}
-
         <div
           style={{
             display: "flex",

@@ -157,7 +157,7 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
   return (
     <div
       ref={rowRef}
-      className="group flex items-center gap-3 py-2 pr-5 transition-colors relative"
+      className="group flex items-start md:items-center gap-3 py-2 pr-5 transition-colors relative"
       style={{
         borderBottom: "1px solid var(--border)",
         background: hovered ? "var(--bg-card)" : "transparent",
@@ -196,115 +196,172 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
       </div>
 
       {/* Progress + rating + review + status/heart */}
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="hidden md:flex items-center gap-3">
-        <div
-          className="flex items-center gap-1.5 shrink-0"
-          style={{ height: TRACKER_BADGE.minHeight }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <span
-            className="shrink-0 whitespace-nowrap inline-flex items-center gap-1"
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 10,
-              color: "var(--fg-muted)",
-              lineHeight: 1,
-            }}
-          >
-            {progressLabel}
-            <ProgressCountInput
-              value={localProgress}
-              total={total}
-              ariaLabel={`${progressLabel} progress`}
-              onCommit={commitProgressInput}
-            />
-            {total ? ` / ${total}` : ""}
-          </span>
-          <button type="button" onClick={() => adjustProgress(1)} className="shrink-0" style={btnStyle} aria-label="Increase progress">+</button>
+      <div
+        className="flex flex-col items-stretch shrink-0 w-[118px] md:w-auto md:items-end"
+        style={{ gap: 4 }}
+      >
+        <div className="flex items-center gap-3 justify-end md:w-auto">
+          <div className="hidden md:flex items-center gap-3">
           <div
-            className="shrink-0"
-            style={{ width: 48, height: 4, background: "var(--border)", borderRadius: 2, overflow: "hidden" }}
+            className="flex items-center gap-1.5 shrink-0"
+            style={{ height: TRACKER_BADGE.minHeight }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ height: "100%", width: `${progressPct}%`, background: "var(--primary)", borderRadius: 2 }} />
-          </div>
-          <button type="button" onClick={() => adjustProgress(-1)} className="shrink-0" style={btnStyle} aria-label="Decrease progress">−</button>
-        </div>
-
-        <div className="relative flex items-center shrink-0">
-          <RatingBadge
-            as="button"
-            type="button"
-            score={localScore}
-            className="shrink-0"
-            onClick={() => setShowRating(!showRating)}
-          />
-
-          {showRating && (
-            <div
-              className="absolute z-20 p-2"
+            <span
+              className="shrink-0 whitespace-nowrap inline-flex items-center gap-1"
               style={{
-                bottom: "calc(100% + 4px)",
-                right: 0,
-                background: "var(--bg-card-high)",
-                border: "1px solid var(--border-bright)",
-                borderRadius: 4,
-                width: 128,
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 10,
+                color: "var(--fg-muted)",
+                lineHeight: 1,
               }}
             >
-              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 8, color: "var(--fg-subtle)", marginBottom: 6, letterSpacing: "0.05em" }}>
-                YOUR RATING
-              </p>
-              <div className="grid grid-cols-5 gap-0.5">
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                  <button
-                    key={n}
-                    disabled={ratingLoading}
-                    onClick={() => void handleRate(n)}
-                    onMouseEnter={() => setRatingHover(n)}
-                    onMouseLeave={() => setRatingHover(null)}
-                    style={{
-                      fontFamily: "var(--font-space-mono)",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      padding: "3px 0",
-                      borderRadius: 2,
-                      border: `1px solid ${activeRating !== null && n <= activeRating ? "var(--primary)" : "var(--border)"}`,
-                      background: activeRating !== null && n <= activeRating ? "var(--primary)" : "var(--bg-card)",
-                      color: activeRating !== null && n <= activeRating ? "#fff" : "var(--fg-subtle)",
-                      cursor: ratingLoading ? "not-allowed" : "pointer",
-                      textAlign: "center",
-                    }}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
+              {progressLabel}
+              <ProgressCountInput
+                value={localProgress}
+                total={total}
+                ariaLabel={`${progressLabel} progress`}
+                onCommit={commitProgressInput}
+              />
+              {total ? ` / ${total}` : ""}
+            </span>
+            <button type="button" onClick={() => adjustProgress(1)} className="shrink-0" style={btnStyle} aria-label="Increase progress">+</button>
+            <div
+              className="shrink-0"
+              style={{ width: 48, height: 4, background: "var(--border)", borderRadius: 2, overflow: "hidden" }}
+            >
+              <div style={{ height: "100%", width: `${progressPct}%`, background: "var(--primary)", borderRadius: 2 }} />
             </div>
-          )}
+            <button type="button" onClick={() => adjustProgress(-1)} className="shrink-0" style={btnStyle} aria-label="Decrease progress">−</button>
+          </div>
+
+          <div className="relative flex items-center shrink-0">
+            <RatingBadge
+              as="button"
+              type="button"
+              score={localScore}
+              className="shrink-0"
+              onClick={() => setShowRating(!showRating)}
+            />
+
+            {showRating && (
+              <div
+                className="absolute z-20 p-2"
+                style={{
+                  bottom: "calc(100% + 4px)",
+                  right: 0,
+                  background: "var(--bg-card-high)",
+                  border: "1px solid var(--border-bright)",
+                  borderRadius: 4,
+                  width: 128,
+                }}
+              >
+                <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 8, color: "var(--fg-subtle)", marginBottom: 6, letterSpacing: "0.05em" }}>
+                  YOUR RATING
+                </p>
+                <div className="grid grid-cols-5 gap-0.5">
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                    <button
+                      key={n}
+                      disabled={ratingLoading}
+                      onClick={() => void handleRate(n)}
+                      onMouseEnter={() => setRatingHover(n)}
+                      onMouseLeave={() => setRatingHover(null)}
+                      style={{
+                        fontFamily: "var(--font-space-mono)",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "3px 0",
+                        borderRadius: 2,
+                        border: `1px solid ${activeRating !== null && n <= activeRating ? "var(--primary)" : "var(--border)"}`,
+                        background: activeRating !== null && n <= activeRating ? "var(--primary)" : "var(--bg-card)",
+                        color: activeRating !== null && n <= activeRating ? "#fff" : "var(--fg-subtle)",
+                        cursor: ratingLoading ? "not-allowed" : "pointer",
+                        textAlign: "center",
+                      }}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Link
+            href={`${href}#review`}
+            aria-label={hasReview ? "View review" : "Write review"}
+            className="inline-flex items-center shrink-0"
+          >
+            <ReviewBadge active={hasReview} className="shrink-0" />
+          </Link>
+          </div>
+
+          <div className="w-full md:w-auto">
+            <AnimeCardActions
+              mediaId={animeId}
+              mediaType={mediaType}
+              iconSize="sm"
+              opaque
+              listLayout
+              {...trackerCallbacks}
+            />
+          </div>
         </div>
 
-        <Link
-          href={`${href}#review`}
-          aria-label={hasReview ? "View review" : "Write review"}
-          className="inline-flex items-center shrink-0"
-        >
-          <ReviewBadge active={hasReview} className="shrink-0" />
-        </Link>
-        </div>
-
-        <AnimeCardActions
-          mediaId={animeId}
-          mediaType={mediaType}
-          iconSize="sm"
-          opaque
-          listLayout
-          {...trackerCallbacks}
-        />
+        {/* Mobile progress — mirrors status/heart row width; number centered */}
+        {status === "IN_PROGRESS" && (
+          <div
+            className="flex md:hidden items-center w-full"
+            style={{ gap: ACTIONS_GAP }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => adjustProgress(1)}
+              aria-label="Increase progress"
+              className="shrink-0"
+              style={mobileProgressBtnStyle}
+            >
+              +
+            </button>
+            <span
+              className="flex-1 inline-flex items-center justify-center gap-0.5 min-w-0"
+              style={{
+                fontFamily: "var(--font-space-mono)",
+                fontSize: 9,
+                color: "var(--fg-muted)",
+                lineHeight: 1,
+              }}
+            >
+              <ProgressCountInput
+                value={localProgress}
+                total={total}
+                ariaLabel={`${progressLabel} progress`}
+                onCommit={commitProgressInput}
+                fontSize={9}
+              />
+              {total != null ? ` / ${total}` : ""}
+            </span>
+            <button
+              type="button"
+              onClick={() => adjustProgress(-1)}
+              aria-label="Decrease progress"
+              className="shrink-0"
+              style={{ ...mobileProgressBtnStyle, width: HEART_SIZE, height: HEART_SIZE }}
+            >
+              −
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+const ACTIONS_GAP = 6; // matches AnimeCardActions gap-1.5
+const HEART_SIZE = 24; // iconSize="sm"
+// ACTIONS_ROW_WIDTH = LIST_STATUS_BUTTON_WIDTH (88) + gap (6) + heart (24) = 118 — used via w-[118px]
 
 const btnStyle: React.CSSProperties = {
   flexShrink: 0,
@@ -319,8 +376,30 @@ const btnStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: "0 2px",
+  padding: "8px",
+  margin: "-8px",
+  appearance: "none",
+  WebkitAppearance: "none",
+};
+
+const mobileProgressBtnStyle: React.CSSProperties = {
+  width: 24,
+  height: 24,
+  borderRadius: 2,
+  border: "1px solid var(--border)",
+  background: "var(--bg-elevated)",
+  color: "var(--fg-muted)",
+  fontFamily: "var(--font-space-mono)",
+  fontSize: 14,
+  fontWeight: 700,
+  lineHeight: 1,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 0,
   margin: 0,
+  flexShrink: 0,
   appearance: "none",
   WebkitAppearance: "none",
 };

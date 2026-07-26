@@ -154,6 +154,24 @@ h1, h2, h3 {
   display: none;
 }
 
+/* Profile tabs — right-edge fade hints more tabs on mobile */
+.profile-tabs-nav::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(to right, transparent, var(--bg));
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .profile-tabs-nav::after {
+    display: none;
+  }
+}
+
 .text-display {
   font-family: var(--font-anybody), system-ui, sans-serif;
   font-size: clamp(40px, 7vw, 72px);
@@ -1182,7 +1200,10 @@ span.detail-sidebar-genre-link:hover {
   height: 22px;
   flex-shrink: 0;
   margin-left: 0;
-  padding: 0;
+  /* Expand hit area to ~44px without changing visual size */
+  padding: 11px;
+  margin: -11px;
+  box-sizing: content-box;
   font-size: 13px;
   line-height: 1;
   color: var(--fg-faint);
@@ -1370,7 +1391,8 @@ span.detail-sidebar-genre-link:hover {
   color: #5a5a65;
   background: none;
   border: none;
-  padding: 0;
+  padding: 12px;
+  margin: -12px;
   cursor: pointer;
   transition: color 0.15s ease;
 }

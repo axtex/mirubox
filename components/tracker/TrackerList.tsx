@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { useRouter } from "next/navigation";
-import { ChevronRight, List, LayoutGrid, Download } from "lucide-react";
+import { ChevronRight, List, LayoutGrid, Download, MoreHorizontal } from "lucide-react";
 import { FilterSelect } from "@/components/FilterSelect";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import { STATUS_TABS, TYPE_TABS, statusToSlug } from "@/app/tracker/types";
@@ -12,6 +12,7 @@ import { ListRow } from "@/app/tracker/ListRow";
 import { GridCard } from "@/app/tracker/GridCard";
 import type { EntryData, TrackerStatus, MediaType, SortKey, MediaCounts } from "@/app/tracker/types";
 import { StatusMessage } from "@/components/ui/StatusMessage";
+import { useToast } from "@/context/ToastContext";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "recent", label: "MOST RECENT ↓" },
@@ -61,6 +62,7 @@ export function TrackerList({
 }: Props) {
   const router = useRouter();
   const [view, setView] = useState<"list" | "grid">("list");
+  const { showToast } = useToast();
   const [library, setLibrary] = useState(entries);
   const [filterType, setFilterType] = useState<MediaType>(initialMediaType);
   const [filterStatus, setFilterStatus] = useState<TrackerStatus>(initialStatus);
@@ -191,7 +193,7 @@ export function TrackerList({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 md:mt-1 ml-auto">
+        <div className="hidden md:flex items-center gap-2 shrink-0 md:mt-1 ml-auto">
           <FilterSelect
             value={sort}
             onChange={(s) => {
@@ -237,8 +239,8 @@ export function TrackerList({
         </div>
       </div>
 
-      {/* ── Type pills ───────────────────────────────────────────────── */}
-      <div className="flex gap-1.5 mb-5">
+      {/* ── Type pills (+ mobile tools) ───────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-5">
         {TYPE_TABS.map(({ value, label }) => {
           const count =
             value === "ALL"
@@ -304,13 +306,41 @@ export function TrackerList({
           FAVS
           <span style={{ fontSize: 9, opacity: 0.6 }}>{favouriteCount}</span>
         </Link>
+
+        <div className="md:hidden">
+          <TrackerMobileTools
+            sort={sort}
+            view={view}
+            onSort={(next) => {
+              if (showFavourites) {
+                router.push(buildFavouritesHref(next));
+              } else {
+                applyFilters(filterType, filterStatus, next);
+              }
+            }}
+            onView={toggleView}
+            onImport={() => {
+              showToast({
+                type: "XP",
+                title: "Import available on desktop",
+              });
+            }}
+          />
+        </div>
       </div>
 
       {/* ── Status sub-tabs (hidden in favourites view) ─────────────────── */}
       {!showFavourites && (
         <div
-          className="flex flex-wrap mb-6"
-          style={{ borderBottom: "1px solid var(--border)" }}
+          className="flex mb-6 no-scrollbar"
+          style={{
+            borderBottom: "1px solid var(--border)",
+            overflowX: "auto",
+            flexWrap: "nowrap",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
         >
           {STATUS_TABS.map(({ value, label }, index) => {
             const count = value === "ALL" ? totalStatus : (counts[value] ?? 0);
@@ -327,13 +357,13 @@ export function TrackerList({
                   letterSpacing: "0.08em",
                   padding: index === 0 ? "10px 14px 10px 0" : "10px 14px",
                   color: active ? "var(--primary)" : "var(--fg-muted)",
-                  borderBottom: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
-                  marginBottom: -1,
+                  // inset shadow — border-bottom is clipped by overflow-x on mobile
+                  boxShadow: active
+                    ? "inset 0 -1.5px 0 0 var(--primary)"
+                    : "none",
                   whiteSpace: "nowrap",
                   background: "none",
-                  borderTop: "none",
-                  borderLeft: "none",
-                  borderRight: "none",
+                  border: "none",
                   cursor: "pointer",
                 }}
               >
@@ -586,6 +616,163 @@ function FavouriteOnlyCard({
           NOT ARCHIVED
         </p>
       </div>
+    </div>
+  );
+}
+
+function TrackerMobileTools({
+  sort,
+  view,
+  onSort,
+  onView,
+  onImport,
+}: {
+  sort: SortKey;
+  view: "list" | "grid";
+  onSort: (sort: SortKey) => void;
+  onView: (view: "list" | "grid") => void;
+  onImport: () => void;
+}): React.JSX.Element {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(e: MouseEvent): void {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function handleKeyDown(e: KeyboardEvent): void {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  const itemStyle = (active: boolean): React.CSSProperties => ({
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    padding: "10px 16px",
+    fontFamily: "var(--font-space-mono)",
+    fontSize: 10,
+    letterSpacing: "0.06em",
+    color: active ? "var(--primary)" : "var(--fg-muted)",
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    textAlign: "left",
+  });
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        aria-label="Tracker options"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 28,
+          height: 28,
+          borderRadius: 2,
+          border: "1px solid var(--bg-card-high, #2a2a2d)",
+          background: open ? "var(--bg-card)" : "var(--bg-elevated)",
+          color: open ? "var(--primary)" : "var(--fg-muted)",
+          cursor: "pointer",
+          padding: 0,
+        }}
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-50 overflow-hidden"
+          style={{
+            marginTop: 8,
+            minWidth: 180,
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--bg-card-high)",
+            borderRadius: 2,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+          }}
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onSort(opt.value);
+                setOpen(false);
+              }}
+              style={itemStyle(sort === opt.value)}
+              onTouchStart={(e) => {
+                e.currentTarget.style.background = "var(--bg-card)";
+              }}
+              onTouchEnd={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+
+          <div style={{ height: 1, background: "var(--bg-card)" }} />
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              onView("list");
+              setOpen(false);
+            }}
+            style={itemStyle(view === "list")}
+          >
+            <List className="w-3.5 h-3.5" />
+            LIST VIEW
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              onView("grid");
+              setOpen(false);
+            }}
+            style={itemStyle(view === "grid")}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            GRID VIEW
+          </button>
+
+          <div style={{ height: 1, background: "var(--bg-card)" }} />
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              onImport();
+              setOpen(false);
+            }}
+            style={{
+              ...itemStyle(false),
+              opacity: 0.5,
+            }}
+          >
+            <Download className="w-3.5 h-3.5" />
+            IMPORT
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,14 +6,10 @@ import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Bell } from "lucide-react";
 import { useNotificationPolling } from "@/hooks/useNotificationPolling";
-import {
-  getNotifVisual,
-  notifBodyText,
-  type NotifVisualType,
-} from "@/lib/notification-visuals";
-import { timeAgo } from "@/lib/time-ago";
+import type { NotifVisualType } from "@/lib/notification-visuals";
+import { getNotificationLinkTarget } from "@/lib/notification-links";
 import { StatusMessage } from "@/components/ui/StatusMessage";
-import { IconCircle } from "@/components/ui/IconCircle";
+import { NotificationRow } from "@/components/notifications/NotificationRow";
 
 interface NotificationItem {
   id: string;
@@ -28,25 +24,7 @@ interface NotificationItem {
   list: { slug: string } | null;
 }
 
-function getLinkTarget(n: NotificationItem): string | null {
-  switch (n.type) {
-    case "BADGE_EARNED":
-    case "RANK_UP":
-      return "/profile?tab=stats";
-    case "LIST_LIKED":
-      return n.list?.slug ? `/lists/${n.list.slug}` : null;
-    case "NEW_FOLLOWER":
-      return n.fromUser?.username ? `/u/${n.fromUser.username}` : null;
-    case "EPISODE_AVAILABLE":
-      return n.mediaId != null ? `/anime/${n.mediaId}` : null;
-    case "CHAPTER_AVAILABLE":
-      return n.mediaId != null ? `/manga/${n.mediaId}` : null;
-    default:
-      return null;
-  }
-}
-
-export function NotificationBell() {
+export function NotificationBell(): React.JSX.Element {
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -95,7 +73,7 @@ export function NotificationBell() {
   }, []);
 
   function handleRowClick(n: NotificationItem) {
-    const target = getLinkTarget(n);
+    const target = getNotificationLinkTarget(n);
     setOpen(false);
     if (target) router.push(target);
   }
@@ -192,91 +170,16 @@ export function NotificationBell() {
               </StatusMessage>
             ) : (
               notifications.map((n) => (
-                <NotificationRow key={n.id} notification={n} onClick={() => handleRowClick(n)} />
+                <NotificationRow
+                  key={n.id}
+                  notification={n}
+                  onClick={() => handleRowClick(n)}
+                />
               ))
             )}
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function NotificationRow({
-  notification,
-  onClick,
-}: {
-  notification: NotificationItem;
-  onClick: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-  const visual = getNotifVisual(notification.type);
-  const body = notifBodyText(notification.type, notification.body);
-
-  return (
-    <div
-      role="menuitem"
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="flex items-start"
-      style={{
-        gap: 10,
-        padding: notification.read ? "10px 14px" : "10px 14px 10px 12px",
-        borderLeft: notification.read ? "none" : "2px solid var(--primary)",
-        borderBottom: "1px solid var(--bg-card)",
-        background: hovered
-          ? "var(--bg-surface)"
-          : notification.read
-            ? "transparent"
-            : "rgba(232, 23, 63, 0.02)",
-        cursor: "pointer",
-        transition: "background 100ms",
-      }}
-    >
-      <IconCircle Icon={visual.Icon} bg={visual.bg} border={visual.border} />
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p
-          style={{
-            fontSize: 11,
-            color: "var(--fg)",
-            fontWeight: notification.read ? 400 : 500,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {notification.title}
-        </p>
-        {body && (
-          <p
-            style={{
-              fontFamily: "var(--font-space-mono)",
-              fontSize: 9,
-              color: "var(--fg-subtle)",
-              marginTop: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {body}
-          </p>
-        )}
-      </div>
-
-      <span
-        className="shrink-0"
-        style={{
-          fontFamily: "var(--font-space-mono)",
-          fontSize: 8,
-          color: "var(--fg-faint)",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {timeAgo(new Date(notification.createdAt))}
-      </span>
     </div>
   );
 }

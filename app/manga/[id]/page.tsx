@@ -15,6 +15,8 @@ import { DescriptionToggle } from "@/components/anime/detail/DescriptionToggle";
 import { AnimeCard } from "@/components/anime/AnimeCard";
 import { DetailHeroScore } from "@/components/detail/DetailHeroScore";
 import { DetailSidebar } from "@/components/detail/DetailSidebar";
+import { DetailSidebarMeta } from "@/components/detail/DetailSidebarMeta";
+import { TrackerSidebarBlock, DetailRatingReviewBlock } from "@/components/detail/TrackerSidebarBlock";
 import { MangaCharacterSection } from "@/components/detail/MangaCharacterSection";
 import type { AnimeCard as AnimeCardType, AnimeDetail, Relation } from "@/types/anilist";
 
@@ -177,6 +179,7 @@ export default async function MangaDetailPage({ params }: PageProps) {
   ];
 
   const heroGenres = media.genres.slice(0, 5);
+  const mobileHeroGenres = media.genres.slice(0, 3);
 
   const SECTION_TITLE: CSSProperties = {
     fontFamily: "var(--font-space-mono)",
@@ -188,24 +191,28 @@ export default async function MangaDetailPage({ params }: PageProps) {
     marginBottom: 6,
   };
 
+  const trackerProps = {
+    mediaId: numId,
+    mediaType: "MANGA" as const,
+    title,
+    total: media.chapters ?? null,
+    initialProgress: userProgress,
+    initialRating: userRating,
+    initialReview: userReview,
+  };
+
+  const watchSection = {
+    title: "WHERE TO READ",
+    links: readingLinks,
+    isFallback: readingLinks.length === 0,
+    fallbackNote: "No direct reading links found.",
+  };
+
   const SIDEBAR = (
     <DetailSidebar
-      tracker={{
-        mediaId: numId,
-        mediaType: "MANGA",
-        title,
-        total: media.chapters ?? null,
-        initialProgress: userProgress,
-        initialRating: userRating,
-        initialReview: userReview,
-      }}
+      tracker={trackerProps}
       details={sidebarDetails}
-      watchSection={{
-        title: "WHERE TO READ",
-        links: readingLinks,
-        isFallback: readingLinks.length === 0,
-        fallbackNote: "No direct reading links found.",
-      }}
+      watchSection={watchSection}
     />
   );
 
@@ -245,14 +252,19 @@ export default async function MangaDetailPage({ params }: PageProps) {
         {/* HERO CONTENT */}
         <div>
 
-          {/* ── Mobile ───────────────────────────────────────────────── */}
-          <div className="md:hidden flex flex-col items-center text-center">
+          {/* ── Mobile — left-aligned poster + title ─────────────────── */}
+          {/* z-index: positioned banner paints above in-flow content otherwise */}
+          <div
+            className="md:hidden relative z-[2] flex gap-3 items-end"
+            style={{ marginTop: -50, marginBottom: 16 }}
+          >
             <div
-              className="relative overflow-hidden mx-auto"
+              className="relative overflow-hidden shrink-0"
               style={{
-                width: 100, height: 150,
-                marginTop: -50, marginBottom: 12,
-                borderRadius: 2, border: "2px solid #2a2a2d",
+                width: 100,
+                height: 150,
+                borderRadius: 2,
+                border: "2px solid #2a2a2d",
                 boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
               }}
             >
@@ -265,31 +277,48 @@ export default async function MangaDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            <h1 style={{ fontFamily: "var(--font-anybody)", fontWeight: 600, fontSize: 18, lineHeight: 1.2, color: "#e4e1e6", marginBottom: 1 }}>
-              {titleLeading}
-              <span style={{ whiteSpace: "nowrap" }}>
-                {titleLastWord}
-                {media.averageScore !== null && (
-                  <span style={{ display: "inline-flex", verticalAlign: "middle", marginLeft: 8 }}>
-                    <DetailHeroScore score={media.averageScore} size="sm" />
-                  </span>
-                )}
-              </span>
-            </h1>
-            {nativeTitle && (
-              <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 11, color: "#5a5a65", marginBottom: 8 }}>
-                {nativeTitle}
-              </p>
-            )}
-
-            {heroGenres.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 mb-4">
-                {heroGenres.map((g) => (
-                  <span key={g} className="genre-chip">{g}</span>
-                ))}
-              </div>
-            )}
-
+            <div className="flex-1 min-w-0 flex flex-col justify-end">
+              <h1
+                style={{
+                  fontFamily: "var(--font-anybody)",
+                  fontWeight: 600,
+                  fontSize: 20,
+                  lineHeight: 1.2,
+                  color: "#e4e1e6",
+                  marginBottom: 2,
+                  wordBreak: "break-word",
+                }}
+              >
+                {titleLeading}
+                <span style={{ whiteSpace: "nowrap" }}>
+                  {titleLastWord}
+                  {media.averageScore !== null && (
+                    <span style={{ display: "inline-flex", verticalAlign: "middle", marginLeft: 8 }}>
+                      <DetailHeroScore score={media.averageScore} size="sm" />
+                    </span>
+                  )}
+                </span>
+              </h1>
+              {nativeTitle && (
+                <p
+                  style={{
+                    fontFamily: "var(--font-space-mono)",
+                    fontSize: 11,
+                    color: "#5a5a65",
+                    marginBottom: mobileHeroGenres.length > 0 ? 8 : 0,
+                  }}
+                >
+                  {nativeTitle}
+                </p>
+              )}
+              {mobileHeroGenres.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {mobileHeroGenres.map((g) => (
+                    <span key={g} className="genre-chip">{g}</span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── Desktop — poster and info block as flex siblings ────────── */}
@@ -373,26 +402,58 @@ export default async function MangaDetailPage({ params }: PageProps) {
 
       {/* ═══ MAIN LAYOUT ═════════════════════════════════════════════════════ */}
       <div>
-        <div className="flex gap-7 py-8" style={{ alignItems: "flex-start" }}>
+        {/* Mobile: Track under hero — status, heart, progress only */}
+        <div className="md:hidden mb-5">
+          <TrackerSidebarBlock {...trackerProps} compact />
+        </div>
 
-          {/* MAIN COLUMN */}
+        <div className="flex gap-7 pb-8 pt-0 md:py-8" style={{ alignItems: "flex-start" }}>
           <div className="flex flex-col gap-5 min-w-0" style={{ flex: 1 }}>
 
-            {/* 1. SYNOPSIS */}
             {media.description && (
               <DescriptionToggle description={media.description} />
             )}
 
-            {/* 2. CHARACTERS (manga — no VAs) */}
+            {/* Mobile: Details → Rating → Lists → Watch → Next ep */}
+            <div className="md:hidden flex flex-col gap-5">
+              <DetailSidebarMeta
+                details={sidebarDetails}
+                order={["details"]}
+              />
+              <DetailRatingReviewBlock
+                mediaId={numId}
+                title={title}
+                initialRating={userRating}
+                initialReview={userReview}
+              />
+              <DetailSidebarMeta
+                details={[]}
+                watchSection={watchSection}
+                lists={{ mediaId: numId, mediaType: "MANGA" }}
+                order={["lists", "watch", "next"]}
+              />
+            </div>
+
             {sortedChars.length > 0 && (
               <MangaCharacterSection chars={sortedChars} />
             )}
 
-            {/* 3. RELATIONS */}
             {filteredRelations.length > 0 && (
               <section>
                 <p style={SECTION_TITLE}>RELATED</p>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                {/* Mobile: horizontal scroll when >3; desktop: 6-col grid */}
+                <div
+                  className={
+                    filteredRelations.length > 3
+                      ? "section-cards"
+                      : "grid grid-cols-3 md:grid-cols-6 gap-3"
+                  }
+                  style={
+                    filteredRelations.length > 3
+                      ? ({ ["--section-row-cols" as string]: 6 } as CSSProperties)
+                      : undefined
+                  }
+                >
                   {filteredRelations.map(({ node }) => (
                     <AnimeCard key={node.id} anime={relationToCard(node)} size="md" />
                   ))}
@@ -400,11 +461,16 @@ export default async function MangaDetailPage({ params }: PageProps) {
               </section>
             )}
 
-            {/* 4. RECOMMENDATIONS */}
             {recs.length > 0 && (
               <section>
                 <p style={SECTION_TITLE}>YOU MIGHT ALSO LIKE</p>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                {/* Mobile: 3 cards; desktop: up to 6 */}
+                <div className="grid grid-cols-3 gap-3 md:hidden">
+                  {recs.slice(0, 3).map((rec) => (
+                    <AnimeCard key={rec.id} anime={rec} size="md" />
+                  ))}
+                </div>
+                <div className="hidden md:grid md:grid-cols-6 gap-3">
                   {recs.map((rec) => (
                     <AnimeCard key={rec.id} anime={rec} size="md" />
                   ))}
@@ -413,18 +479,12 @@ export default async function MangaDetailPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* SIDEBAR — desktop only (sticky) */}
           <div
             className="hidden md:block"
             style={{ width: 220, flexShrink: 0, position: "sticky", top: 16, marginTop: -128 }}
           >
             {SIDEBAR}
           </div>
-        </div>
-
-        {/* SIDEBAR — mobile (below all sections) */}
-        <div className="md:hidden mb-8">
-          {SIDEBAR}
         </div>
       </div>
     </div>
