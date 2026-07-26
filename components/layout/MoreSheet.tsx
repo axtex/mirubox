@@ -146,7 +146,7 @@ export function MoreSheet({
         }}
         style={{
           position: "fixed",
-          bottom: 56,
+          bottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
           left: 0,
           right: 0,
           zIndex: 41,
@@ -155,7 +155,6 @@ export function MoreSheet({
           borderRadius: 2,
           boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           overflow: "hidden",
-          paddingBottom: "env(safe-area-inset-bottom)",
           transform: animatingIn ? "translateY(0)" : "translateY(100%)",
           transition: "transform 150ms ease-out",
         }}

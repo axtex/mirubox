@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Anybody, Geist, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
@@ -54,6 +54,11 @@ export const metadata: Metadata = {
   },
 };
 
+/** Required for env(safe-area-inset-*) on iPhone (home indicator). */
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -85,7 +90,7 @@ export default function RootLayout({
                 </Suspense>
                 <Navbar />
                 <MobileNav />
-                <main className="flex flex-1 flex-col min-h-0 pb-[56px] md:pb-0">
+                <main className="flex flex-1 flex-col min-h-0 pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0">
                   <PageContainer className="flex flex-1 flex-col min-h-0">{children}</PageContainer>
                 </main>
                 <Footer />

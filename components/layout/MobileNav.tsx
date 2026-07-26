@@ -43,12 +43,13 @@ export function MobileNav(): React.JSX.Element {
       />
 
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch"
         style={{
           background: "var(--bg-surface)",
           borderTop: "1px solid var(--border)",
-          height: 56,
-          paddingBottom: "env(safe-area-inset-bottom)",
+          // Content row + home-indicator inset (border-box: padding sits inside total height)
+          height: "calc(64px + env(safe-area-inset-bottom, 0px))",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
         <NavLink
