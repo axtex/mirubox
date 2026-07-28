@@ -103,6 +103,16 @@ body {
   select {
     font-size: 16px !important;
   }
+
+  /*
+   * Compact EP/CH progress fields: keep 16px (no iOS zoom), then zoom the
+   * whole control so it still reads at the designed ~10px size.
+   * layout height = (fs + 4) * 16 / fs so after zoom it matches fontSize + 4.
+   */
+  input.progress-count-input {
+    height: calc((var(--progress-fs, 10) * 1px + 4px) * 16 / var(--progress-fs, 10)) !important;
+    zoom: calc(var(--progress-fs, 10) / 16);
+  }
 }
 
 /* ── Global scrollbar (dark) — desktop only; mobile scroll is gesture-based ─ */

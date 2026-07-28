@@ -65,6 +65,8 @@ export function ProgressCountInput({
   );
 
   const style: CSSProperties = {
+    // --progress-fs: intended visual size; mobile CSS keeps 16px (no iOS zoom) + zoom back down
+    ["--progress-fs" as string]: fontSize,
     width: `calc(${digitWidth}ch + 2px)`,
     minWidth: 16,
     height: fontSize + 4,
@@ -93,6 +95,7 @@ export function ProgressCountInput({
       type="text"
       inputMode="numeric"
       pattern="[0-9]*"
+      className="progress-count-input"
       aria-label={ariaLabel}
       value={draft}
       onChange={(e) => {
