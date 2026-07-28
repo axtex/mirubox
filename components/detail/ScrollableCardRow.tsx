@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -102,34 +102,37 @@ function Card({ item, cardWidth }: { item: ScrollCardItem; cardWidth: number }) 
 
 export function ScrollableCardRow({ title, subtitle, items, cardWidth = 70 }: ScrollableCardRowProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState(0);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const [atStart, setAtStart] = useState(true);
+  const [atEnd, setAtEnd] = useState(true);
 
-  useEffect(() => {
+  const updateEdges = useCallback((): void => {
     const el = containerRef.current;
     if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
+    setAtStart(el.scrollLeft <= 2);
+    setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 2);
   }, []);
+
+  useEffect(() => {
+    updateEdges();
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateEdges, { passive: true });
+    const observer = new ResizeObserver(updateEdges);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateEdges);
+      observer.disconnect();
+    };
+  }, [updateEdges, items.length]);
 
   if (items.length === 0) return null;
 
-  const totalWidth = items.length * (cardWidth + GAP) - GAP;
-  const maxOffset = Math.max(0, totalWidth - containerWidth);
-  const cardsPerPage = Math.max(1, Math.floor(containerWidth / (cardWidth + GAP)));
-  const scrollAmount = (cardWidth + GAP) * cardsPerPage;
-
-  const clampedOffset = Math.min(offset, maxOffset);
-  const atStart = clampedOffset <= 0;
-  const atEnd = clampedOffset >= maxOffset;
-
-  const handlePrev = () => setOffset((o) => Math.max(0, o - scrollAmount));
-  const handleNext = () => setOffset((o) => Math.min(maxOffset, o + scrollAmount));
+  const scrollByPage = (dir: 1 | -1): void => {
+    const el = containerRef.current;
+    if (!el) return;
+    const cardsPerPage = Math.max(1, Math.floor(el.clientWidth / (cardWidth + GAP)));
+    el.scrollBy({ left: dir * (cardWidth + GAP) * cardsPerPage, behavior: "smooth" });
+  };
 
   return (
     <section>
@@ -165,7 +168,7 @@ export function ScrollableCardRow({ title, subtitle, items, cardWidth = 70 }: Sc
         <div className="hidden md:flex" style={{ gap: 4 }}>
           <button
             type="button"
-            onClick={handlePrev}
+            onClick={() => scrollByPage(-1)}
             disabled={atStart}
             aria-label="Scroll left"
             className="scroll-row-arrow"
@@ -174,7 +177,7 @@ export function ScrollableCardRow({ title, subtitle, items, cardWidth = 70 }: Sc
           </button>
           <button
             type="button"
-            onClick={handleNext}
+            onClick={() => scrollByPage(1)}
             disabled={atEnd}
             aria-label="Scroll right"
             className="scroll-row-arrow"
@@ -184,14 +187,10 @@ export function ScrollableCardRow({ title, subtitle, items, cardWidth = 70 }: Sc
         </div>
       </div>
 
-      <div
-        ref={containerRef}
-        className="relative overflow-x-auto md:overflow-hidden"
-        style={{ WebkitOverflowScrolling: "touch" }}
-      >
+      <div className="relative">
         {!atEnd && (
           <div
-            className="hidden md:block absolute pointer-events-none"
+            className="hidden md:block absolute pointer-events-none z-10"
             style={{
               right: 0,
               top: 0,
@@ -202,17 +201,19 @@ export function ScrollableCardRow({ title, subtitle, items, cardWidth = 70 }: Sc
           />
         )}
         <div
-          className="flex md:transition-transform"
+          ref={containerRef}
+          className="no-scrollbar overflow-x-auto overflow-y-hidden"
           style={{
-            gap: GAP,
-            transform: `translateX(-${clampedOffset}px)`,
-            transitionDuration: "300ms",
-            transitionTimingFunction: "ease",
+            WebkitOverflowScrolling: "touch",
+            touchAction: "pan-x",
+            overscrollBehaviorX: "contain",
           }}
         >
-          {items.map((item) => (
-            <Card key={item.id} item={item} cardWidth={cardWidth} />
-          ))}
+          <div className="flex" style={{ gap: GAP }}>
+            {items.map((item) => (
+              <Card key={item.id} item={item} cardWidth={cardWidth} />
+            ))}
+          </div>
         </div>
       </div>
     </section>

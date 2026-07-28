@@ -20,16 +20,31 @@ export function RatingInput({ animeId, initialRating, isLoggedIn }: RatingInputP
 
   async function handleRate(score: number) {
     if (loading) return;
+    const prev = rating;
+    const next = rating === score ? null : score;
     setLoading(true);
+    setRating(next);
     try {
-      const res = await fetch("/api/ratings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ animeId, score }),
-      });
-      const data = (await res.json()) as { notifications?: ToastNotification[] };
-      data.notifications?.forEach((n) => showToast(n));
-      setRating(score);
+      const res =
+        next === null
+          ? await fetch("/api/ratings", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ animeId }),
+            })
+          : await fetch("/api/ratings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ animeId, score: next }),
+            });
+      if (!res.ok) throw new Error("Failed to update rating");
+      if (next !== null) {
+        const data = (await res.json()) as { notifications?: ToastNotification[] };
+        data.notifications?.forEach((n) => showToast(n));
+      }
+    } catch {
+      setRating(prev);
+      showToast({ type: "ERROR", title: "Something went wrong", body: "Please try again" });
     } finally {
       setLoading(false);
     }

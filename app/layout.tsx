@@ -56,6 +56,8 @@ export const metadata: Metadata = {
 
 /** Required for env(safe-area-inset-*) on iPhone (home indicator). */
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
   viewportFit: "cover",
 };
 

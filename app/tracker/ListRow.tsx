@@ -2,16 +2,23 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { ImageWithFallback } from "@/components/ui/ImageWithFallback";
 import { AnimeCardActions } from "@/components/anime/AnimeCardActions";
 import { ReviewBadge } from "@/components/tracker/ReviewBadge";
 import { RatingBadge } from "@/components/tracker/RatingBadge";
+import { ReviewModal } from "@/components/detail/ReviewModal";
 import { formatEntryMetadata } from "./types";
 import type { EntryData } from "./types";
 import { TRACKER_BADGE } from "@/components/tracker/badgeStyles";
 import { ProgressCountInput } from "@/components/tracker/ProgressCountInput";
 import { trackerProgressPct } from "@/lib/tracker-progress";
 import { useTracker } from "@/lib/tracker-context";
+
+interface ReviewData {
+  content: string;
+  containsSpoilers: boolean;
+}
 
 interface Props {
   entry: EntryData;
@@ -39,6 +46,10 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
   const [localScore, setLocalScore] = useState<number | null>(userScore);
   const [ratingHover, setRatingHover] = useState<number | null>(null);
   const [ratingLoading, setRatingLoading] = useState(false);
+
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewDraft, setReviewDraft] = useState<ReviewData | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -136,23 +147,61 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
 
   async function handleRate(score: number) {
     if (ratingLoading) return;
+    const prev = localScore;
+    const next = localScore === score ? null : score;
     setRatingLoading(true);
-    setLocalScore(score);
-    onUpdate(animeId, { userScore: score });
+    setLocalScore(next);
+    onUpdate(animeId, { userScore: next });
     setShowRating(false);
     try {
-      await fetch("/api/ratings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ animeId, score }),
-      });
+      const res =
+        next === null
+          ? await fetch("/api/ratings", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ animeId }),
+            })
+          : await fetch("/api/ratings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ animeId, score: next }),
+            });
+      if (!res.ok) throw new Error("Failed to update rating");
+    } catch {
+      setLocalScore(prev);
+      onUpdate(animeId, { userScore: prev });
     } finally {
       setRatingLoading(false);
     }
   }
 
+  async function openReview() {
+    if (reviewLoading) return;
+    if (!hasReview) {
+      setReviewDraft(null);
+      setReviewOpen(true);
+      return;
+    }
+    setReviewLoading(true);
+    try {
+      const res = await fetch(`/api/reviews?animeId=${animeId}`);
+      if (!res.ok) throw new Error("Failed to load review");
+      const data = (await res.json()) as { review: ReviewData | null };
+      setReviewDraft(
+        data.review
+          ? { content: data.review.content, containsSpoilers: data.review.containsSpoilers }
+          : null,
+      );
+    } catch {
+      setReviewDraft(null);
+    } finally {
+      setReviewLoading(false);
+      setReviewOpen(true);
+    }
+  }
+
   const progressPct = trackerProgressPct(localProgress, total, isManga ? "MANGA" : "ANIME");
-  const activeRating = ratingHover ?? localScore;
+  const displayRating = ratingHover ?? localScore ?? 0;
 
   return (
     <div
@@ -249,38 +298,51 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
                 className="absolute z-20 p-2"
                 style={{
                   bottom: "calc(100% + 4px)",
-                  right: 0,
-                  background: "var(--bg-card-high)",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  background: "var(--bg-elevated)",
                   border: "1px solid var(--border-bright)",
                   borderRadius: 4,
                   width: 128,
                 }}
               >
-                <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 8, color: "var(--fg-subtle)", marginBottom: 6, letterSpacing: "0.05em" }}>
+                <p
+                  style={{
+                    fontFamily: "var(--font-space-mono)",
+                    fontSize: 8,
+                    color: "var(--fg-subtle)",
+                    marginBottom: 6,
+                    letterSpacing: "0.05em",
+                  }}
+                >
                   YOUR RATING
                 </p>
-                <div className="grid grid-cols-5 gap-0.5">
+                <div className="grid grid-cols-5 gap-0.5" onMouseLeave={() => setRatingHover(null)}>
                   {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                     <button
                       key={n}
+                      type="button"
                       disabled={ratingLoading}
                       onClick={() => void handleRate(n)}
                       onMouseEnter={() => setRatingHover(n)}
-                      onMouseLeave={() => setRatingHover(null)}
+                      aria-label={`Rate ${n}`}
                       style={{
-                        fontFamily: "var(--font-space-mono)",
-                        fontSize: 10,
-                        fontWeight: 700,
+                        background: "none",
+                        border: "none",
                         padding: "3px 0",
-                        borderRadius: 2,
-                        border: `1px solid ${activeRating !== null && n <= activeRating ? "var(--primary)" : "var(--border)"}`,
-                        background: activeRating !== null && n <= activeRating ? "var(--primary)" : "var(--bg-card)",
-                        color: activeRating !== null && n <= activeRating ? "#fff" : "var(--fg-subtle)",
                         cursor: ratingLoading ? "not-allowed" : "pointer",
-                        textAlign: "center",
+                        lineHeight: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
-                      {n}
+                      <Star
+                        size={14}
+                        className="shrink-0"
+                        fill={n <= displayRating ? "var(--primary)" : "none"}
+                        stroke={n <= displayRating ? "var(--primary)" : "var(--bg-card-high)"}
+                      />
                     </button>
                   ))}
                 </div>
@@ -288,13 +350,22 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
             )}
           </div>
 
-          <Link
-            href={`${href}#review`}
-            aria-label={hasReview ? "View review" : "Write review"}
+          <button
+            type="button"
+            onClick={() => void openReview()}
+            disabled={reviewLoading}
+            aria-label={hasReview ? "Edit review" : "Write review"}
+            aria-busy={reviewLoading}
             className="inline-flex items-center shrink-0"
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: reviewLoading ? "wait" : "pointer",
+            }}
           >
             <ReviewBadge active={hasReview} className="shrink-0" />
-          </Link>
+          </button>
           </div>
 
           <div className="w-full md:w-auto">
@@ -355,6 +426,20 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
           </div>
         )}
       </div>
+
+      {reviewOpen && (
+        <ReviewModal
+          mediaId={animeId}
+          title={title}
+          initialReview={reviewDraft}
+          onClose={() => setReviewOpen(false)}
+          onSave={(review) => {
+            setReviewDraft(review);
+            onUpdate(animeId, { hasReview: true });
+            setReviewOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -16,7 +16,7 @@ export function BrowsePageSkeleton({
           style={{ aspectRatio: "21 / 9", maxHeight: 420, minHeight: 200 }}
         />
       )}
-      <div className="flex flex-col" style={{ gap: 72, paddingTop: 56, paddingBottom: 56 }}>
+      <div className="flex flex-col" style={{ gap: 24, paddingTop: 56, paddingBottom: 56 }}>
         {Array.from({ length: rows }, (_, row) => (
           <section key={row}>
             <div className="section-header">

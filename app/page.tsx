@@ -121,7 +121,7 @@ export default async function HomePage() {
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       {heroSlides.length > 0 && <HeroCarousel slides={heroSlides} />}
 
-      <div className="flex flex-col" style={{ gap: 72, paddingTop: 56, paddingBottom: 56 }}>
+      <div className="flex flex-col" style={{ gap: 24, paddingTop: 56, paddingBottom: 56 }}>
         <Suspense fallback={null}>
           <HomeContinueIsland />
         </Suspense>

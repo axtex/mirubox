@@ -11,8 +11,10 @@ interface MoreSheetProps {
 
 const ITEM_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-space-mono)",
-  fontSize: 10,
-  letterSpacing: "0.06em",
+  fontSize: 12,
+  fontWeight: 500,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
 };
 
 function SheetItem({
@@ -20,11 +22,13 @@ function SheetItem({
   active,
   onClick,
   trailing,
+  showDivider,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
   trailing?: React.ReactNode;
+  showDivider?: boolean;
 }): React.JSX.Element {
   const [pressed, setPressed] = useState(false);
 
@@ -39,17 +43,21 @@ function SheetItem({
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
       onMouseLeave={() => setPressed(false)}
-      className="w-full text-left border-0"
+      className="w-full text-left"
       style={{
         ...ITEM_STYLE,
         display: "flex",
         alignItems: "center",
-        gap: 10,
-        padding: "10px 16px",
+        gap: 12,
+        minHeight: 48,
+        padding: "14px 20px",
         cursor: "pointer",
-        color: active ? "var(--primary)" : "var(--fg-muted)",
+        color: active ? "var(--primary)" : "var(--fg)",
         background: pressed ? "var(--bg-card)" : "transparent",
+        border: "none",
+        borderBottom: showDivider ? "1px solid var(--border)" : "none",
         transition: "background 0.15s, color 0.15s",
+        WebkitTapHighlightColor: "transparent",
       }}
     >
       <span style={{ flex: 1 }}>{label}</span>
@@ -160,9 +168,24 @@ export function MoreSheet({
         }}
       >
         <SheetItem
+          label="COMMUNITY"
+          active={communityActive}
+          onClick={() => navigate("/community")}
+          showDivider
+        />
+
+        <SheetItem
+          label="SCHEDULE"
+          active={scheduleActive}
+          onClick={() => navigate("/schedule")}
+          showDivider
+        />
+
+        <SheetItem
           label="NOTIFICATIONS"
           active={notifActive}
           onClick={() => navigate("/notifications")}
+          showDivider
           trailing={
             unreadCount > 0 ? (
               <span
@@ -170,10 +193,11 @@ export function MoreSheet({
                   background: "var(--primary)",
                   color: "#fff",
                   fontFamily: "var(--font-space-mono)",
-                  fontSize: 10,
-                  padding: "1px 6px",
+                  fontSize: 11,
+                  fontWeight: 500,
+                  padding: "2px 7px",
                   borderRadius: 10,
-                  minWidth: 18,
+                  minWidth: 20,
                   textAlign: "center",
                   lineHeight: 1.4,
                 }}
@@ -182,18 +206,6 @@ export function MoreSheet({
               </span>
             ) : null
           }
-        />
-
-        <SheetItem
-          label="COMMUNITY"
-          active={communityActive}
-          onClick={() => navigate("/community")}
-        />
-
-        <SheetItem
-          label="SCHEDULE"
-          active={scheduleActive}
-          onClick={() => navigate("/schedule")}
         />
 
         <SheetItem

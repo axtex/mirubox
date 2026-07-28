@@ -183,38 +183,74 @@ export function AnimeCard({
       {/* ── Title + meta ── */}
       {!hideTitle && (
         <div className="anime-card-foot" style={{ padding: "6px 8px 8px" }}>
-          <p
-            style={{
-              fontSize: 12,
-              fontWeight: 500,
-              color: "var(--fg)",
-              lineHeight: 1.3,
-              minHeight: "2.6em",
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {title}
-          </p>
-          <p
-            style={{
-              fontSize: 10,
-              color: "var(--fg-subtle)",
-              fontFamily: "var(--font-space-mono)",
-              marginTop: 3,
-              minHeight: 13,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {[anime.format?.replace(/_/g, " "), anime.seasonYear].filter(Boolean).join(" · ") || "\u00A0"}
-          </p>
+          {selectMode ? (
+            <button
+              type="button"
+              onClick={onSelect}
+              disabled={selectDisabled}
+              aria-label={
+                selected ? `Remove ${title} from top 3` : `Add ${title} to top 3`
+              }
+              className="w-full text-left"
+              style={{
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                cursor: selectDisabled ? "not-allowed" : "pointer",
+              }}
+            >
+              <CardFootText title={title} anime={anime} />
+            </button>
+          ) : (
+            <Link href={detailHref} prefetch className="block" aria-label={`View ${title}`}>
+              <CardFootText title={title} anime={anime} />
+            </Link>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function CardFootText({
+  title,
+  anime,
+}: {
+  title: string;
+  anime: AnimeCardType;
+}) {
+  return (
+    <>
+      <p
+        style={{
+          fontSize: 12,
+          fontWeight: 500,
+          color: "var(--fg)",
+          lineHeight: 1.3,
+          minHeight: "2.6em",
+          overflow: "hidden",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {title}
+      </p>
+      <p
+        style={{
+          fontSize: 10,
+          color: "var(--fg-subtle)",
+          fontFamily: "var(--font-space-mono)",
+          marginTop: 3,
+          minHeight: 13,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {[anime.format?.replace(/_/g, " "), anime.seasonYear].filter(Boolean).join(" · ") || "\u00A0"}
+      </p>
+    </>
   );
 }

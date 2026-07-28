@@ -80,3 +80,31 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ rating, notifications });
 }
+
+export async function DELETE(req: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { success } = await rateLimit(`ratings:${session.user.id}`, 30, 60000);
+  if (!success) return rateLimitResponse();
+
+  let body: { animeId?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const animeId = Number(body.animeId);
+
+  if (!isValidId(animeId)) {
+    return NextResponse.json({ error: "Invalid animeId" }, { status: 400 });
+  }
+
+  await prisma.rating.deleteMany({
+    where: { userId: session.user.id, animeId },
+  });
+
+  return NextResponse.json({ ok: true });
+}

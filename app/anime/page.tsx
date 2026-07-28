@@ -22,7 +22,7 @@ export default async function AnimeBrowsePage() {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
-      <div className="flex flex-col" style={{ gap: 72, paddingTop: 56, paddingBottom: 56 }}>
+      <div className="flex flex-col" style={{ gap: 24, paddingTop: 56, paddingBottom: 56 }}>
         {trending.length > 0 && (
           <SectionRow
             title="TRENDING NOW"
