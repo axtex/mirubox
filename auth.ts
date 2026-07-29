@@ -20,6 +20,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Google verifies email ownership — link to an existing magic-link user
+      // with the same email so phone/desktop don't get separate trackers.
+      allowDangerousEmailAccountLinking: true,
     }),
     Resend({
       apiKey: process.env.RESEND_API_KEY!,

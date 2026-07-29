@@ -85,8 +85,23 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
         setShowRating(false);
       }
     }
+    function flushPending(): void {
+      if (!debounceRef.current) return;
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      if (localProgress !== committedRef.current) void doCommit(localProgress);
+    }
+    function onHidden(): void {
+      if (document.visibilityState === "hidden") flushPending();
+    }
     document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
+    window.addEventListener("pagehide", flushPending);
+    document.addEventListener("visibilitychange", onHidden);
+    return () => {
+      document.removeEventListener("mousedown", handle);
+      window.removeEventListener("pagehide", flushPending);
+      document.removeEventListener("visibilitychange", onHidden);
+    };
   }, [localProgress, progress, showRating]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

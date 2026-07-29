@@ -70,12 +70,7 @@ export function TrackerProvider({
   const favRef = useRef(favouriteIds);
   useEffect(() => { favRef.current = favouriteIds; }, [favouriteIds]);
 
-  useEffect(() => {
-    if (!isLoggedIn) {
-      setTrackerMap(new Map());
-      setFavouriteIds(new Set());
-      return;
-    }
+  const loadTrackerState = useCallback(() => {
     Promise.all([
       fetch("/api/tracker/ids").then((r) => r.json() as Promise<{ entries: { id: number; status: string; favourite: boolean }[] }>),
       fetch("/api/favourites/ids").then((r) => r.json() as Promise<{ ids: number[] }>),
@@ -87,7 +82,27 @@ export function TrackerProvider({
         setFavouriteIds(new Set(favData.ids));
       })
       .catch(() => {});
-  }, [isLoggedIn]);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setTrackerMap(new Map());
+      setFavouriteIds(new Set());
+      return;
+    }
+    loadTrackerState();
+
+    // Pull server state when returning to a tab/app so other devices' edits show up.
+    function onVisible(): void {
+      if (document.visibilityState === "visible") loadTrackerState();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [isLoggedIn, loadTrackerState]);
 
   const addToTracker = useCallback(
     async (mediaId: number, mediaType: string, status = "PLANNED") => {

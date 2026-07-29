@@ -78,6 +78,24 @@ export function TrackerList({
     if (stored === "grid" || stored === "list") setView(stored);
   }, []);
 
+  // Soft-nav RSC cache (staleTimes) can keep an old library; refresh when the tab returns.
+  useEffect(() => {
+    let lastRefresh = 0;
+    function onVisible(): void {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastRefresh < 2000) return;
+      lastRefresh = now;
+      router.refresh();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [router]);
+
   function toggleView(v: "list" | "grid") {
     setView(v);
     localStorage.setItem("mirubox-tracker-view", v);
