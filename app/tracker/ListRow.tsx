@@ -41,6 +41,8 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Last progress persisted (or queued) — distinct from entry.progress after optimistic bumps. */
   const committedRef = useRef(progress);
+  /** True while a local EP edit hasn't been confirmed by the server yet. */
+  const editingProgressRef = useRef(false);
 
   const [showRating, setShowRating] = useState(false);
   const [localScore, setLocalScore] = useState<number | null>(userScore);
@@ -70,6 +72,8 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
   };
 
   useEffect(() => {
+    // Don't let poll/parent reverts wipe an in-progress EP edit.
+    if (editingProgressRef.current || debounceRef.current) return;
     setLocalProgress(progress);
     committedRef.current = progress;
   }, [progress]);
@@ -131,18 +135,30 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
   async function doCommit(p: number) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = null;
-    if (p === committedRef.current) return;
-    committedRef.current = p;
+    if (p === committedRef.current && !editingProgressRef.current) return;
+    const previousCommitted = committedRef.current;
+    editingProgressRef.current = true;
     const nextStatus = applyProgressLocally(p);
-    await fetch("/api/tracker", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ animeId, status: nextStatus, progress: p }),
-    });
+    try {
+      const res = await fetch("/api/tracker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ animeId, status: nextStatus, progress: p }),
+      });
+      if (!res.ok) throw new Error("api error");
+      committedRef.current = p;
+      editingProgressRef.current = false;
+    } catch {
+      committedRef.current = previousCommitted;
+      editingProgressRef.current = false;
+      setLocalProgress(previousCommitted);
+      onUpdate(animeId, { progress: previousCommitted });
+    }
   }
 
   function setProgressValue(next: number) {
     const clamped = Math.max(0, Math.min(total ?? 9999, next));
+    editingProgressRef.current = true;
     setLocalProgress(clamped);
     // Bump Most Recent order immediately; network persists after debounce.
     applyProgressLocally(clamped);
@@ -156,6 +172,7 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
 
   function commitProgressInput(next: number) {
     const clamped = Math.max(0, Math.min(total ?? 9999, next));
+    editingProgressRef.current = true;
     setLocalProgress(clamped);
     void doCommit(clamped);
   }

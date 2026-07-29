@@ -69,10 +69,28 @@ export function TrackerList({
   const [filterSort, setFilterSort] = useState<SortKey>(initialSort);
 
   const muteUntilRef = useRef(0);
+  /** Locally edited rows — poll must not overwrite until server matches. */
+  const dirtyIdsRef = useRef(new Set<number>());
   const libraryRef = useRef(library);
   useEffect(() => { libraryRef.current = library; }, [library]);
 
-  useEffect(() => { setLibrary(entries); }, [entries]);
+  useEffect(() => {
+    setLibrary((prev) => {
+      const dirty = dirtyIdsRef.current;
+      if (dirty.size === 0) return entries;
+      const prevById = new Map(prev.map((e) => [e.animeId, e]));
+      return entries.map((e) => {
+        const local = prevById.get(e.animeId);
+        if (local && dirty.has(e.animeId) && (local.progress !== e.progress || local.status !== e.status)) {
+          return { ...e, progress: local.progress, status: local.status, updatedAt: local.updatedAt };
+        }
+        if (local && dirty.has(e.animeId) && local.progress === e.progress && local.status === e.status) {
+          dirty.delete(e.animeId);
+        }
+        return e;
+      });
+    });
+  }, [entries]);
   useEffect(() => { setFilterType(initialMediaType); }, [initialMediaType]);
   useEffect(() => { setFilterStatus(initialStatus); }, [initialStatus]);
   useEffect(() => { setFilterSort(initialSort); }, [initialSort]);
@@ -101,21 +119,35 @@ export function TrackerList({
 
     async function pull(): Promise<void> {
       if (document.visibilityState !== "visible") return;
-      if (Date.now() < muteUntilRef.current) return;
       try {
         const res = await fetch("/api/tracker", { cache: "no-store" });
         if (!res.ok || cancelled) return;
         const data = (await res.json()) as { entries: RemoteEntry[] };
-        if (cancelled || Date.now() < muteUntilRef.current) return;
+        if (cancelled) return;
 
         const prev = libraryRef.current;
         const prevById = new Map(prev.map((e) => [e.animeId, e]));
+        const dirty = dirtyIdsRef.current;
         const next: EntryData[] = data.entries
           .filter((e) => e.status !== "FAVOURITE")
           .map((e) => {
             const old = prevById.get(e.animeId);
             const updatedAt =
               typeof e.updatedAt === "string" ? e.updatedAt : new Date(e.updatedAt).toISOString();
+
+            // Keep optimistic EP/status until the server reflects this device's edit.
+            if (old && dirty.has(e.animeId)) {
+              if (old.progress === e.progress && old.status === e.status) {
+                dirty.delete(e.animeId);
+              } else {
+                return {
+                  ...old,
+                  anime: e.anime,
+                  total: e.total ?? old.total,
+                };
+              }
+            }
+
             return {
               animeId: e.animeId,
               status: e.status,
@@ -128,6 +160,11 @@ export function TrackerList({
               anime: e.anime,
             };
           });
+
+        for (const id of dirty) {
+          const old = prevById.get(id);
+          if (old && !next.some((e) => e.animeId === id)) next.push(old);
+        }
 
         const same =
           next.length === prev.length &&
@@ -214,6 +251,7 @@ export function TrackerList({
   }
 
   function handleEntryUpdate(animeId: number, updates: Partial<EntryData>) {
+    dirtyIdsRef.current.add(animeId);
     muteUntilRef.current = Date.now() + 1500;
     setLibrary((prev) =>
       prev.map((e) => {
@@ -231,6 +269,7 @@ export function TrackerList({
   }
 
   function handleEntryRemove(animeId: number) {
+    dirtyIdsRef.current.add(animeId);
     muteUntilRef.current = Date.now() + 1500;
     setLibrary((prev) => prev.filter((e) => e.animeId !== animeId));
   }
