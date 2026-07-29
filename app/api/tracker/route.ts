@@ -35,6 +35,8 @@ function isValidCount(n: unknown): n is number {
   );
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -47,11 +49,29 @@ export async function GET(req: Request) {
 
   const entries = await prisma.trackerEntry.findMany({
     where: { userId: session.user.id, ...(mediaType ? { mediaType } : {}) },
-    include: { anime: true },
+    include: {
+      anime: {
+        select: {
+          id: true,
+          title: true,
+          titleEnglish: true,
+          coverImage: true,
+          format: true,
+          episodes: true,
+          chapters: true,
+          volumes: true,
+          averageScore: true,
+          seasonYear: true,
+        },
+      },
+    },
     orderBy: { updatedAt: "desc" },
   });
 
-  return NextResponse.json({ entries });
+  return NextResponse.json(
+    { entries },
+    { headers: { "Cache-Control": "private, no-store" } },
+  );
 }
 
 export async function POST(req: Request) {

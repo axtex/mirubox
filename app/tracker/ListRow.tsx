@@ -147,7 +147,7 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
     // Bump Most Recent order immediately; network persists after debounce.
     applyProgressLocally(clamped);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => { void doCommit(clamped); }, 1500);
+    debounceRef.current = setTimeout(() => { void doCommit(clamped); }, 400);
   }
 
   function adjustProgress(delta: number) {

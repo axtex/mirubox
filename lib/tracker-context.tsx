@@ -14,6 +14,9 @@ import { useToast, type Toast } from "@/context/ToastContext";
 import { notifySeasonChallengeSync, type ContinueStripSeasonChallenge } from "@/lib/season-challenge-client";
 import type { ToastNotification } from "@/lib/xp";
 
+const POLL_MS = 2000;
+const LOCAL_MUTE_MS = 1200;
+
 function fireToasts(showToast: (t: Omit<Toast, "id">) => void, notifications?: ToastNotification[]) {
   notifications?.forEach((n) => showToast(n));
 }
@@ -69,13 +72,25 @@ export function TrackerProvider({
   useEffect(() => { mapRef.current = trackerMap; }, [trackerMap]);
   const favRef = useRef(favouriteIds);
   useEffect(() => { favRef.current = favouriteIds; }, [favouriteIds]);
+  const muteUntilRef = useRef(0);
 
-  const loadTrackerState = useCallback(() => {
+  const muteRemoteApply = useCallback(() => {
+    muteUntilRef.current = Date.now() + LOCAL_MUTE_MS;
+  }, []);
+
+  const loadTrackerState = useCallback((opts?: { force?: boolean }) => {
+    if (!opts?.force && Date.now() < muteUntilRef.current) return;
+
     Promise.all([
-      fetch("/api/tracker/ids").then((r) => r.json() as Promise<{ entries: { id: number; status: string; favourite: boolean }[] }>),
-      fetch("/api/favourites/ids").then((r) => r.json() as Promise<{ ids: number[] }>),
+      fetch("/api/tracker/ids", { cache: "no-store" }).then(
+        (r) => r.json() as Promise<{ entries: { id: number; status: string; favourite: boolean }[] }>,
+      ),
+      fetch("/api/favourites/ids", { cache: "no-store" }).then(
+        (r) => r.json() as Promise<{ ids: number[] }>,
+      ),
     ])
       .then(([trackerData, favData]) => {
+        if (!opts?.force && Date.now() < muteUntilRef.current) return;
         setTrackerMap(
           new Map(trackerData.entries.map((e) => [e.id, { status: e.status, favourite: e.favourite }]))
         );
@@ -90,22 +105,48 @@ export function TrackerProvider({
       setFavouriteIds(new Set());
       return;
     }
-    loadTrackerState();
 
-    // Pull server state when returning to a tab/app so other devices' edits show up.
-    function onVisible(): void {
-      if (document.visibilityState === "visible") loadTrackerState();
+    loadTrackerState({ force: true });
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+    function startPoll(): void {
+      if (interval) return;
+      interval = setInterval(() => {
+        if (document.visibilityState === "visible") loadTrackerState();
+      }, POLL_MS);
     }
-    document.addEventListener("visibilitychange", onVisible);
+    function stopPoll(): void {
+      if (!interval) return;
+      clearInterval(interval);
+      interval = null;
+    }
+
+    function onVisible(): void {
+      if (document.visibilityState !== "visible") return;
+      loadTrackerState({ force: true });
+      startPoll();
+    }
+    function onHidden(): void {
+      if (document.visibilityState === "hidden") stopPoll();
+    }
+    function onVisibility(): void {
+      if (document.visibilityState === "visible") onVisible();
+      else onHidden();
+    }
+
+    startPoll();
+    document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("focus", onVisible);
     return () => {
-      document.removeEventListener("visibilitychange", onVisible);
+      stopPoll();
+      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("focus", onVisible);
     };
   }, [isLoggedIn, loadTrackerState]);
 
   const addToTracker = useCallback(
     async (mediaId: number, mediaType: string, status = "PLANNED") => {
+      muteRemoteApply();
       const prev = mapRef.current.get(mediaId);
       setTrackerMap((m) =>
         new Map(m).set(mediaId, { status, favourite: prev?.favourite ?? false })
@@ -136,10 +177,11 @@ export function TrackerProvider({
         });
       }
     },
-    [showToast]
+    [showToast, muteRemoteApply]
   );
 
   const updateStatus = useCallback(async (mediaId: number, status: string) => {
+    muteRemoteApply();
     const prev = mapRef.current.get(mediaId);
     setTrackerMap((m) =>
       new Map(m).set(mediaId, { status, favourite: prev?.favourite ?? false })
@@ -169,16 +211,18 @@ export function TrackerProvider({
         return next;
       });
     }
-  }, [showToast]);
+  }, [showToast, muteRemoteApply]);
 
   const syncTrackerStatus = useCallback((mediaId: number, status: string) => {
+    muteRemoteApply();
     const prev = mapRef.current.get(mediaId);
     setTrackerMap((m) =>
       new Map(m).set(mediaId, { status, favourite: prev?.favourite ?? false }),
     );
-  }, []);
+  }, [muteRemoteApply]);
 
   const removeFromTracker = useCallback(async (mediaId: number) => {
+    muteRemoteApply();
     const prev = mapRef.current.get(mediaId);
     setTrackerMap((m) => {
       const next = new Map(m);
@@ -198,9 +242,10 @@ export function TrackerProvider({
         setTrackerMap((m) => new Map(m).set(mediaId, prev));
       }
     }
-  }, []);
+  }, [muteRemoteApply]);
 
   const toggleFavourite = useCallback(async (mediaId: number, mediaType: string) => {
+    muteRemoteApply();
     const isFav = favRef.current.has(mediaId);
     const newFav = !isFav;
 
@@ -233,7 +278,7 @@ export function TrackerProvider({
         return next;
       });
     }
-  }, []);
+  }, [muteRemoteApply]);
 
   return (
     <TrackerContext.Provider

@@ -2,9 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    // Soft-nav revisits reuse the client RSC cache instead of refetching immediately.
+    // Tracker/profile must reflect other devices quickly — don't keep soft-nav RSC warm.
     staleTimes: {
-      dynamic: 30,
+      dynamic: 0,
       static: 180,
     },
   },

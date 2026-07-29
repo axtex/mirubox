@@ -68,6 +68,10 @@ export function TrackerList({
   const [filterStatus, setFilterStatus] = useState<TrackerStatus>(initialStatus);
   const [filterSort, setFilterSort] = useState<SortKey>(initialSort);
 
+  const muteUntilRef = useRef(0);
+  const libraryRef = useRef(library);
+  useEffect(() => { libraryRef.current = library; }, [library]);
+
   useEffect(() => { setLibrary(entries); }, [entries]);
   useEffect(() => { setFilterType(initialMediaType); }, [initialMediaType]);
   useEffect(() => { setFilterStatus(initialStatus); }, [initialStatus]);
@@ -78,23 +82,105 @@ export function TrackerList({
     if (stored === "grid" || stored === "list") setView(stored);
   }, []);
 
-  // Soft-nav RSC cache (staleTimes) can keep an old library; refresh when the tab returns.
+  // Poll server while this page is open so other devices' edits land in ~2s.
   useEffect(() => {
-    let lastRefresh = 0;
-    function onVisible(): void {
-      if (document.visibilityState !== "visible") return;
-      const now = Date.now();
-      if (now - lastRefresh < 2000) return;
-      lastRefresh = now;
-      router.refresh();
-    }
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onVisible);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onVisible);
+    if (showFavourites) return;
+
+    type RemoteEntry = {
+      animeId: number;
+      status: string;
+      mediaType: string;
+      progress: number;
+      total: number | null;
+      updatedAt: string | Date;
+      anime: EntryData["anime"];
     };
-  }, [router]);
+
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    async function pull(): Promise<void> {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() < muteUntilRef.current) return;
+      try {
+        const res = await fetch("/api/tracker", { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as { entries: RemoteEntry[] };
+        if (cancelled || Date.now() < muteUntilRef.current) return;
+
+        const prev = libraryRef.current;
+        const prevById = new Map(prev.map((e) => [e.animeId, e]));
+        const next: EntryData[] = data.entries
+          .filter((e) => e.status !== "FAVOURITE")
+          .map((e) => {
+            const old = prevById.get(e.animeId);
+            const updatedAt =
+              typeof e.updatedAt === "string" ? e.updatedAt : new Date(e.updatedAt).toISOString();
+            return {
+              animeId: e.animeId,
+              status: e.status,
+              mediaType: e.mediaType,
+              progress: e.progress,
+              total: e.total,
+              userScore: old?.userScore ?? null,
+              hasReview: old?.hasReview ?? false,
+              updatedAt,
+              anime: e.anime,
+            };
+          });
+
+        const same =
+          next.length === prev.length &&
+          next.every((e) => {
+            const old = prevById.get(e.animeId);
+            return (
+              old != null &&
+              old.status === e.status &&
+              old.progress === e.progress &&
+              old.total === e.total &&
+              old.updatedAt === e.updatedAt
+            );
+          });
+        if (!same) setLibrary(next);
+      } catch {
+        // Ignore transient network errors during poll.
+      }
+    }
+
+    function startPoll(): void {
+      if (interval) return;
+      interval = setInterval(() => { void pull(); }, 2000);
+    }
+    function stopPoll(): void {
+      if (!interval) return;
+      clearInterval(interval);
+      interval = null;
+    }
+
+    function onVisibility(): void {
+      if (document.visibilityState === "visible") {
+        void pull();
+        startPoll();
+      } else {
+        stopPoll();
+      }
+    }
+
+    function onFocus(): void {
+      void pull();
+    }
+
+    void pull();
+    startPoll();
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancelled = true;
+      stopPoll();
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [showFavourites]);
 
   function toggleView(v: "list" | "grid") {
     setView(v);
@@ -128,6 +214,7 @@ export function TrackerList({
   }
 
   function handleEntryUpdate(animeId: number, updates: Partial<EntryData>) {
+    muteUntilRef.current = Date.now() + 1500;
     setLibrary((prev) =>
       prev.map((e) => {
         if (e.animeId !== animeId) return e;
@@ -144,6 +231,7 @@ export function TrackerList({
   }
 
   function handleEntryRemove(animeId: number) {
+    muteUntilRef.current = Date.now() + 1500;
     setLibrary((prev) => prev.filter((e) => e.animeId !== animeId));
   }
 

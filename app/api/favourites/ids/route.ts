@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(): Promise<NextResponse> {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ ids: [] });
+    return NextResponse.json(
+      { ids: [] },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
   }
 
   const favourites = await prisma.favourite.findMany({
@@ -13,5 +18,8 @@ export async function GET() {
     select: { mediaId: true },
   });
 
-  return NextResponse.json({ ids: favourites.map((f) => f.mediaId) });
+  return NextResponse.json(
+    { ids: favourites.map((f) => f.mediaId) },
+    { headers: { "Cache-Control": "private, no-store" } },
+  );
 }

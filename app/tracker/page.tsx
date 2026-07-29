@@ -11,6 +11,8 @@ interface PageProps {
   searchParams: Promise<{ status?: string; sort?: string; type?: string; favourites?: string }>;
 }
 
+export const dynamic = "force-dynamic";
+
 const SORT_KEYS: SortKey[] = ["recent", "rating", "title"];
 
 const ANIME_SELECT = {
