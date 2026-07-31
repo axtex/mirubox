@@ -429,7 +429,7 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
               +
             </button>
             <span
-              className="flex-1 inline-flex items-center justify-center gap-0.5 min-w-0"
+              className="flex-1 inline-flex items-center justify-center gap-1 min-w-0 overflow-hidden px-0.5"
               style={{
                 fontFamily: "var(--font-space-mono)",
                 fontSize: 9,
@@ -444,7 +444,9 @@ export function ListRow({ entry, onUpdate, onRemove, onFavouriteChange }: Props)
                 onCommit={commitProgressInput}
                 fontSize={9}
               />
-              {total != null ? ` / ${total}` : ""}
+              <span className="shrink-0 tabular-nums">
+                {total != null ? `/${total}` : ""}
+              </span>
             </span>
             <button
               type="button"

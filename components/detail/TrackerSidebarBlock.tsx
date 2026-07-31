@@ -188,7 +188,7 @@ export function TrackerSidebarBlock({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 4,
+                    gap: 6,
                     fontFamily: "var(--font-space-mono)",
                     fontSize: 9,
                     color: "#9e9ea8",
@@ -206,7 +206,7 @@ export function TrackerSidebarBlock({
                     fontSize={9}
                     color="#9e9ea8"
                   />
-                  {total != null ? <span>/{total}</span> : null}
+                  {total != null ? <span style={{ flexShrink: 0 }}>/{total}</span> : null}
                 </div>
                 <div className="flex items-center gap-2">
                   <button

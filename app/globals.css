@@ -105,13 +105,12 @@ body {
   }
 
   /*
-   * Compact EP/CH progress fields: keep 16px (no iOS zoom), then zoom the
-   * whole control so it still reads at the designed ~10px size.
-   * layout height = (fs + 4) * 16 / fs so after zoom it matches fontSize + 4.
+   * EP/CH progress count: must beat the 16px rule above (same :not() chain +
+   * class) so it matches the surrounding total label size.
    */
-  input.progress-count-input {
-    height: calc((var(--progress-fs, 10) * 1px + 4px) * 16 / var(--progress-fs, 10)) !important;
-    zoom: calc(var(--progress-fs, 10) / 16);
+  input.progress-count-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="file"]) {
+    font-size: var(--progress-fs, 10px) !important;
+    margin: 0 !important;
   }
 }
 

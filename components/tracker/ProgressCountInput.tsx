@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from "react";
 
 const API_MAX = 100000;
 
@@ -10,6 +17,7 @@ interface ProgressCountInputProps {
   total: number | null;
   ariaLabel: string;
   onCommit: (next: number) => void;
+  /** Must match the surrounding total label size. */
   fontSize?: number;
   color?: string;
 }
@@ -29,11 +37,31 @@ export function ProgressCountInput({
 }: ProgressCountInputProps): React.JSX.Element {
   const [draft, setDraft] = useState(String(value));
   const [focused, setFocused] = useState(false);
+  const [textWidth, setTextWidth] = useState(0);
   const skipCommitRef = useRef(false);
+  const sizerRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!focused) setDraft(String(value));
   }, [value, focused]);
+
+  // Size to the visible digits only (1 < 2 < 3); empty draft still reserves one digit.
+  const sizerText = draft.length > 0 ? draft : "0";
+
+  useLayoutEffect(() => {
+    function measure(): void {
+      if (!sizerRef.current) return;
+      setTextWidth(Math.ceil(sizerRef.current.offsetWidth));
+    }
+    measure();
+    let cancelled = false;
+    void document.fonts.ready.then(() => {
+      if (!cancelled) measure();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sizerText, fontSize]);
 
   function commit(): void {
     const parsed = Number.parseInt(draft, 10);
@@ -58,19 +86,30 @@ export function ProgressCountInput({
     }
   }
 
-  const digitWidth = Math.max(
-    String(total != null && total > 0 ? total : value).length,
-    draft.length,
-    2,
-  );
+  // Tight pad: input padding (2×2) + small WebKit inset — enough not to clip, not so wide it crowds "/ total".
+  const pad = 6;
+  const width = textWidth > 0 ? textWidth + pad : fontSize + pad;
 
-  const style: CSSProperties = {
-    // --progress-fs: intended visual size; mobile CSS keeps 16px (no iOS zoom) + zoom back down
-    ["--progress-fs" as string]: fontSize,
-    width: `calc(${digitWidth}ch + 2px)`,
-    minWidth: 16,
+  const shellStyle: CSSProperties = {
+    ["--progress-fs" as string]: `${fontSize}px`,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    position: "relative",
+    verticalAlign: "middle",
+    width,
     height: fontSize + 4,
+    fontFamily: "var(--font-space-mono)",
+    fontSize,
+    lineHeight: 1,
+  };
+
+  const inputStyle: CSSProperties = {
     boxSizing: "border-box",
+    display: "block",
+    width: "100%",
+    height: "100%",
     fontFamily: "var(--font-space-mono)",
     fontSize,
     fontWeight: 500,
@@ -83,40 +122,56 @@ export function ProgressCountInput({
       ? "1px solid var(--fg-muted)"
       : "1px solid var(--fg-subtle)",
     borderRadius: 0,
-    padding: "0 1px 1px",
+    padding: "0 2px",
     margin: 0,
     outline: "none",
     appearance: "none",
     WebkitAppearance: "none",
   };
 
+  const sizerStyle: CSSProperties = {
+    position: "absolute",
+    visibility: "hidden",
+    pointerEvents: "none",
+    whiteSpace: "pre",
+    fontFamily: "var(--font-space-mono)",
+    fontSize,
+    fontWeight: 500,
+    lineHeight: 1,
+  };
+
   return (
-    <input
-      type="text"
-      inputMode="numeric"
-      pattern="[0-9]*"
-      className="progress-count-input"
-      aria-label={ariaLabel}
-      value={draft}
-      onChange={(e) => {
-        const next = e.target.value.replace(/\D/g, "");
-        setDraft(next);
-      }}
-      onFocus={(e) => {
-        setFocused(true);
-        e.target.select();
-      }}
-      onBlur={() => {
-        setFocused(false);
-        if (skipCommitRef.current) {
-          skipCommitRef.current = false;
-          setDraft(String(value));
-          return;
-        }
-        commit();
-      }}
-      onKeyDown={handleKeyDown}
-      style={style}
-    />
+    <span className="progress-count-shell" style={shellStyle}>
+      <span ref={sizerRef} aria-hidden style={sizerStyle}>
+        {sizerText}
+      </span>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        className="progress-count-input"
+        aria-label={ariaLabel}
+        value={draft}
+        onChange={(e) => {
+          const next = e.target.value.replace(/\D/g, "");
+          setDraft(next);
+        }}
+        onFocus={(e) => {
+          setFocused(true);
+          e.target.select();
+        }}
+        onBlur={() => {
+          setFocused(false);
+          if (skipCommitRef.current) {
+            skipCommitRef.current = false;
+            setDraft(String(value));
+            return;
+          }
+          commit();
+        }}
+        onKeyDown={handleKeyDown}
+        style={inputStyle}
+      />
+    </span>
   );
 }
