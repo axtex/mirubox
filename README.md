@@ -21,7 +21,7 @@ mirubox is a personal archive. Everything you add, rate, and review lives on you
 - [Tailwind CSS](https://tailwindcss.com/) — design tokens in `app/globals.css`
 - [Prisma](https://www.prisma.io/) — ORM over PostgreSQL
 - [Supabase](https://supabase.com/) — Postgres + [pgvector](https://github.com/pgvector/pgvector) + `pg_trgm`
-- [NextAuth v5](https://authjs.dev/) — Google + Resend magic link
+- [NextAuth v5](https://authjs.dev/) — Google sign-in
 - [AniList GraphQL](https://anilist.gitbook.io/anilist-apiv2-docs/) — anime and manga catalogue
 - [MangaDex](https://api.mangadex.org/docs/) — chapter airing for the schedule
 - [OpenAI](https://openai.com/) — `text-embedding-3-small` for semantic search
@@ -52,7 +52,7 @@ mirubox is a personal archive. Everything you add, rate, and review lives on you
 
 **Taste and XP are first-class data, not overlays.** Ratings, tracker status, and reviews feed the profile, passport, and taste compatibility. XP is a ledger (`XPTransaction`) with a single source of truth for action values; ranks derive from total XP; badges are a separate achievement track. Completing a series you were watching pays more than dumping it straight into Completed — the journey is the product.
 
-**Auth that doesn't split your archive.** NextAuth v5 with JWT sessions, Google OAuth, and Resend magic links. Same-email Google and magic-link accounts are linked so phone and desktop don't become two trackers.
+**Auth that doesn't split your archive.** NextAuth v5 with JWT sessions and Google OAuth. Same-email Google sign-in is linked to an existing account so phone and desktop don't become two trackers.
 
 ---
 
@@ -81,7 +81,6 @@ Browser
         ├── MangaDex (chapter airing; server-only)
         ├── ANN RSS (news; server-only)
         ├── OpenAI embeddings (on cache miss / populate jobs)
-        ├── Resend (magic-link email)
         └── /api/cron/*  ◄── cron-job.org (Bearer $CRON_SECRET)
               ├── browse-sync
               ├── episode-check

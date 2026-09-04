@@ -5,38 +5,38 @@ export const metadata: Metadata = {
 };
 
 function Divider() {
-  return <div style={{ height: 1, background: "#1f1f22", margin: "28px 0" }} />;
+  return <div style={{ height: 1, background: "var(--border)", margin: "28px 0" }} />;
 }
 
 const BODY_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-space-mono)",
   fontSize: 12,
-  color: "#9e9ea8",
+  color: "var(--fg-muted)",
   lineHeight: 1.7,
 };
 
 export default function AboutPage() {
   return (
-    <div style={{ background: "#0f0f12", minHeight: "100vh" }}>
+    <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "40px 0" }}>
         <div
           style={{
             fontFamily: "var(--font-anybody)",
             fontSize: 28,
             fontWeight: 800,
-            color: "#e4e1e6",
+            color: "var(--fg)",
             marginBottom: 24,
           }}
         >
           <span>miru</span>
-          <span style={{ color: "#e8173f" }}>box</span>
+          <span style={{ color: "var(--primary)" }}>box</span>
         </div>
 
         <p
           style={{
             fontFamily: "var(--font-space-mono)",
             fontSize: 15,
-            color: "#e4e1e6",
+            color: "var(--fg)",
             lineHeight: 1.5,
             marginBottom: 24,
           }}
@@ -74,7 +74,7 @@ export default function AboutPage() {
           style={{
             fontFamily: "var(--font-space-mono)",
             fontSize: 11,
-            color: "#5a5a65",
+            color: "var(--fg-subtle)",
             fontStyle: "italic",
           }}
         >

@@ -1,14 +1,14 @@
-import { auth } from "@/auth";
+import { headers } from "next/headers";
 import { hybridSearch } from "@/lib/hybrid-search";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
-export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function POST(req: Request): Promise<Response> {
+  const ip =
+    (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    (await headers()).get("x-real-ip") ??
+    "unknown";
 
-  const { success } = await rateLimit(`semantic:${session.user.id}`, 20, 60000);
+  const { success } = await rateLimit(`semantic:${ip}`, 10, 60000);
   if (!success) return rateLimitResponse();
 
   let body: { query?: unknown; limit?: unknown };

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 const LABEL_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-space-mono)",
   fontSize: 11,
-  color: "#5a5a65",
+  color: "var(--fg-subtle)",
   letterSpacing: "0.1em",
   textTransform: "uppercase",
   marginBottom: 14,
@@ -17,24 +17,24 @@ const LABEL_STYLE: React.CSSProperties = {
 const PROSE_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-space-mono)",
   fontSize: 12,
-  color: "#9e9ea8",
+  color: "var(--fg-muted)",
   lineHeight: 1.7,
 };
 
 const GROUP_HEADER_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-space-mono)",
   fontSize: 9,
-  color: "#3a3a45",
+  color: "var(--fg-faint)",
   textTransform: "uppercase",
   letterSpacing: "0.1em",
   padding: "5px 10px",
-  background: "#1b1b1e",
+  background: "var(--bg-elevated)",
   borderRadius: 2,
   display: "inline-block",
 };
 
 function Divider() {
-  return <div style={{ height: 1, background: "#1f1f22", margin: "28px 0" }} />;
+  return <div style={{ height: 1, background: "var(--border)", margin: "28px 0" }} />;
 }
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
@@ -92,13 +92,13 @@ const FEATURES: FeatureRow[] = [
 // ─── Section 2 — Ranks ──────────────────────────────────────────────────────
 
 const RANK_META: Record<string, { emoji: string; color: string }> = {
-  WATCHER: { emoji: "👁", color: "#9e9ea8" },
-  TRACKER: { emoji: "📌", color: "#1d9e75" },
-  ARCHIVIST: { emoji: "📂", color: "#8b83e0" },
-  CURATOR: { emoji: "🎯", color: "#BA7517" },
-  SCHOLAR: { emoji: "⚡", color: "#e8173f" },
-  SAGE: { emoji: "🔮", color: "#64b4e6" },
-  LEGEND: { emoji: "👑", color: "#e8c864" },
+  WATCHER: { emoji: "👁", color: "var(--fg-muted)" },
+  TRACKER: { emoji: "📌", color: "var(--success)" },
+  ARCHIVIST: { emoji: "📂", color: "var(--rank-archivist)" },
+  CURATOR: { emoji: "🎯", color: "var(--warning)" },
+  SCHOLAR: { emoji: "⚡", color: "var(--primary)" },
+  SAGE: { emoji: "🔮", color: "var(--rank-sage)" },
+  LEGEND: { emoji: "👑", color: "var(--rank-legend)" },
 };
 
 // ─── Section 3 — How you earn XP ───────────────────────────────────────────
@@ -286,7 +286,7 @@ const BADGE_CATEGORIES: Array<{ title: string; note?: string; badges: BadgeRow[]
 
 export default function HowItWorksPage() {
   return (
-    <div style={{ background: "#0f0f12", minHeight: "100vh" }}>
+    <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 0" }}>
         <p style={{ ...PROSE_STYLE, marginBottom: 32 }}>
           mirubox is an anime and manga archive. Add titles, track progress, rate and
@@ -302,13 +302,13 @@ export default function HowItWorksPage() {
           Beyond ranks and badges, mirubox is built around how you track and share taste.
         </p>
 
-        <div style={{ border: "1px solid #1f1f22", borderRadius: 2, marginBottom: 28 }}>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 2, marginBottom: 28 }}>
           {FEATURES.map((feature, i) => (
             <div
               key={feature.name}
               style={{
                 padding: "9px 12px",
-                borderBottom: i === FEATURES.length - 1 ? "none" : "1px solid #1a1a1d",
+                borderBottom: i === FEATURES.length - 1 ? "none" : "1px solid var(--border)",
               }}
             >
               <p
@@ -316,7 +316,7 @@ export default function HowItWorksPage() {
                   fontFamily: "var(--font-space-mono)",
                   fontSize: 11,
                   fontWeight: 500,
-                  color: "#e4e1e6",
+                  color: "var(--fg)",
                   marginBottom: 2,
                 }}
               >
@@ -326,7 +326,7 @@ export default function HowItWorksPage() {
                 style={{
                   fontFamily: "var(--font-space-mono)",
                   fontSize: 10,
-                  color: "#9e9ea8",
+                  color: "var(--fg-muted)",
                   lineHeight: 1.5,
                 }}
               >
@@ -345,7 +345,7 @@ export default function HowItWorksPage() {
           your profile and passport. It does not unlock extra features.
         </p>
 
-        <div style={{ border: "1px solid #1f1f22", borderRadius: 2, marginBottom: 28 }}>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 2, marginBottom: 28 }}>
           {RANKS.map((r, i) => {
             const meta = RANK_META[r.name];
             return (
@@ -357,7 +357,7 @@ export default function HowItWorksPage() {
                   justifyContent: "space-between",
                   gap: 10,
                   padding: "8px 12px",
-                  borderBottom: i === RANKS.length - 1 ? "none" : "1px solid #1a1a1d",
+                  borderBottom: i === RANKS.length - 1 ? "none" : "1px solid var(--border)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -367,7 +367,7 @@ export default function HowItWorksPage() {
                       fontFamily: "var(--font-space-mono)",
                       fontSize: 11,
                       fontWeight: 600,
-                      color: "#e4e1e6",
+                      color: "var(--fg)",
                     }}
                   >
                     {r.name}
@@ -402,18 +402,18 @@ export default function HowItWorksPage() {
               <div className="flex items-center gap-2" style={{ marginBottom: 0 }}>
                 <span style={GROUP_HEADER_STYLE}>{group.title}</span>
                 {group.note && (
-                  <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "#3a3a45" }}>
+                  <span style={{ fontFamily: "var(--font-space-mono)", fontSize: 9, color: "var(--fg-faint)" }}>
                     {group.note}
                   </span>
                 )}
               </div>
-              <div style={{ border: "1px solid #1f1f22" }}>
+              <div style={{ border: "1px solid var(--border)" }}>
                 {group.rows.map((row, i) => (
                   <div
                     key={row.name}
                     style={{
                       padding: "9px 12px",
-                      borderBottom: i === group.rows.length - 1 ? "none" : "1px solid #1a1a1d",
+                      borderBottom: i === group.rows.length - 1 ? "none" : "1px solid var(--border)",
                     }}
                   >
                     <p
@@ -421,13 +421,13 @@ export default function HowItWorksPage() {
                         fontFamily: "var(--font-space-mono)",
                         fontSize: 11,
                         fontWeight: 500,
-                        color: "#e4e1e6",
+                        color: "var(--fg)",
                         marginBottom: 2,
                       }}
                     >
                       {row.name}
                     </p>
-                    <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "#9e9ea8", lineHeight: 1.5 }}>
+                    <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-muted)", lineHeight: 1.5 }}>
                       {row.description}
                     </p>
                   </div>
@@ -443,10 +443,10 @@ export default function HowItWorksPage() {
             style={{
               fontFamily: "var(--font-space-mono)",
               fontSize: 11,
-              color: "#5a5a65",
+              color: "var(--fg-subtle)",
               padding: "10px 12px",
-              background: "#1b1b1e",
-              border: "1px solid #1f1f22",
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border)",
               borderRadius: 2,
               marginTop: 6,
               lineHeight: 1.6,
@@ -475,12 +475,12 @@ export default function HowItWorksPage() {
                 style={{
                   fontFamily: "var(--font-space-mono)",
                   fontSize: 9,
-                  color: "#3a3a45",
+                  color: "var(--fg-faint)",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   padding: "5px 10px",
-                  background: "#1b1b1e",
-                  border: "1px solid #1f1f22",
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--border)",
                   borderRadius: "2px 2px 0 0",
                   margin: 0,
                 }}
@@ -492,12 +492,12 @@ export default function HowItWorksPage() {
                   style={{
                     fontFamily: "var(--font-space-mono)",
                     fontSize: 10,
-                    color: "#3a3a45",
+                    color: "var(--fg-faint)",
                     padding: "6px 10px",
-                    background: "#131316",
-                    borderBottom: "1px solid #1a1a1d",
-                    borderLeft: "1px solid #1f1f22",
-                    borderRight: "1px solid #1f1f22",
+                    background: "var(--bg-surface)",
+                    borderBottom: "1px solid var(--border)",
+                    borderLeft: "1px solid var(--border)",
+                    borderRight: "1px solid var(--border)",
                     lineHeight: 1.5,
                   }}
                 >
@@ -506,7 +506,7 @@ export default function HowItWorksPage() {
               )}
               <div
                 style={{
-                  border: "1px solid #1f1f22",
+                  border: "1px solid var(--border)",
                   borderTop: "none",
                   borderRadius: "0 0 2px 2px",
                   overflow: "hidden",
@@ -519,7 +519,7 @@ export default function HowItWorksPage() {
                       display: "flex",
                       gap: 10,
                       padding: "8px 12px",
-                      borderBottom: i === cat.badges.length - 1 ? "none" : "1px solid #1a1a1d",
+                      borderBottom: i === cat.badges.length - 1 ? "none" : "1px solid var(--border)",
                     }}
                   >
                     <span style={{ fontSize: 16, width: 24, textAlign: "center", flexShrink: 0 }}>
@@ -531,13 +531,13 @@ export default function HowItWorksPage() {
                           fontFamily: "var(--font-space-mono)",
                           fontSize: 11,
                           fontWeight: 500,
-                          color: "#e4e1e6",
+                          color: "var(--fg)",
                           marginBottom: 1,
                         }}
                       >
                         {badge.name}
                       </p>
-                      <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "#5a5a65" }}>
+                      <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-subtle)" }}>
                         {badge.requirement}
                       </p>
                     </div>

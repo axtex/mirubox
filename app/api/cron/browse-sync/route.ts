@@ -1,24 +1,17 @@
 import { NextResponse } from "next/server";
 import { syncBrowseShelves } from "@/lib/browse-sync";
+import { cronAuthError } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-function isAuthorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const auth = req.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
-}
-
 /**
  * Daily cron-job.org job — refreshes browse shelves from AniList into Postgres.
- * Auth: Authorization: Bearer $CRON_SECRET
+ * Auth: Authorization: Bearer $CRON_SECRET (required in every environment).
  */
-export async function GET(req: Request): Promise<NextResponse> {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function GET(req: Request): Promise<Response> {
+  const denied = cronAuthError(req);
+  if (denied) return denied;
 
   try {
     const result = await syncBrowseShelves();

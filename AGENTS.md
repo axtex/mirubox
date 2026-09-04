@@ -6,7 +6,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # mirubox — agent context
 
-Live product: [mirubox.vercel.app](https://mirubox.vercel.app). Next.js 16 App Router, React 19, TypeScript strict, Prisma + Supabase Postgres (pgvector, pg_trgm), NextAuth v5 (Google + Resend).
+Live product: [mirubox.vercel.app](https://mirubox.vercel.app). Next.js 16 App Router, React 19, TypeScript strict, Prisma + Supabase Postgres (pgvector, pg_trgm), NextAuth v5 (Google).
 
 Read before changing product or UI:
 

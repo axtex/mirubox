@@ -72,7 +72,7 @@ export default function LegalPage() {
             this data to improve performance.
           </p>
           <p style={BODY_STYLE}>
-            Authentication is handled via OAuth (Google) or email magic link through NextAuth. We
+            Authentication is handled via Google OAuth through NextAuth. We
             do not store passwords.
           </p>
         </Section>

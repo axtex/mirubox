@@ -2,24 +2,14 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAiringData, type AiringMedia } from "@/lib/anilist";
 import { createNotification } from "@/lib/notifications";
+import { cronAuthError } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest): Promise<Response> {
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (process.env.NODE_ENV !== "development") {
-    if (!cronSecret) {
-      console.error("[episode-check] CRON_SECRET not set");
-      return Response.json({ error: "Misconfigured" }, { status: 500 });
-    }
-
-    const authHeader = req.headers.get("authorization");
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
+  const denied = cronAuthError(req);
+  if (denied) return denied;
 
   try {
     const result = await runEpisodeCheck();

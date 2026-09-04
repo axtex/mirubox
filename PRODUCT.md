@@ -30,7 +30,7 @@ Live at [mirubox.vercel.app](https://mirubox.vercel.app). Independent, source-av
 - XP ledger and ranks (Watcher → Legend). Badges (completion, genre, streaks, seasonal, prestige).
 - Season challenges. Schedule for airing episodes (AniList) and chapters (MangaDex).
 - In-app notifications: episodes/chapters, follows, list likes, rank-ups, badges.
-- Auth: Google + Resend magic link; same-email accounts are linked.
+- Auth: Google sign-in. Same-email accounts are linked.
 
 ## Not shipped
 

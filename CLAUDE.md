@@ -30,7 +30,7 @@
 - Cache catalogue in DB via `lib/anilist-cache.ts` before returning to the client
 - Never call AniList, MangaDex, OpenAI, or ANN from client components
 - Home / `/anime` / `/manga` shelves come from `BrowseShelf` + `Anime`. Empty shelves schedule `syncBrowseShelves()` via `after()` — do not block the request on live GraphQL.
-- Cron is cron-job.org hitting `/api/cron/*` with `Authorization: Bearer $CRON_SECRET`. `CRON_SECRET` is a Vercel env var (and `.env.local` for local curls). Not Vercel Cron.
+- Cron is cron-job.org hitting `/api/cron/*` with `Authorization: Bearer $CRON_SECRET` in every environment, including `next dev`. Shared helper: `lib/cron-auth.ts`. Not Vercel Cron.
 - Do not invent a personal rec engine. Detail-page recs are AniList; home is editorial shelves; search is hybrid (`lib/hybrid-search.ts`).
 
 ## XP / ranks / badges

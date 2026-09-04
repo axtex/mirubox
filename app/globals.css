@@ -31,6 +31,9 @@
   --success: #1d9e75;
   --success-dim: rgba(29, 158, 117, 0.12);
   --success-border: rgba(29, 158, 117, 0.4);
+  --rank-archivist: #8b83e0;
+  --rank-sage: #64b4e6;
+  --rank-legend: #e8c864;
   --transition: 0.2s ease;
   --page-max-width: 1200px;
   --page-padding-x: 1rem;
@@ -1215,40 +1218,6 @@ span.detail-sidebar-genre-link:hover {
 
 .review-modal-shell {
   animation: review-modal-in 150ms ease-out;
-}
-
-/* ── Auth: disabled email magic-link section ("coming soon") ───────────────── */
-
-.auth-email-disabled-wrapper {
-  position: relative;
-  display: block;
-}
-
-.auth-email-disabled-tooltip {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-surface);
-  border: 1px solid var(--bg-card-high);
-  border-radius: 2px;
-  box-sizing: border-box;
-  font-family: var(--font-space-mono), ui-monospace, monospace;
-  font-size: 9px;
-  color: var(--fg-muted);
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 2;
-}
-
-.auth-email-disabled-wrapper:hover .auth-email-disabled-tooltip {
-  opacity: 1;
 }
 
 /* ── Auth modal ──────────────────────────────────────────────────────────── */
