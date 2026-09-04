@@ -12,7 +12,7 @@ function isAuthorized(req: Request): boolean {
 }
 
 /**
- * Daily Vercel Cron (Hobby: max 1/day) — refreshes browse shelves from AniList into Postgres.
+ * Daily cron-job.org job — refreshes browse shelves from AniList into Postgres.
  * Auth: Authorization: Bearer $CRON_SECRET
  */
 export async function GET(req: Request): Promise<NextResponse> {

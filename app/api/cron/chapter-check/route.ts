@@ -75,7 +75,7 @@ async function runChapterCheck(): Promise<{
     };
   }
 
-  // Hobby plan: cron runs once daily — match refresh window to that cadence
+  // Cron runs once daily — match refresh window to that cadence
   const ONE_DAY = 24 * 60 * 60 * 1000;
   const now = Date.now();
 
