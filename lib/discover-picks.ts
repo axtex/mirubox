@@ -8,26 +8,10 @@ import type { AnimeCard } from "@/types/anilist";
 export type { DiscoverMediaType, DiscoverEntry };
 export { ANIME_DISCOVER, MANGA_DISCOVER } from "@/lib/discover-entries";
 
-export interface GenreTile {
-  genre: string;
-  descriptor: string;
-  tint: string;
-  href: string;
-}
-
 export interface DiscoverPick {
   label: string;
   anime: AnimeCard;
 }
-
-const GENRE_POOL: GenreTile[] = [
-  { genre: "Psychological", descriptor: "Dark, twisty, stays with you",     tint: "rgba(100,120,180,0.12)", href: "/search?genre=Psychological&mode=browse" },
-  { genre: "Fantasy",       descriptor: "Vast worlds, ancient magic",       tint: "rgba(140,100,200,0.12)", href: "/search?genre=Fantasy&mode=browse"       },
-  { genre: "Romance",       descriptor: "Tender moments, aching tension",   tint: "rgba(200,80,100,0.10)",  href: "/search?genre=Romance&mode=browse"       },
-  { genre: "Action",        descriptor: "Kinetic. High-stakes. Legendary.", tint: "rgba(232,23,63,0.10)",   href: "/search?genre=Action&mode=browse"        },
-  { genre: "Slice of Life", descriptor: "Quiet, warm, deeply human",        tint: "rgba(180,160,100,0.10)", href: "/search?genre=Slice+of+Life&mode=browse" },
-  { genre: "Thriller",      descriptor: "Paranoia, twists, can't look away",tint: "rgba(60,80,100,0.15)",   href: "/search?genre=Thriller&mode=browse"      },
-];
 
 const DISCOVER_DB_SELECT = {
   id: true,
@@ -47,12 +31,6 @@ const DISCOVER_DB_SELECT = {
   format: true,
   type: true,
 } as const;
-
-export function getDaySeededGenres(): GenreTile[] {
-  const day = Math.floor(Date.now() / 86400000);
-  const start = day % GENRE_POOL.length;
-  return [0, 1, 2].map((i) => GENRE_POOL[(start + i) % GENRE_POOL.length]);
-}
 
 function dbRowToAnimeCard(row: {
   id: number;

@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getMediaChaptersByIds } from "@/lib/anilist";
-import { TrackerClient } from "./TrackerClient";
+import { TrackerList } from "@/components/tracker/TrackerList";
 import { STATUS_TABS, slugToStatus } from "./types";
 import type { TrackerStatus, MediaType, SortKey, EntryData, MediaCounts } from "./types";
 
@@ -120,7 +120,7 @@ export default async function TrackerPage({ searchParams }: PageProps) {
 
     return (
       <div className="py-8 min-h-screen" style={{ background: "var(--bg)" }}>
-        <TrackerClient
+        <TrackerList
           entries={entries}
           counts={{}}
           mediaCounts={mediaCounts}
@@ -224,7 +224,7 @@ export default async function TrackerPage({ searchParams }: PageProps) {
 
   return (
     <div className="py-8 min-h-screen" style={{ background: "var(--bg)" }}>
-      <TrackerClient
+      <TrackerList
         entries={entries}
         counts={countsByType.ALL}
         countsByType={countsByType}

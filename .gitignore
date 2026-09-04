@@ -22,17 +22,30 @@
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
+
+# IDE
+.idea/
+*.swp
+*.swo
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
 # env files (can opt-in for committing if needed)
 .env*
 .env.local
+!.env.example
+
+# local / sqlite leftovers (this project uses Postgres)
+*.db
+*.sqlite
+*.sqlite3
 
 # vercel
 .vercel

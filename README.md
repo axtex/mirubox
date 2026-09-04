@@ -2,72 +2,101 @@
 
 **Track what you watch. Discover what to watch next.**
 
-mirubox is an anime and manga tracking platform built
-around taste. Everything you add, rate, and review shapes
-your recommendations and defines your profile.
-
-Live at [mirubox.vercel.app](https://mirubox.vercel.app)
+**Live at:** [mirubox.vercel.app](https://mirubox.vercel.app)
 
 ---
 
-## What it does
+## Why it exists
 
-- **Track** — Add anime and manga to your tracker with
-  status, episode/chapter progress, and ratings
-- **Discover** — Describe a mood or feeling and find titles
-  that match using semantic search
-- **Review** — Write reviews, mark spoilers, build your
-  critical record
-- **Lists** — Create and share curated lists of titles
-- **Profile passport** — A shareable identity card built
-  from your taste and activity
-- **XP and ranks** — Earn XP through engagement and climb
-  from Watcher to Legend
+Most anime trackers are either a cluttered database or a trending feed. Neither is built around *your* taste — and neither lets you search the way you actually remember titles: by mood, vibe, or a misspelled name.
+
+mirubox is a personal archive. Everything you add, rate, and review shapes recommendations and your profile. It exists because taste is worth taking seriously, not as a stat to optimise, but as a record of what actually moved you.
 
 ---
 
 ## Stack
 
-- [Next.js 16](https://nextjs.org/) — App Router
-- [TypeScript](https://www.typescriptlang.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Prisma](https://www.prisma.io/) — ORM
-- [Supabase](https://supabase.com/) — PostgreSQL + pgvector
-- [NextAuth v5](https://authjs.dev/) — Authentication
-- [AniList GraphQL API](https://anilist.gitbook.io/anilist-apiv2-docs/) — Anime and manga data
-- [OpenAI](https://openai.com/) — Embeddings for semantic search
-- [Vercel](https://vercel.com/) — Deployment
+- [Next.js 16](https://nextjs.org/) — App Router, React 19, server components by default
+- [TypeScript](https://www.typescriptlang.org/) — strict mode
+- [Tailwind CSS](https://tailwindcss.com/) — design tokens in `app/globals.css`
+- [Prisma](https://www.prisma.io/) — ORM over PostgreSQL
+- [Supabase](https://supabase.com/) — Postgres + [pgvector](https://github.com/pgvector/pgvector) + `pg_trgm`
+- [NextAuth v5](https://authjs.dev/) — Google + Resend magic link
+- [AniList GraphQL](https://anilist.gitbook.io/anilist-apiv2-docs/) — anime and manga catalogue
+- [OpenAI](https://openai.com/) — `text-embedding-3-small` for semantic search
+- [Vercel](https://vercel.com/) — hosting and ISR
 
 ---
 
-## Browse shelves + cron
+## What it does
 
-Home, `/anime`, and `/manga` rows are served from Postgres (`BrowseShelf` + `Anime`), not live AniList on every request. External cron (cron-jobs.org) hits the `/api/cron/*` routes with `Authorization: Bearer $CRON_SECRET`.
+- **Track** — Add anime and manga with status, episode/chapter progress, and ratings. Import from AniList or MyAnimeList.
+- **Discover** — Search by mood or vibe (`"something lonely and beautiful"`), by title (typos included), or by `"similar to {title}"`.
+- **Review** — Write reviews, mark spoilers, keep a critical record.
+- **Lists** — Curate and share lists of titles.
+- **Passport** — A shareable identity card from rank, XP, genre taste, and favourites.
+- **Community** — Public profiles, follows, taste compatibility, activity, and news.
+- **XP and ranks** — Earn XP through tracking and engagement; climb from Watcher to Legend.
+- **Season challenges** — Complete current-season titles for badges and bonus XP.
+- **Schedule** — Episode and chapter airing, with optional notifications.
 
-1. Set `CRON_SECRET` in Vercel (and locally in `.env.local` for manual runs).
-2. Apply migrations: `npx prisma migrate deploy`
-3. Seed once after deploy (or locally):
+---
+
+## Technical highlights
+
+**Hybrid search, not a chatbot.** Queries are classified, then run through the pipelines that actually help: pgvector cosine similarity on title embeddings (mood/vibe), `pg_trgm` fuzzy match (typos like `naurto`), AniList keyword search (exact titles), and a similar-to path that ranks by embedding distance from a reference title. Results merge with semantic hits first. Embeddings are `text-embedding-3-small` (1536-dim) stored as pgvector; missing vectors are generated lazily on detail views so the catalogue fills itself.
+
+**AniList is a backend dependency, never a client one.** Catalogue data is cached in Postgres (`lib/anilist-cache.ts`, 24h TTL) before anything is returned to the browser. Home, `/anime`, and `/manga` rows are served from `BrowseShelf` + `Anime` — not live GraphQL on every request. Cold visits fall back to AniList once and schedule a background sync via `after()`. External cron hits `/api/cron/*` with `Authorization: Bearer $CRON_SECRET` to refresh shelves, check airing episodes/chapters, and fetch news.
+
+**Taste and XP are first-class data, not overlays.** Ratings, tracker status, and reviews feed the profile and recommendations. XP is a ledger (`XPTransaction`) with a single source of truth for action values; ranks derive from total XP. Completing a series you were watching pays more than dumping it straight into Completed — the journey is the product.
+
+**Auth that doesn't split your archive.** NextAuth v5 with JWT sessions, Google OAuth, and Resend magic links. Same-email Google and magic-link accounts are linked so phone and desktop don't become two trackers.
+
+---
+
+## Design decisions
+
+- **Taste is the product.** Recommendations, watchlist state, and ratings are first-class — not decorative next to a trending grid.
+- **Archive, not feed.** Discovery is curated shelves (one strong row, seven posters) instead of infinite identical carousels.
+- **Letterboxd discipline, not MAL clutter.** Editorial headlines, restrained forms, no ad-heavy list UI, no kawaii chrome, no AI-slop palettes.
+- **Show the work.** Scores, status, match %, XP live in monospace labels. Task screens don't get marketing copy.
+- **Server-first.** Server components by default; `"use client"` only when interactivity requires it. No AniList from the browser.
+- **Tokens only.** All colour in CSS variables (`app/globals.css`). Mobile-first, then `md:` / `lg:`. Dark-only obsidian with crimson used sparingly.
+
+---
+
+## Architecture
+
+```
+Browser
+  └── Next.js App Router (server components + route handlers)
+        ├── Prisma ──► Supabase Postgres
+        │                 ├── Anime cache + embeddings (pgvector)
+        │                 ├── BrowseShelf rows
+        │                 ├── Tracker, ratings, reviews, lists, XP
+        │                 └── Users / NextAuth adapter
+        ├── AniList GraphQL (server-only; cache-then-return)
+        ├── OpenAI embeddings (on cache miss / populate jobs)
+        └── Resend (magic-link email)
+
+External cron ──► /api/cron/browse-sync
+                  /api/cron/episode-check
+                  /api/cron/chapter-check
+                  /api/cron/news-fetch
+```
+
+Browse sync (first deploy or local):
 
 ```bash
-# Production (cron auth)
+# Production
 curl -X GET "https://mirubox.vercel.app/api/cron/browse-sync" \
   -H "Authorization: Bearer $CRON_SECRET"
 
-# Local script (uses .env.local DATABASE_URL)
+# Local (uses .env.local DATABASE_URL)
 npx tsx scripts/seed-browse-shelves.ts
 ```
 
-Cold visits fall back to AniList once and schedule a background sync.
-
----
-
-## Features in progress
-
-- Community tab — public profiles, leaderboards,
-  activity feeds, friend system
-- Profile passport — shareable identity card with
-  rank, taste summary, and favourite titles
-- XP and badge system — full gamification engine
+`CRON_SECRET` lives in Vercel (and `.env.local` for manual runs). Apply migrations with `npx prisma migrate deploy`.
 
 ---
 
