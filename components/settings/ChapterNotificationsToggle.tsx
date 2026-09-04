@@ -54,7 +54,7 @@ export function ChapterNotificationsToggle({
         CHAPTER NOTIFICATIONS
       </p>
       <p style={{ fontFamily: MONO, fontSize: 9, color: "var(--fg-subtle)", marginBottom: 8 }}>
-        In-app alerts when a new chapter drops for titles you&apos;re reading.
+        Alerts when a new chapter drops for titles you&apos;re reading.
       </p>
       <button
         type="button"

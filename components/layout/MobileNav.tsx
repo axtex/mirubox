@@ -50,6 +50,8 @@ export function MobileNav(): React.JSX.Element {
           // Content row + home-indicator inset (border-box: padding sits inside total height)
           height: "calc(64px + env(safe-area-inset-bottom, 0px))",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          paddingLeft: "env(safe-area-inset-left, 0px)",
+          paddingRight: "env(safe-area-inset-right, 0px)",
         }}
       >
         <NavLink

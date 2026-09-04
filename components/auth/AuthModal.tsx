@@ -75,7 +75,10 @@ export function AuthModal(): React.JSX.Element | null {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 16,
+        paddingTop: "max(16px, env(safe-area-inset-top, 0px))",
+        paddingRight: "max(16px, env(safe-area-inset-right, 0px))",
+        paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px))",
+        paddingLeft: "max(16px, env(safe-area-inset-left, 0px))",
       }}
     >
       <div

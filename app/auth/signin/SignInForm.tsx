@@ -67,10 +67,6 @@ export function SignInForm(): React.JSX.Element {
           </span>
         </button>
       </div>
-
-      <p style={{ fontFamily: MONO, fontSize: 9, color: "var(--fg-faint)", textAlign: "center", marginTop: 14 }}>
-        New to mirubox? An account is created automatically.
-      </p>
     </div>
   );
 }

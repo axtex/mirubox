@@ -206,7 +206,7 @@ Dark card inputs, 2px radius, border brightens to primary on focus. Always pair 
 
 ### Navigation
 Desktop: sticky top bar, solid near-black (avoid decorative blur). Links: ANIME, MANGA, TRACKER, COMMUNITY dropdown (Friends / Lists / News / Forum placeholder).
-Mobile: bottom bar, 64px + safe-area inset, icon-only (Home, Search, Tracker, Profile, More). More sheet: Community, Schedule, Notifications, Settings. Notification badge on More when unread.
+Mobile: bottom bar, 64px + safe-area inset, icon-only (Home, Search, Tracker, Profile, More). More sheet: Community, Schedule, Notifications, Settings. Notification badge on More when unread. Sign out, About, and How it works live under Settings on mobile only. Desktop keeps About/How it works in the footer; import and sign out in the account menu.
 
 ### Skeleton (`.shimmer`)
 Horizontal gradient animation on card-shaped placeholders; respect reduced motion.

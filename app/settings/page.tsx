@@ -7,14 +7,23 @@ import { prisma } from "@/lib/prisma";
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { EpisodeNotificationsToggle } from "@/components/settings/EpisodeNotificationsToggle";
 import { ChapterNotificationsToggle } from "@/components/settings/ChapterNotificationsToggle";
+import { SignOutButton } from "@/components/settings/SignOutButton";
 
 export const metadata: Metadata = {
   title: "Settings — mirubox",
 };
 
-function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
+function SettingsSection({
+  title,
+  children,
+  className = "mb-10",
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <section className="mb-10">
+    <section className={className}>
       <div className="mb-4">
         <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-subtle)", letterSpacing: "0.1em" }}>
           {title}
@@ -72,7 +81,7 @@ export default async function SettingsPage() {
           />
         </SettingsSection>
 
-        <SettingsSection title="NOTIFICATIONS">
+        <SettingsSection title="NOTIFICATIONS" className="mb-4 md:mb-10">
           <EpisodeNotificationsToggle
             initialValue={user?.episodeNotifications ?? true}
           />
@@ -84,11 +93,40 @@ export default async function SettingsPage() {
           </p>
         </SettingsSection>
 
-        <SettingsSection title="DANGER ZONE">
-          <p style={{ fontFamily: "var(--font-space-mono)", fontSize: 10, color: "var(--fg-subtle)" }}>
-            Delete account coming soon.
-          </p>
-        </SettingsSection>
+        <div className="md:hidden">
+        <div className="mb-10">
+          <SignOutButton />
+        </div>
+
+        <div className="mb-10 flex flex-row flex-wrap justify-center gap-4">
+          <Link
+            href="/about"
+            style={{
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 10,
+              color: "var(--fg-muted)",
+              letterSpacing: "0.06em",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
+            About
+          </Link>
+          <Link
+            href="/how-it-works"
+            style={{
+              fontFamily: "var(--font-space-mono)",
+              fontSize: 10,
+              color: "var(--fg-muted)",
+              letterSpacing: "0.06em",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
+            How it works
+          </Link>
+        </div>
+        </div>
       </div>
     </div>
   );

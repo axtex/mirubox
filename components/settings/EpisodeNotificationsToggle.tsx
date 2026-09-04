@@ -54,7 +54,7 @@ export function EpisodeNotificationsToggle({
         EPISODE NOTIFICATIONS
       </p>
       <p style={{ fontFamily: MONO, fontSize: 9, color: "var(--fg-subtle)", marginBottom: 8 }}>
-        In-app alerts when a new episode drops for titles you&apos;re watching.
+        Alerts when a new episode drops for titles you&apos;re watching.
       </p>
       <button
         type="button"

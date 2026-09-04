@@ -576,6 +576,13 @@ span.detail-sidebar-genre-link:hover {
   border-color: var(--fg-muted);
 }
 
+.btn-ghost-sm {
+  min-height: 32px;
+  padding: 6px 12px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
 /* ── Score badges ───────────────────────────────────────────────────────── */
 
 .score-badge {
@@ -1372,17 +1379,19 @@ span.detail-sidebar-genre-link:hover {
   align-items: center;
   gap: 8px;
   pointer-events: none;
-  bottom: 20px;
+  /* Sit above the mobile tab bar (64px + home indicator) */
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px);
   /* Avoid 100vw — it can exceed the layout width and shift the page sideways on iOS */
-  left: 16px;
-  right: 16px;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
   width: auto;
   max-width: 340px;
   margin-inline: auto;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .toast-container {
+    bottom: 20px;
     left: auto;
     right: 20px;
     margin-inline: 0;

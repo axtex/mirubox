@@ -139,7 +139,7 @@ export function AccountSettingsForm({
         )}
       </Field>
 
-      <Field label="USERNAME" hint="Username editing coming soon.">
+      <Field label="USERNAME">
         <input
           type="text"
           value={username ?? ""}
@@ -150,7 +150,7 @@ export function AccountSettingsForm({
         />
       </Field>
 
-      <Field label="EMAIL" hint="Email editing coming soon.">
+      <Field label="EMAIL">
         <input
           type="email"
           value={email ?? ""}
