@@ -40,7 +40,8 @@ export function parseSimilarToQuery(query: string): string | null {
   const trimmed = query.trim();
   for (const pattern of SIMILAR_TO_PATTERNS) {
     const match = trimmed.match(pattern);
-    if (match?.[1]) return match[1].trim();
+    const title = match?.[1]?.trim();
+    if (title) return title;
   }
   return null;
 }

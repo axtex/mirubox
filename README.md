@@ -90,6 +90,18 @@ Browser
 
 ---
 
+## Tests
+
+Unit tests (Vitest, no live database or AniList/OpenAI):
+
+```bash
+npm test
+```
+
+Covers cron Bearer auth, ranks, `awardXP`, tracker XP actions, semantic rate limit, 401s on writes, season keys, mood descriptors, `similar to` parsing, and hybrid merge ranking.
+
+---
+
 ## License
 
 mirubox is source-available under the

@@ -251,7 +251,7 @@ async function searchAniListKeyword(
   }));
 }
 
-function mergeResults(
+export function mergeResults(
   semantic: HybridResult[],
   keyword: HybridResult[],
   limit: number

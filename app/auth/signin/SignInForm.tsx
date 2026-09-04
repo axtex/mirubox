@@ -56,6 +56,7 @@ export function SignInForm(): React.JSX.Element {
             padding: "10px 14px",
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: 10,
             cursor: googleLoading ? "default" : "pointer",
           }}
