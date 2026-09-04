@@ -52,12 +52,16 @@ const FEATURES: FeatureRow[] = [
   {
     name: "Track titles",
     description:
-      "Add anime and manga, mark progress, rate and review what you've watched.",
+      "Add anime and manga, mark progress, rate and review. Import from AniList or MyAnimeList.",
   },
   {
     name: "Vibe-based search",
     description:
-      "Search by mood or feel — not just title — and find anime and manga that match the vibe you're after.",
+      "Search by mood, a misspelled title, or similar to a show you already know. Home is editorial shelves, not a personal rec engine.",
+  },
+  {
+    name: "Lists",
+    description: "Curate, share, and like lists of titles.",
   },
   {
     name: "Follow friends",
@@ -66,17 +70,22 @@ const FEATURES: FeatureRow[] = [
   {
     name: "Taste match",
     description:
-      "Compare overlap with friends — see how aligned your anime and manga taste really is.",
+      "Compare overlap with friends: see how aligned your anime and manga taste really is.",
   },
   {
-    name: "View & share passports",
+    name: "View and share passports",
     description:
-      "Your profile passport summarizes rank, XP, and taste. View others' and share yours as an image.",
+      "Your profile passport summarizes rank, XP, genre taste, and favourites. View others' and share yours as an image.",
   },
   {
     name: "Season challenges",
     description:
       "Watch or complete titles from the current season to earn seasonal badges and bonus XP.",
+  },
+  {
+    name: "Schedule",
+    description:
+      "Upcoming episodes and chapters for titles you're tracking, with optional in-app notifications.",
   },
 ];
 
@@ -131,10 +140,8 @@ const XP_GROUPS: Array<{ title: string; note?: string; rows: XPRow[] }> = [
   },
   {
     title: "SOCIAL",
-    note: "(Coming with community feature)",
     rows: [
-      { name: "Add a friend", description: "Connecting with another mirubox user." },
-      { name: "Invite a friend", description: "Inviting someone who signs up via your link." },
+      { name: "Follow someone", description: "Following another mirubox user." },
     ],
   },
   {
@@ -167,7 +174,7 @@ const BADGE_CATEGORIES: Array<{ title: string; note?: string; badges: BadgeRow[]
       { icon: "🗂", name: "Completionist", requirement: "Complete 50 series" },
       { icon: "🏛", name: "Centenarian", requirement: "Complete 100 series" },
       { icon: "🎬", name: "Cinephile", requirement: "Complete 10 anime films" },
-      { icon: "🌀", name: "Completionist+", requirement: "Complete an entire franchise" },
+      { icon: "🌀", name: "Completionist+", requirement: "Complete an entire franchise (not live yet)" },
     ],
   },
   {
@@ -206,7 +213,7 @@ const BADGE_CATEGORIES: Array<{ title: string; note?: string; badges: BadgeRow[]
       { icon: "📚", name: "Bookworm", requirement: "Complete 20 manga series" },
       { icon: "🗃", name: "Stacker", requirement: "Complete 50 manga series" },
       { icon: "✒️", name: "One and Done", requirement: "Complete 10 one-shots" },
-      { icon: "📝", name: "Read Before Watch", requirement: "Complete a manga and its anime adaptation" },
+      { icon: "📝", name: "Read Before Watch", requirement: "Complete a manga and its anime adaptation (not live yet)" },
       { icon: "🖊", name: "Origin Seeker", requirement: "Complete 5 manga with anime adaptations" },
       { icon: "🌿", name: "Up to Date", requirement: "Complete a manga that is currently publishing" },
     ],
@@ -254,12 +261,17 @@ const BADGE_CATEGORIES: Array<{ title: string; note?: string; badges: BadgeRow[]
   },
   {
     title: "SOCIAL",
-    note: "Coming with the community feature.",
+    badges: [
+      { icon: "📋", name: "List Maker", requirement: "Create 3 public lists" },
+      { icon: "❤️", name: "Well Liked", requirement: "Receive 10 likes on a single list" },
+    ],
+  },
+  {
+    title: "INVITES",
+    note: "Not live yet. There is no invite flow.",
     badges: [
       { icon: "📨", name: "Recruiter", requirement: "Invite a friend who signs up" },
       { icon: "👥", name: "Ambassador", requirement: "Invite 5 friends who sign up" },
-      { icon: "📋", name: "List Maker", requirement: "Create 3 public lists" },
-      { icon: "❤️", name: "Well Liked", requirement: "Receive 10 likes on a single list" },
     ],
   },
   {
@@ -277,8 +289,9 @@ export default function HowItWorksPage() {
     <div style={{ background: "#0f0f12", minHeight: "100vh" }}>
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 0" }}>
         <p style={{ ...PROSE_STYLE, marginBottom: 32 }}>
-          mirubox is an anime and manga tracking platform. Add titles, track progress, rate and
-          review what you&apos;ve watched, and build lists to share with others.
+          mirubox is an anime and manga archive. Add titles, track progress, rate and
+          review, and build lists and a passport to share. Search by mood, a misspelled name,
+          or something similar to a title you already know.
         </p>
 
         <Divider />
@@ -328,8 +341,8 @@ export default function HowItWorksPage() {
         {/* ── Section 2 — Ranks ─────────────────────────────────────────── */}
         <SectionHeader>RANKS</SectionHeader>
         <p style={{ ...PROSE_STYLE, marginBottom: 14 }}>
-          As you use mirubox you earn XP. Your rank increases as your XP grows, unlocking new
-          features along the way.
+          As you use mirubox you earn XP. Your rank increases as your XP grows. Rank shows on
+          your profile and passport. It does not unlock extra features.
         </p>
 
         <div style={{ border: "1px solid #1f1f22", borderRadius: 2, marginBottom: 28 }}>
@@ -439,9 +452,10 @@ export default function HowItWorksPage() {
               lineHeight: 1.6,
             }}
           >
-            XP from adding titles is capped at 5 titles per day — bulk-adding a backlog won&apos;t
-            fast-track your rank. Completion XP is only awarded when you finish something you were
-            actively watching. Rating and review XP is awarded once per title.
+            XP from adding titles is capped at 5 titles per day. Bulk-adding a backlog
+            won&apos;t fast-track your rank. Completing a series you were actively watching
+            pays more than marking it Completed directly. Rating and review XP is awarded
+            once per title.
           </p>
         </div>
 

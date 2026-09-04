@@ -47,15 +47,16 @@ export default function AboutPage() {
         </p>
 
         <p style={{ ...BODY_STYLE, marginBottom: 24 }}>
-          mirubox is a tracker built around taste — not just lists. Everything you add, rate, and
-          review shapes your recommendations and defines your profile.
+          mirubox is a personal archive, not just a list. Everything you add, rate, and
+          review lives on your profile and passport: rank, genre taste, favourites. A record
+          of what actually moved you.
         </p>
 
         <Divider />
 
         <p style={BODY_STYLE}>
           We believe your anime taste is worth taking seriously. Not as a stat to optimise, but as
-          a genuine reflection of what moves you — what makes you laugh, think, or stay up until
+          a genuine reflection of what moves you: what makes you laugh, think, or stay up until
           3am to finish one more episode.
         </p>
 
@@ -63,7 +64,8 @@ export default function AboutPage() {
 
         <p style={BODY_STYLE}>
           mirubox is independent and in active development. Features ship regularly. The tracker,
-          discover engine, and profile are live. Community features coming.
+          search, profile, lists, and community (follows, news, taste match) are live. Forum is
+          still coming.
         </p>
 
         <Divider />

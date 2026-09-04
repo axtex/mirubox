@@ -10,19 +10,23 @@ colors:
   fg: "#e4e1e6"
   fg-muted: "#9e9ea8"
   fg-subtle: "#5a5a65"
-  primary: "#e61e2a"
-  primary-dim: "#ffb3ad"
-  primary-hover: "#cc1824"
-  accent-bright: "#ff3040"
+  fg-faint: "#3a3a45"
+  primary: "#e8173f"
+  primary-dim: "rgba(232, 23, 63, 0.15)"
+  primary-hover: "#cc1229"
+  primary-glow: "rgba(232, 23, 63, 0.25)"
+  accent-bright: "#ff2d55"
   secondary: "#00dbe9"
   tertiary: "#bb10fd"
+  warning: "#ba7517"
+  success: "#1d9e75"
   score-high: "#4ade80"
   score-mid: "#fbbf24"
   score-low: "#f87171"
   status-watching: "#3b82f6"
   status-completed: "#4ade80"
   status-plan: "#e4e1e6"
-  status-dropped: "#e61e2a"
+  status-dropped: "#e8173f"
   status-hold: "#fbbf24"
 typography:
   display:
@@ -104,7 +108,7 @@ components:
 
 Mirubox looks like a private screening room meets a taste ledger: near-black obsidian surfaces, poster art doing the heavy lifting, crimson reserved for decisive actions and scores. The UI is product-first (Letterboxd discipline) with cinematic punctuation on discovery surfaces, not streaming-app carousel overload.
 
-Density is moderate: mobile horizontal shelves, desktop seven-column poster grids, monospace labels for metadata. Motion is short (200ms), purposeful (hover glow on posters, shimmer skeletons), never choreographed page loads.
+Density is moderate: mobile horizontal shelves, desktop seven-column poster grids, monospace labels for metadata. Home adds a continue strip and season challenge for signed-in users. Motion is short (200ms), purposeful (hover glow on posters, shimmer skeletons), never choreographed page loads.
 
 **Key Characteristics:**
 - Dark-only obsidian palette with crimson primary
@@ -119,10 +123,12 @@ Explicitly rejects: AI slop palettes, kawaii pastels, generic anime list UIs, gl
 
 Obsidian neutrals tinted cool; crimson is the sole warm accent for primary actions and score pills.
 
+Source of truth for tokens is `app/globals.css`. Hex below matches that file.
+
 ### Primary
-- **Archive Crimson** (`#e61e2a`): Primary buttons, score pills, section underlines, active nav. The accent of commitment.
-- **Crimson Bright** (`#ff3040`): Hover emphasis, bright accent states.
-- **Crimson Hover** (`#cc1824`): Primary button hover fill.
+- **Archive Crimson** (`#e8173f` / `--primary`): Primary buttons, score pills, section underlines, active nav. The accent of commitment.
+- **Crimson Bright** (`#ff2d55` / `--accent-bright`): Hover emphasis, bright accent states.
+- **Crimson Hover** (`#cc1229` / `--primary-hover`): Primary button hover fill.
 
 ### Secondary
 - **Signal Cyan** (`#00dbe9`): Rare secondary accent; data highlights, not decoration.
@@ -138,6 +144,7 @@ Obsidian neutrals tinted cool; crimson is the sole warm accent for primary actio
 - **Fog** (`#e4e1e6`): Primary text.
 - **Ash** (`#9e9ea8`): Secondary text.
 - **Stone** (`#5a5a65`): Tertiary labels; lighten if contrast fails AA on small text.
+- **Faint** (`#3a3a45` / `--fg-faint`): Disabled / empty-state labels.
 
 ### Semantic
 - **Score High / Mid / Low**: Green, amber, red for rating badges.
@@ -159,7 +166,7 @@ Obsidian neutrals tinted cool; crimson is the sole warm accent for primary actio
 ### Hierarchy
 - **Display** (800, clamp 40–72px, tight tracking): Hero titles on homepage and featured media.
 - **Headline LG** (700, clamp 24–40px): Page titles (watchlist, profile).
-- **Headline MD** (600, 22px): Section headers (TRENDING, FOR YOU).
+- **Headline MD** (600, 22px): Section headers (TRENDING, THIS SEASON, editorial shelf titles).
 - **Body** (400, 14px, 1.5): Descriptions, form text; cap prose at 65–75ch.
 - **Label** (500, 11px, uppercase, 0.1em tracking): Buttons, nav, metadata, filters.
 
@@ -183,7 +190,7 @@ No default drop shadows on static cards.
 ## Components
 
 ### Buttons (`.btn-primary`, `.btn-ghost`)
-Tactile, uppercase mono labels, 44px min height. Primary: crimson fill, white text. Ghost: hairline border, transparent fill. Focus ring: `var(--accent-bright)` 2px outline (to be applied globally).
+Tactile, uppercase mono labels, 44px min height. Primary: crimson fill, white text. Ghost: hairline border, transparent fill. Focus ring: `var(--accent-bright)` 2px outline.
 
 ### Anime Card (`.anime-card`)
 Poster-forward link; 2–4px radius; score pill top-right in crimson. Title visible on hover/focus-within overlay (target state). Desktop: fills grid cell at 100% width.
@@ -198,7 +205,8 @@ Small uppercase mono tags. Genre chips: subtle fill, minimal blur (prefer removi
 Dark card inputs, 2px radius, border brightens to primary on focus. Always pair with visible or screen-reader labels.
 
 ### Navigation
-Desktop: sticky top bar, 60px, solid near-black (avoid decorative blur). Mobile: bottom tab bar, 64px + safe area, icon + label when active.
+Desktop: sticky top bar, solid near-black (avoid decorative blur). Links: ANIME, MANGA, TRACKER, COMMUNITY dropdown (Friends / Lists / News / Forum placeholder).
+Mobile: bottom bar, 64px + safe-area inset, icon-only (Home, Search, Tracker, Profile, More). More sheet: Community, Schedule, Notifications, Settings. Notification badge on More when unread.
 
 ### Skeleton (`.shimmer`)
 Horizontal gradient animation on card-shaped placeholders; respect reduced motion.
@@ -207,7 +215,7 @@ Horizontal gradient animation on card-shaped placeholders; respect reduced motio
 
 **Do**
 - Use CSS variables from `globals.css` for all colors in components
-- Limit homepage sections to one poster row each (7 cards max)
+- Limit homepage catalogue sections to one poster row each (7 cards max). Continue strip and season challenge are the exception for signed-in users.
 - Use Space Mono for scores, status, filters, and button labels
 - Keep hero cinematic; keep forms and tables restrained
 - Deduplicate anime across homepage sections
@@ -217,5 +225,5 @@ Horizontal gradient animation on card-shaped placeholders; respect reduced motio
 - Rely on hover-only UI for titles or actions
 - Add glassmorphism to nav, chips, or cards by default
 - Use display font on buttons, inputs, or dense data tables
-- Ship placeholder UI (fake email capture, unimplemented shortcuts)
+- Ship placeholder UI (fake email capture, unimplemented shortcuts). Forum is an explicit "Coming soon" tab — do not fake a forum.
 - Use em dashes in product copy
