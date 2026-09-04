@@ -92,11 +92,7 @@ Browser
 
 ## Tests
 
-Unit tests (Vitest, no live database or AniList/OpenAI):
-
-```bash
-npm test
-```
+Unit tests (Vitest):
 
 Covers cron Bearer auth, ranks, `awardXP`, tracker XP actions, semantic rate limit, 401s on writes, season keys, mood descriptors, `similar to` parsing, and hybrid merge ranking.
 
