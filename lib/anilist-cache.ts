@@ -26,13 +26,11 @@ function toDbAnime(media: AnimeCard | AnimeDetail) {
     title: media.title.romaji ?? media.title.english ?? "Unknown",
     titleEnglish: media.title.english ?? null,
     titleNative: media.title.native ?? null,
-    description: "description" in media ? (media.description ?? null) : null,
     coverImage: media.coverImage.extraLarge ?? media.coverImage.large ?? null,
     bannerImage: media.bannerImage ?? null,
     genres: media.genres ?? [],
     episodes: media.episodes ?? null,
     chapters: media.chapters ?? null,
-    volumes: "volumes" in media ? (media.volumes ?? null) : null,
     status: media.status ?? null,
     season: media.season ?? null,
     seasonYear: media.seasonYear ?? null,
@@ -46,14 +44,17 @@ function toDbAnime(media: AnimeCard | AnimeDetail) {
   };
 
   // Only write detail-only fields when we have a full Media payload —
-  // card-only upserts must not null out source/duration/meanScore.
+  // card-only upserts must not null out description/source/duration/meanScore/studio.
   if ("description" in media) {
     const detail = media as AnimeDetail;
     return {
       ...base,
+      description: detail.description ?? null,
+      volumes: detail.volumes ?? null,
       source: detail.source ?? null,
       duration: detail.duration ?? null,
       meanScore: detail.meanScore ?? null,
+      studio: detail.studios?.nodes[0]?.name ?? null,
       airingStatus: detail.status ?? null,
       nextAiringEp: detail.nextAiringEpisode?.episode ?? null,
       nextAiringAt: detail.nextAiringEpisode?.airingAt ?? null,

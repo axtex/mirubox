@@ -112,14 +112,35 @@ export type AnimeWithDetailCache = {
   format: string | null;
   source: string | null;
   duration: number | null;
+  studio?: string | null;
   type: string;
   airingStatus?: string | null;
   nextAiringEp?: number | null;
   nextAiringAt?: number | null;
+  charactersCachedAt?: Date | null;
+  relationsCachedAt?: Date | null;
+  streamingCachedAt?: Date | null;
   characters: Character[];
   relationsFrom: MediaRelation[];
   streamingLinks: DbStreamingLink[];
 };
+
+/** Card-only shelf/search rows have a title+cover but no nested detail cache. */
+function isHydratedDetailCache(
+  cached: {
+    title: string;
+    coverImage: string | null;
+    charactersCachedAt: Date | null;
+    relationsCachedAt: Date | null;
+  } | null,
+): boolean {
+  return Boolean(
+    cached?.title &&
+      cached.coverImage &&
+      cached.charactersCachedAt &&
+      cached.relationsCachedAt,
+  );
+}
 
 export function dbCharToEdge(char: Character): CharacterEdge {
   return {
@@ -258,7 +279,9 @@ export function dbMediaToAnilistShape(cached: AnimeWithDetailCache): AnimeDetail
         .filter((r) => r.relationType === RECOMMENDATION_TYPE)
         .map((r) => ({ mediaRecommendation: dbRelationToAnimeCard(r) })),
     },
-    studios: { nodes: [] },
+    studios: cached.studio
+      ? { nodes: [{ id: 0, name: cached.studio }] }
+      : { nodes: [] },
   };
 }
 
@@ -266,7 +289,8 @@ export function dbMediaToAnilistShape(cached: AnimeWithDetailCache): AnimeDetail
 
 export async function cacheCharactersIfMissing(
   mediaId: number,
-  type: "ANIME" | "MANGA"
+  type: "ANIME" | "MANGA",
+  media?: AnimeDetail,
 ): Promise<void> {
   if (cachingCharacters.has(mediaId)) return;
 
@@ -279,13 +303,13 @@ export async function cacheCharactersIfMissing(
 
   cachingCharacters.add(mediaId);
   try {
-    const media = await getMediaById(mediaId);
-    if (!media) return;
+    const payload = media ?? (await getMediaById(mediaId));
+    if (!payload) return;
 
     // FK requires an Anime row before Character inserts.
-    await cacheAnimeCard(media);
+    await cacheAnimeCard(payload);
 
-    const edges = media.characters?.edges ?? [];
+    const edges = payload.characters?.edges ?? [];
 
     await prisma.character.deleteMany({ where: { mediaId } });
 
@@ -323,7 +347,10 @@ export async function cacheCharactersIfMissing(
 
 // ── RELATIONS ────────────────────────────────────────────────────────────────
 
-export async function cacheRelationsIfMissing(mediaId: number): Promise<void> {
+export async function cacheRelationsIfMissing(
+  mediaId: number,
+  media?: AnimeDetail,
+): Promise<void> {
   if (cachingRelations.has(mediaId)) return;
 
   const existing = await prisma.anime.findUnique({
@@ -340,14 +367,14 @@ export async function cacheRelationsIfMissing(mediaId: number): Promise<void> {
 
   cachingRelations.add(mediaId);
   try {
-    const media = await getMediaById(mediaId);
-    if (!media) return;
+    const payload = media ?? (await getMediaById(mediaId));
+    if (!payload) return;
 
-    await cacheAnimeCard(media);
+    await cacheAnimeCard(payload);
 
-    const edges = media.relations?.edges ?? [];
+    const edges = payload.relations?.edges ?? [];
     const filtered = edges.filter((e) => KEEP_RELATIONS.has(e.relationType));
-    const recNodes = (media.recommendations?.nodes ?? [])
+    const recNodes = (payload.recommendations?.nodes ?? [])
       .map((n) => n.mediaRecommendation)
       .filter((m): m is AnimeCard => m != null)
       .slice(0, 6);
@@ -406,7 +433,8 @@ export async function cacheRelationsIfMissing(mediaId: number): Promise<void> {
 
 export async function cacheStreamingIfMissing(
   mediaId: number,
-  type: "ANIME" | "MANGA" = "ANIME"
+  type: "ANIME" | "MANGA" = "ANIME",
+  media?: AnimeDetail,
 ): Promise<void> {
   if (cachingStreaming.has(mediaId)) return;
 
@@ -419,13 +447,13 @@ export async function cacheStreamingIfMissing(
 
   cachingStreaming.add(mediaId);
   try {
-    const media = await getMediaById(mediaId);
-    if (!media?.externalLinks) return;
+    const payload = media ?? (await getMediaById(mediaId));
+    if (!payload?.externalLinks) return;
 
-    await cacheAnimeCard(media);
+    await cacheAnimeCard(payload);
 
     const sites = type === "ANIME" ? ANIME_STREAMING_SITES : MANGA_READING_SITES;
-    const links = media.externalLinks.filter(
+    const links = payload.externalLinks.filter(
       (l) => sites.has(l.site) && !l.isDisabled && l.url
     );
 
@@ -463,7 +491,39 @@ const DETAIL_INCLUDE = {
   streamingLinks: true,
 } as const;
 
-function scheduleDetailRefresh(mediaId: number, type: "ANIME" | "MANGA"): void {
+function persistDetailExtras(
+  mediaId: number,
+  type: "ANIME" | "MANGA",
+  media: AnimeDetail,
+): void {
+  after(() => {
+    void Promise.all([
+      embedIfMissing(media),
+      cacheCharactersIfMissing(mediaId, type, media),
+      cacheRelationsIfMissing(mediaId, media),
+      cacheStreamingIfMissing(mediaId, type, media),
+    ]).catch((err: unknown) => {
+      console.error(`[detail-persist] ${type.toLowerCase()}/${mediaId}`, err);
+    });
+  });
+}
+
+function scheduleDetailRefresh(
+  mediaId: number,
+  type: "ANIME" | "MANGA",
+  cached: {
+    charactersCachedAt: Date | null;
+    relationsCachedAt: Date | null;
+    streamingCachedAt: Date | null;
+  },
+): void {
+  const stale =
+    isStale(cached.charactersCachedAt, CHARACTER_TTL_MS) ||
+    isStale(cached.relationsCachedAt, RELATION_TTL_MS) ||
+    isStale(cached.streamingCachedAt, STREAMING_TTL_MS);
+
+  if (!stale) return;
+
   after(() => {
     void (async () => {
       try {
@@ -471,10 +531,9 @@ function scheduleDetailRefresh(mediaId: number, type: "ANIME" | "MANGA"): void {
         if (!media) return;
         await cacheAnimeCard(media, { force: true });
         await Promise.all([
-          embedIfMissing(media),
-          cacheCharactersIfMissing(mediaId, type),
-          cacheRelationsIfMissing(mediaId),
-          cacheStreamingIfMissing(mediaId, type),
+          cacheCharactersIfMissing(mediaId, type, media),
+          cacheRelationsIfMissing(mediaId, media),
+          cacheStreamingIfMissing(mediaId, type, media),
         ]);
       } catch (err) {
         console.error(`[detail-refresh] ${type.toLowerCase()}/${mediaId}`, err);
@@ -484,9 +543,10 @@ function scheduleDetailRefresh(mediaId: number, type: "ANIME" | "MANGA"): void {
 }
 
 /**
- * Serve detail pages from DB when present — never wait on AniList for a warm cache.
- * Cold titles still hit AniList once. RELEASING anime missing airing data get a
- * lightweight next-episode fetch so the sidebar countdown can render.
+ * Serve detail pages from DB only when characters/relations have been cached.
+ * Card-only shelf/search rows still hit AniList once so the first paint includes
+ * description, cast, and related. Nested tables persist after the response.
+ * RELEASING anime missing airing data get a lightweight next-episode fetch.
  */
 export async function resolveMediaDetailForPage(
   mediaId: number,
@@ -497,20 +557,38 @@ export async function resolveMediaDetailForPage(
     include: DETAIL_INCLUDE,
   });
 
-  if (cached?.title && cached.coverImage) {
-    scheduleDetailRefresh(mediaId, type);
+  if (cached && isHydratedDetailCache(cached)) {
     let media = dbMediaToAnilistShape(cached);
+    let fetched: AnimeDetail | null = null;
 
-    // Older cache rows never stored recommendations — fill once from AniList.
-    if (media.recommendations.nodes.length === 0) {
+    // Wiped card upserts left description null. Titles that truly have no
+    // synopsis will hit AniList on each view until one writes a value.
+    const needsDescription = media.description == null;
+    if (needsDescription) {
       try {
-        const fresh = await getMediaById(mediaId);
-        if (fresh?.recommendations?.nodes?.length) {
-          media = { ...media, recommendations: fresh.recommendations };
+        fetched = await getMediaById(mediaId);
+        if (fetched) {
+          media = {
+            ...media,
+            description: fetched.description,
+            studios: fetched.studios,
+          };
+          void cacheAnimeCard(fetched, { force: true });
         }
       } catch (err) {
-        console.error(`[recs-fill] ${type.toLowerCase()}/${mediaId}`, err);
+        console.error(`[detail-fill] ${type.toLowerCase()}/${mediaId}`, err);
       }
+    }
+
+    // Don't persist the DB reconstruction — that would stamp stale nested
+    // rows as fresh. Reuse a fetch from this request, or AniList only if TTL expired.
+    if (fetched) {
+      persistDetailExtras(mediaId, type, fetched);
+    } else {
+      after(() => {
+        void embedIfMissing(media);
+      });
+      scheduleDetailRefresh(mediaId, type, cached);
     }
 
     const looksReleasing =
@@ -548,10 +626,25 @@ export async function resolveMediaDetailForPage(
 
   const anilistMedia = await getMediaById(mediaId);
   if (!anilistMedia) {
-    return cached ? dbMediaToAnilistShape(cached) : null;
+    console.error(`[detail] AniList miss ${type.toLowerCase()}/${mediaId}`);
+    if (cached) {
+      // Retry after the response so a reload can pick up the full payload.
+      scheduleDetailRefresh(mediaId, type, cached);
+      return dbMediaToAnilistShape(cached);
+    }
+    return null;
   }
 
   await cacheAnimeCard(anilistMedia, { force: true });
-  scheduleDetailRefresh(mediaId, type);
+  // Persist nested tables on this request (payload already in hand — no extra
+  // AniList calls) so a reload is a warm cache hit even if after() is dropped.
+  await Promise.all([
+    cacheCharactersIfMissing(mediaId, type, anilistMedia),
+    cacheRelationsIfMissing(mediaId, anilistMedia),
+    cacheStreamingIfMissing(mediaId, type, anilistMedia),
+  ]);
+  after(() => {
+    void embedIfMissing(anilistMedia);
+  });
   return anilistMedia;
 }

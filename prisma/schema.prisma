@@ -168,6 +168,7 @@ model Anime {
   source              String?
   duration            Int?
   meanScore           Int?
+  studio              String?
   charactersCachedAt  DateTime?
   relationsCachedAt   DateTime?
   streamingCachedAt   DateTime?
