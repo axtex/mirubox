@@ -8,6 +8,7 @@ import {
   getCurrentSeason,
   getNextSeason,
 } from "@/lib/anilist";
+import { hydrateAniListCircuit, shouldSkipAniList } from "@/lib/anilist-circuit";
 import type { AnimeCard } from "@/types/anilist";
 import type { Prisma } from "@prisma/client";
 
@@ -38,6 +39,7 @@ export interface BrowseSyncResult {
   syncedAt: string;
   shelves: Record<string, number>;
   cardsCached: number;
+  skipped?: boolean;
 }
 
 async function upsertShelf(
@@ -68,6 +70,16 @@ async function cacheCards(media: AnimeCard[]): Promise<number> {
  * Safe to call from cron or as a background seed when shelves are empty.
  */
 export async function syncBrowseShelves(): Promise<BrowseSyncResult> {
+  await hydrateAniListCircuit();
+  if (shouldSkipAniList()) {
+    return {
+      syncedAt: new Date().toISOString(),
+      shelves: {},
+      cardsCached: 0,
+      skipped: true,
+    };
+  }
+
   const { season, year } = getCurrentSeason();
   const { season: nextSeason, year: nextYear } = getNextSeason();
 

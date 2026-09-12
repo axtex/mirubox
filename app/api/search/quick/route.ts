@@ -11,16 +11,18 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ results: [] });
   }
 
-  const page = await searchMedia(q, type, {}, 1, 10);
-
-  const results = page.media.map((m) => ({
-    id: m.id,
-    title: getDisplayTitle(m.title),
-    coverImage: m.coverImage.large ?? m.coverImage.extraLarge,
-    format: m.format,
-    seasonYear: m.seasonYear,
-    type: m.type,
-  }));
-
-  return NextResponse.json({ results });
+  try {
+    const page = await searchMedia(q, type, {}, 1, 10);
+    const results = page.media.map((m) => ({
+      id: m.id,
+      title: getDisplayTitle(m.title),
+      coverImage: m.coverImage.large ?? m.coverImage.extraLarge,
+      format: m.format,
+      seasonYear: m.seasonYear,
+      type: m.type,
+    }));
+    return NextResponse.json({ results });
+  } catch {
+    return NextResponse.json({ results: [] });
+  }
 }

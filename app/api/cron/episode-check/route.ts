@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAiringData, type AiringMedia } from "@/lib/anilist";
 import { createNotification } from "@/lib/notifications";
 import { cronAuthError } from "@/lib/cron-auth";
+import { hydrateAniListCircuit, shouldSkipAniList } from "@/lib/anilist-circuit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -25,8 +26,14 @@ async function runEpisodeCheck(): Promise<{
   distinctAnime?: number;
   notified: number;
   duration: number;
+  skipped?: boolean;
 }> {
   const startTime = Date.now();
+
+  await hydrateAniListCircuit();
+  if (shouldSkipAniList()) {
+    return { checked: 0, notified: 0, duration: Date.now() - startTime, skipped: true };
+  }
 
   const inProgressEntries = await prisma.trackerEntry.findMany({
     where: {

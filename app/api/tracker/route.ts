@@ -141,6 +141,13 @@ export async function POST(req: Request) {
     }
   }
 
+  if (!cached) {
+    return NextResponse.json(
+      { error: "Title unavailable while the catalogue is offline. Try again later." },
+      { status: 503 },
+    );
+  }
+
   const mediaType =
     typeof body.mediaType === "string" && (body.mediaType === "ANIME" || body.mediaType === "MANGA")
       ? body.mediaType

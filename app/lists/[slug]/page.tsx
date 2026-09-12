@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getMediaById } from "@/lib/anilist";
+import { getMediaCardsByIds } from "@/lib/anilist";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { ListDetailClient } from "@/components/lists/ListDetailClient";
 import { ListsBackLink } from "@/components/lists/ListsBackLink";
@@ -70,12 +70,8 @@ export default async function ListDetailPage({ params }: PageProps) {
 
   const missingIds = mediaIds.filter((id) => !cachedMedia.some((m) => m.id === id));
   if (missingIds.length > 0) {
-    await Promise.all(
-      missingIds.map(async (id) => {
-        const media = await getMediaById(id);
-        if (media) await cacheAnimeCard(media);
-      })
-    );
+    const fetched = await getMediaCardsByIds(missingIds);
+    await Promise.all(fetched.map((card) => cacheAnimeCard(card, { force: true })));
     cachedMedia = await prisma.anime.findMany({
       where: { id: { in: mediaIds } },
       select: MEDIA_SELECT,

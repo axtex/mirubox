@@ -66,11 +66,17 @@ export async function POST(req: Request) {
       ? body.mediaType
       : "ANIME";
 
-  // Ensure anime is cached in DB
-  const cached = await prisma.anime.findUnique({ where: { id: mediaId } });
+  let cached = await prisma.anime.findUnique({ where: { id: mediaId } });
   if (!cached) {
     const media = await getMediaById(mediaId);
     if (media) await cacheAnimeCard(media);
+    cached = await prisma.anime.findUnique({ where: { id: mediaId } });
+  }
+  if (!cached) {
+    return NextResponse.json(
+      { error: "Title unavailable while the catalogue is offline. Try again later." },
+      { status: 503 },
+    );
   }
 
   const favourite = await prisma.favourite.upsert({

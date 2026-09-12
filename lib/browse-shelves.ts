@@ -1,64 +1,8 @@
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { syncBrowseShelves, type BrowseShelfKey } from "@/lib/browse-sync";
+import { dbRowToAnimeCard, ANIME_CARD_SELECT } from "@/lib/catalogue-db";
 import type { AnimeCard } from "@/types/anilist";
-
-const ANIME_CARD_SELECT = {
-  id: true,
-  title: true,
-  titleEnglish: true,
-  titleNative: true,
-  coverImage: true,
-  bannerImage: true,
-  genres: true,
-  episodes: true,
-  chapters: true,
-  status: true,
-  season: true,
-  seasonYear: true,
-  averageScore: true,
-  popularity: true,
-  format: true,
-  type: true,
-} as const;
-
-function dbRowToAnimeCard(row: {
-  id: number;
-  title: string;
-  titleEnglish: string | null;
-  titleNative: string | null;
-  coverImage: string | null;
-  bannerImage: string | null;
-  genres: string[];
-  episodes: number | null;
-  chapters: number | null;
-  status: string | null;
-  season: string | null;
-  seasonYear: number | null;
-  averageScore: number | null;
-  popularity: number | null;
-  format: string | null;
-  type: string;
-}): AnimeCard {
-  return {
-    id: row.id,
-    title: { romaji: row.title, english: row.titleEnglish, native: row.titleNative },
-    coverImage: { large: row.coverImage, extraLarge: row.coverImage },
-    bannerImage: row.bannerImage,
-    genres: row.genres,
-    episodes: row.episodes,
-    chapters: row.chapters,
-    status: row.status,
-    season: row.season,
-    seasonYear: row.seasonYear,
-    averageScore: row.averageScore,
-    popularity: row.popularity,
-    format: row.format,
-    type: row.type,
-    tags: [],
-    rankings: [],
-  };
-}
 
 async function loadOrderedCards(mediaIds: number[]): Promise<AnimeCard[]> {
   if (mediaIds.length === 0) return [];

@@ -1,6 +1,16 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { ClientError, GraphQLClient, gql } from "graphql-request";
+import {
+  AniListUnavailableError,
+  hydrateAniListCircuit,
+  isAniListOutageError,
+  recordAniListFailure,
+  recordAniListSuccess,
+  shouldSkipAniList,
+} from "@/lib/anilist-circuit";
+import { loadCatalogueCardsByIds, searchCatalogue } from "@/lib/catalogue-db";
+import { isCatalogueCardFresh } from "@/lib/cache-utils";
 import type {
   AnimeCard,
   AnimeDetail,
@@ -30,12 +40,37 @@ function getRetryAfterMs(err: unknown): number | null {
   return null;
 }
 
-const REQUEST_TIMEOUT_MS = 8000;
+export interface AniListRequestOptions {
+  timeoutMs?: number;
+  maxAttempts?: number;
+  retryRateLimit?: boolean;
+}
+
+/** User path: fail fast so cached Postgres can render in the same request. */
+const USER_REQUEST: Required<AniListRequestOptions> = {
+  timeoutMs: 1000,
+  maxAttempts: 1,
+  retryRateLimit: false,
+};
+
+/** Cron / seed: keep retries and the historic 8s cap. */
+export const ANILIST_CRON_REQUEST: Required<AniListRequestOptions> = {
+  timeoutMs: 8000,
+  maxAttempts: 5,
+  retryRateLimit: true,
+};
+
 /** AniList allows ~30 req/min — pace requests to stay under the limit. */
 const MIN_REQUEST_GAP_MS = 2100;
+/** Skip live GraphQL on the user path rather than waiting out the rate gap. */
+const USER_MAX_SLOT_WAIT_MS = 200;
 
 let requestChain: Promise<void> = Promise.resolve();
 let lastRequestFinishedAt = 0;
+
+function peekSlotWaitMs(): number {
+  return lastRequestFinishedAt + MIN_REQUEST_GAP_MS - Date.now();
+}
 
 function waitForRequestSlot(): Promise<void> {
   const slot = requestChain.then(async () => {
@@ -49,42 +84,66 @@ function waitForRequestSlot(): Promise<void> {
 async function anilistRequest<T>(
   query: string,
   variables?: Record<string, unknown>,
+  options: AniListRequestOptions = USER_REQUEST,
 ): Promise<T> {
-  const maxAttempts = 5;
+  const timeoutMs = options.timeoutMs ?? USER_REQUEST.timeoutMs;
+  const maxAttempts = options.maxAttempts ?? USER_REQUEST.maxAttempts;
+  const retryRateLimit = options.retryRateLimit ?? USER_REQUEST.retryRateLimit;
+
+  await hydrateAniListCircuit();
+  if (shouldSkipAniList()) {
+    throw new AniListUnavailableError("circuit_open");
+  }
+
+  if (!retryRateLimit && peekSlotWaitMs() > USER_MAX_SLOT_WAIT_MS) {
+    throw new AniListUnavailableError("paced");
+  }
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await waitForRequestSlot();
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const result = await client.request<T>({ document: query, variables, signal: controller.signal });
       lastRequestFinishedAt = Date.now();
+      recordAniListSuccess();
       return result;
     } catch (err) {
       lastRequestFinishedAt = Date.now();
-      if (isRateLimitError(err) && attempt < maxAttempts - 1) {
+      if (isRateLimitError(err) && retryRateLimit && attempt < maxAttempts - 1) {
         const retryAfter = getRetryAfterMs(err);
         await sleep(retryAfter ?? 2000 * (attempt + 1));
         continue;
       }
       if (controller.signal.aborted) {
-        if (attempt < maxAttempts - 1) {
-          await sleep(500 * (attempt + 1));
-          continue;
-        }
-        throw new Error("AniList request timed out", { cause: err });
+        const timeoutErr = new AniListUnavailableError("timeout", "AniList request timed out");
+        recordAniListFailure();
+        throw timeoutErr;
+      }
+      if (isAniListOutageError(err)) {
+        recordAniListFailure();
       }
       // Surface GraphQL messages (e.g. page-depth cap) instead of a generic wrap
       if (err instanceof ClientError) {
         const gqlMsg = err.response.errors?.[0]?.message;
         if (gqlMsg) throw new Error(gqlMsg, { cause: err });
       }
+      if (err instanceof AniListUnavailableError) throw err;
       throw new Error("Failed to fetch data from AniList", { cause: err });
     } finally {
       clearTimeout(timeout);
     }
   }
-  throw new Error("AniList request failed");
+  recordAniListFailure();
+  throw new AniListUnavailableError("failed", "AniList request failed");
+}
+
+function anilistCronRequest<T>(
+  query: string,
+  variables?: Record<string, unknown>,
+): Promise<T> {
+  return anilistRequest<T>(query, variables, ANILIST_CRON_REQUEST);
 }
 
 const ANIME_CARD_FRAGMENT = gql`
@@ -143,7 +202,7 @@ export const getTrending = cache(async function getTrending(
       }
     }
   `;
-  const data = await anilistRequest<{ Page: MediaPage }>(query, {
+  const data = await anilistCronRequest<{ Page: MediaPage }>(query, {
     type,
     page,
     perPage,
@@ -172,7 +231,7 @@ export const getPopular = cache(async function getPopular(
       }
     }
   `;
-  const data = await anilistRequest<{ Page: MediaPage }>(query, {
+  const data = await anilistCronRequest<{ Page: MediaPage }>(query, {
     type,
     page,
     perPage,
@@ -232,7 +291,7 @@ export async function getPopularForEmbeddings(
       }
     }
   `;
-  const data = await anilistRequest<{ Page: MediaPage }>(query, {
+  const data = await anilistCronRequest<{ Page: MediaPage }>(query, {
     type,
     page,
     perPage,
@@ -277,7 +336,7 @@ export const getSeasonalAnime = cache(async function getSeasonalAnime(
       }
     }
   `;
-  const data = await anilistRequest<{ Page: MediaPage }>(query, {
+  const data = await anilistCronRequest<{ Page: MediaPage }>(query, {
     season,
     year,
     page,
@@ -373,7 +432,7 @@ export async function fetchHomePageMedia(
   `;
 
   try {
-    const data = await anilistRequest<{
+    const data = await anilistCronRequest<{
       trending: MediaPage;
       seasonal: MediaPage;
       upcoming: MediaPage;
@@ -468,7 +527,7 @@ export async function fetchAnimeBrowseMedia(
   `;
 
   try {
-    return await anilistRequest<AnimeBrowseMedia>(query, {
+    return await anilistCronRequest<AnimeBrowseMedia>(query, {
       season,
       year,
       nextSeason,
@@ -525,7 +584,7 @@ export async function fetchMangaBrowseMedia(): Promise<MangaBrowseMedia> {
   `;
 
   try {
-    return await anilistRequest<MangaBrowseMedia>(query);
+    return await anilistCronRequest<MangaBrowseMedia>(query);
   } catch (err) {
     console.error("Manga browse media fetch failed:", err);
     return {
@@ -599,29 +658,96 @@ export async function searchMedia(
       }
     }
   `;
-  const data = await anilistRequest<{ Page: MediaPage }>(gqlQuery, {
-    search: query || undefined,
-    type,
-    genres: filters.genres?.length ? filters.genres : undefined,
-    tags: filters.tags?.length ? filters.tags : undefined,
-    status: filters.status || undefined,
-    format: filters.format || undefined,
-    year: filters.year || undefined,
-    season: filters.season || undefined,
-    sort: filters.sort ? [filters.sort] : query ? ["SEARCH_MATCH"] : ["POPULARITY_DESC"],
-    page,
-    perPage,
-  });
-  return data.Page;
+  try {
+    const data = await anilistRequest<{ Page: MediaPage }>(gqlQuery, {
+      search: query || undefined,
+      type,
+      genres: filters.genres?.length ? filters.genres : undefined,
+      tags: filters.tags?.length ? filters.tags : undefined,
+      status: filters.status || undefined,
+      format: filters.format || undefined,
+      year: filters.year || undefined,
+      season: filters.season || undefined,
+      sort: filters.sort ? [filters.sort] : query ? ["SEARCH_MATCH"] : ["POPULARITY_DESC"],
+      page,
+      perPage,
+    });
+    if (data.Page.media.length > 0) {
+      void Promise.all(data.Page.media.map((card) =>
+        import("@/lib/anilist-cache").then((m) => m.cacheAnimeCard(card)),
+      )).catch(() => undefined);
+    }
+    return data.Page;
+  } catch (err) {
+    console.error("AniList search failed, using catalogue cache:", err);
+  }
+
+  try {
+    return await searchCatalogue(query, type, filters, page, perPage);
+  } catch (err) {
+    console.error("Catalogue search failed:", err);
+    return {
+      pageInfo: { total: 0, currentPage: page, lastPage: 1, hasNextPage: false },
+      media: [],
+    };
+  }
 }
 
 const MEDIA_CARD_BATCH_SIZE = 50;
 const MEDIA_CHAPTER_BATCH_SIZE = 25;
 
-export async function getMediaCardsByIds(ids: number[]): Promise<AnimeCard[]> {
+export async function getMediaCardsByIds(
+  ids: number[],
+  requestOptions?: AniListRequestOptions,
+): Promise<AnimeCard[]> {
   if (ids.length === 0) return [];
 
   const unique = [...new Set(ids)];
+  const byId = new Map<number, AnimeCard>();
+
+  try {
+    const cached = await loadCatalogueCardsByIds(unique);
+    for (const row of cached) byId.set(row.card.id, row.card);
+
+    await hydrateAniListCircuit();
+    const staleOrMissing = unique.filter((id) => {
+      const row = cached.find((entry) => entry.card.id === id);
+      if (!row) return true;
+      return !isCatalogueCardFresh(row.cachedAt, row.status);
+    });
+
+    if (staleOrMissing.length === 0 || shouldSkipAniList()) {
+      return unique.map((id) => byId.get(id)).filter((card): card is AnimeCard => card != null);
+    }
+
+    const live = await fetchMediaCardsLive(staleOrMissing, requestOptions);
+    for (const card of live) byId.set(card.id, card);
+    if (live.length > 0) {
+      void import("@/lib/anilist-cache")
+        .then((m) => Promise.all(live.map((card) => m.cacheAnimeCard(card, { force: true }))))
+        .catch(() => undefined);
+    }
+  } catch (err) {
+    console.error("getMediaCardsByIds failed, returning catalogue hits:", err);
+    if (byId.size === 0) {
+      try {
+        const live = await fetchMediaCardsLive(unique, requestOptions);
+        return live;
+      } catch (liveErr) {
+        console.error("getMediaCardsByIds live fallback failed:", liveErr);
+        return [];
+      }
+    }
+  }
+
+  return unique.map((id) => byId.get(id)).filter((card): card is AnimeCard => card != null);
+}
+
+async function fetchMediaCardsLive(
+  ids: number[],
+  requestOptions?: AniListRequestOptions,
+): Promise<AnimeCard[]> {
+  if (ids.length === 0) return [];
   const results: AnimeCard[] = [];
   const query = gql`
     ${ANIME_CARD_FRAGMENT}
@@ -634,15 +760,15 @@ export async function getMediaCardsByIds(ids: number[]): Promise<AnimeCard[]> {
     }
   `;
 
-  for (let i = 0; i < unique.length; i += MEDIA_CARD_BATCH_SIZE) {
-    const chunk = unique.slice(i, i + MEDIA_CARD_BATCH_SIZE);
-    const data = await anilistRequest<{ Page: { media: AnimeCard[] } }>(query, {
-      id_in: chunk,
-      perPage: chunk.length,
-    });
+  for (let i = 0; i < ids.length; i += MEDIA_CARD_BATCH_SIZE) {
+    const chunk = ids.slice(i, i + MEDIA_CARD_BATCH_SIZE);
+    const data = await anilistRequest<{ Page: { media: AnimeCard[] } }>(
+      query,
+      { id_in: chunk, perPage: chunk.length },
+      requestOptions,
+    );
     results.push(...data.Page.media);
   }
-
   return results;
 }
 
@@ -807,7 +933,7 @@ export async function getTopRated(
       }
     }
   `;
-  const data = await anilistRequest<{ Page: MediaPage }>(query, {
+  const data = await anilistCronRequest<{ Page: MediaPage }>(query, {
     type,
     page,
     perPage,
@@ -850,7 +976,7 @@ export async function getAiringData(mediaIds: number[]): Promise<AiringMedia[]> 
   for (let i = 0; i < mediaIds.length; i += 50) {
     const batch = mediaIds.slice(i, i + 50);
     try {
-      const data = await anilistRequest<{ Page: { media: AiringMedia[] } }>(
+      const data = await anilistCronRequest<{ Page: { media: AiringMedia[] } }>(
         GET_AIRING_DATA,
         { ids: batch },
       );

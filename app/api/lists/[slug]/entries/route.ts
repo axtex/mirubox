@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getMediaById } from "@/lib/anilist";
+import { getMediaCardsByIds } from "@/lib/anilist";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { awardXP, type ToastNotification } from "@/lib/xp";
 
@@ -42,9 +42,9 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
   // List detail only renders titles present in the anime cache
   let cached = await prisma.anime.findUnique({ where: { id: body.mediaId } });
   if (!cached) {
-    const media = await getMediaById(body.mediaId);
+    const [media] = await getMediaCardsByIds([body.mediaId]);
     if (media) {
-      await cacheAnimeCard(media);
+      await cacheAnimeCard(media, { force: true });
       cached = await prisma.anime.findUnique({ where: { id: body.mediaId } });
     }
   }

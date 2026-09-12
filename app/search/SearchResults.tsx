@@ -122,7 +122,12 @@ export async function SearchResults({ params }: SearchResultsProps) {
     sort,
   };
 
-  const results = await searchMedia(query, type, filters, page, 28);
+  let results: Awaited<ReturnType<typeof searchMedia>>;
+  try {
+    results = await searchMedia(query, type, filters, page, 28);
+  } catch {
+    return <BrowseEmptyState />;
+  }
 
   if (results.media.length === 0) {
     return <BrowseEmptyState />;

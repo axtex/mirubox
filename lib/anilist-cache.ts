@@ -1,12 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getMediaById } from "@/lib/anilist";
+import { isCatalogueCardFresh } from "@/lib/cache-utils";
 import type { AnimeCard, AnimeDetail } from "@/types/anilist";
-
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-function isFresh(cachedAt: Date): boolean {
-  return Date.now() - cachedAt.getTime() < CACHE_TTL_MS;
-}
 
 const DEMOGRAPHIC_TAGS = new Set(["SHOUNEN", "SHOUJO", "SEINEN", "JOSEI"]);
 
@@ -67,7 +62,7 @@ function toDbAnime(media: AnimeCard | AnimeDetail) {
 export async function checkAndGetAnime(id: number): Promise<AnimeDetail | null> {
   try {
     const cached = await prisma.anime.findUnique({ where: { id } });
-    if (cached && isFresh(cached.cachedAt)) {
+    if (cached && isCatalogueCardFresh(cached.cachedAt, cached.status)) {
       // Return as a mock AnimeDetail — full details will be fetched if stale
       return null; // caller should use AniList directly for full details
     }
@@ -116,7 +111,7 @@ export async function cacheAnimeCard(
       ((media.type === "MANGA" && existing.chapters == null && media.chapters != null) ||
         (media.type !== "MANGA" && existing.episodes == null && media.episodes != null));
 
-    if (existing && isFresh(existing.cachedAt) && !missingCounts && !options.force) return;
+    if (existing && isCatalogueCardFresh(existing.cachedAt, existing.status) && !missingCounts && !options.force) return;
 
     await prisma.anime.upsert({
       where: { id: media.id },

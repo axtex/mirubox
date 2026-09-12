@@ -1,15 +1,21 @@
 import type { Character, MediaRelation, StreamingLink as DbStreamingLink } from "@prisma/client";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getMediaById, getAiringData } from "@/lib/anilist";
+import { getMediaById } from "@/lib/anilist";
 import { cacheAnimeCard } from "@/lib/anilist-cache";
 import { embedIfMissing } from "@/lib/embed-if-missing";
 import {
   CHARACTER_TTL_MS,
   RELATION_TTL_MS,
   STREAMING_TTL_MS,
+  isCatalogueCardFresh,
+  isHotCatalogueStatus,
   isStale,
 } from "@/lib/cache-utils";
+import {
+  hydrateAniListCircuit,
+  shouldSkipAniList,
+} from "@/lib/anilist-circuit";
 import {
   ANIME_STREAMING_SITES,
   MANGA_READING_SITES,
@@ -117,6 +123,7 @@ export type AnimeWithDetailCache = {
   airingStatus?: string | null;
   nextAiringEp?: number | null;
   nextAiringAt?: number | null;
+  cachedAt: Date;
   charactersCachedAt?: Date | null;
   relationsCachedAt?: Date | null;
   streamingCachedAt?: Date | null;
@@ -130,8 +137,8 @@ function isHydratedDetailCache(
   cached: {
     title: string;
     coverImage: string | null;
-    charactersCachedAt: Date | null;
-    relationsCachedAt: Date | null;
+    charactersCachedAt?: Date | null;
+    relationsCachedAt?: Date | null;
   } | null,
 ): boolean {
   return Boolean(
@@ -491,23 +498,6 @@ const DETAIL_INCLUDE = {
   streamingLinks: true,
 } as const;
 
-function persistDetailExtras(
-  mediaId: number,
-  type: "ANIME" | "MANGA",
-  media: AnimeDetail,
-): void {
-  after(() => {
-    void Promise.all([
-      embedIfMissing(media),
-      cacheCharactersIfMissing(mediaId, type, media),
-      cacheRelationsIfMissing(mediaId, media),
-      cacheStreamingIfMissing(mediaId, type, media),
-    ]).catch((err: unknown) => {
-      console.error(`[detail-persist] ${type.toLowerCase()}/${mediaId}`, err);
-    });
-  });
-}
-
 function scheduleDetailRefresh(
   mediaId: number,
   type: "ANIME" | "MANGA",
@@ -542,11 +532,24 @@ function scheduleDetailRefresh(
   });
 }
 
+function isDetailFreshEnough(cached: AnimeWithDetailCache): boolean {
+  if (!isHydratedDetailCache(cached)) return false;
+  if (cached.description == null) return false;
+  const status = cached.airingStatus ?? cached.status;
+  if (!isCatalogueCardFresh(cached.cachedAt, status)) return false;
+  if (
+    isHotCatalogueStatus(status) &&
+    cached.nextAiringAt != null &&
+    cached.nextAiringAt * 1000 < Date.now()
+  ) {
+    return false;
+  }
+  return true;
+}
+
 /**
- * Serve detail pages from DB only when characters/relations have been cached.
- * Card-only shelf/search rows still hit AniList once so the first paint includes
- * description, cast, and related. Nested tables persist after the response.
- * RELEASING anime missing airing data get a lightweight next-episode fetch.
+ * Fresh-enough DB first. If the row is stale or card-only, try AniList with a
+ * short cap; on failure or an open circuit, render last cache in the same request.
  */
 export async function resolveMediaDetailForPage(
   mediaId: number,
@@ -557,78 +560,25 @@ export async function resolveMediaDetailForPage(
     include: DETAIL_INCLUDE,
   });
 
-  if (cached && isHydratedDetailCache(cached)) {
-    let media = dbMediaToAnilistShape(cached);
-    let fetched: AnimeDetail | null = null;
+  await hydrateAniListCircuit();
+  const skipLive = shouldSkipAniList();
 
-    // Wiped card upserts left description null. Titles that truly have no
-    // synopsis will hit AniList on each view until one writes a value.
-    const needsDescription = media.description == null;
-    if (needsDescription) {
-      try {
-        fetched = await getMediaById(mediaId);
-        if (fetched) {
-          media = {
-            ...media,
-            description: fetched.description,
-            studios: fetched.studios,
-          };
-          void cacheAnimeCard(fetched, { force: true });
-        }
-      } catch (err) {
-        console.error(`[detail-fill] ${type.toLowerCase()}/${mediaId}`, err);
-      }
-    }
-
-    // Don't persist the DB reconstruction — that would stamp stale nested
-    // rows as fresh. Reuse a fetch from this request, or AniList only if TTL expired.
-    if (fetched) {
-      persistDetailExtras(mediaId, type, fetched);
-    } else {
-      after(() => {
-        void embedIfMissing(media);
-      });
-      scheduleDetailRefresh(mediaId, type, cached);
-    }
-
-    const looksReleasing =
-      type === "ANIME" &&
-      (cached.status === "RELEASING" || cached.airingStatus === "RELEASING");
-    if (looksReleasing && media.nextAiringEpisode == null) {
-      try {
-        const [airing] = await getAiringData([mediaId]);
-        if (airing) {
-          media = {
-            ...media,
-            status: airing.status ?? media.status,
-            episodes: airing.episodes ?? media.episodes,
-            nextAiringEpisode: airing.nextAiringEpisode,
-          };
-          void prisma.anime
-            .update({
-              where: { id: mediaId },
-              data: {
-                airingStatus: airing.status,
-                nextAiringEp: airing.nextAiringEpisode?.episode ?? null,
-                nextAiringAt: airing.nextAiringEpisode?.airingAt ?? null,
-                ...(airing.episodes != null ? { episodes: airing.episodes } : {}),
-              },
-            })
-            .catch(() => undefined);
-        }
-      } catch (err) {
-        console.error(`[airing-fill] anime/${mediaId}`, err);
-      }
-    }
-
+  if (cached && isDetailFreshEnough(cached)) {
+    const media = dbMediaToAnilistShape(cached);
+    after(() => {
+      void embedIfMissing(media);
+    });
+    if (!skipLive) scheduleDetailRefresh(mediaId, type, cached);
     return media;
+  }
+
+  if (cached && skipLive) {
+    return dbMediaToAnilistShape(cached);
   }
 
   const anilistMedia = await getMediaById(mediaId);
   if (!anilistMedia) {
-    console.error(`[detail] AniList miss ${type.toLowerCase()}/${mediaId}`);
     if (cached) {
-      // Retry after the response so a reload can pick up the full payload.
       scheduleDetailRefresh(mediaId, type, cached);
       return dbMediaToAnilistShape(cached);
     }
@@ -636,8 +586,6 @@ export async function resolveMediaDetailForPage(
   }
 
   await cacheAnimeCard(anilistMedia, { force: true });
-  // Persist nested tables on this request (payload already in hand — no extra
-  // AniList calls) so a reload is a warm cache hit even if after() is dropped.
   await Promise.all([
     cacheCharactersIfMissing(mediaId, type, anilistMedia),
     cacheRelationsIfMissing(mediaId, anilistMedia),
