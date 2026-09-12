@@ -93,6 +93,11 @@ export async function hydrateAniListCircuit(): Promise<void> {
   await hydratePromise;
 }
 
+/** True when GraphQL is marked down. Does not consume the recovery probe. */
+export function isAniListCircuitOpen(): boolean {
+  return snapshot.state === "open";
+}
+
 /** True when callers should skip GraphQL and use Postgres. */
 export function shouldSkipAniList(): boolean {
   if (snapshot.state !== "open") return false;

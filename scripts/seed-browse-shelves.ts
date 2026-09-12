@@ -1,6 +1,7 @@
 /**
  * One-shot seed: npx tsx scripts/seed-browse-shelves.ts
- * Loads .env.local then syncs AniList browse shelves into Postgres.
+ * Loads .env.local then syncs browse shelves into Postgres (AniList, or cached
+ * catalogue titles if AniList is down).
  */
 import { config } from "dotenv";
 config({ path: ".env.local" });

@@ -1,6 +1,6 @@
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { syncBrowseShelves, type BrowseShelfKey } from "@/lib/browse-sync";
+import { fillShelvesFromCatalogue, syncBrowseShelves, type BrowseShelfKey } from "@/lib/browse-sync";
 import { dbRowToAnimeCard, ANIME_CARD_SELECT } from "@/lib/catalogue-db";
 import type { AnimeCard } from "@/types/anilist";
 
@@ -15,6 +15,7 @@ async function loadOrderedCards(mediaIds: number[]): Promise<AnimeCard[]> {
 }
 
 let syncScheduledForRequest = false;
+let catalogueFill: Promise<void> | null = null;
 
 function scheduleShelfSync(): void {
   if (syncScheduledForRequest) return;
@@ -26,10 +27,26 @@ function scheduleShelfSync(): void {
   });
 }
 
-/** Load a browse shelf from Postgres. Empty → schedule sync; never block on live AniList. */
+async function fillCatalogueShelvesIfNeeded(): Promise<void> {
+  if (!catalogueFill) {
+    catalogueFill = fillShelvesFromCatalogue()
+      .then(() => undefined)
+      .catch((err) => {
+        console.error("Catalogue shelf fill failed:", err);
+      });
+  }
+  await catalogueFill;
+}
+
+/** Load a browse shelf from Postgres. Empty → fill from cached titles, then AniList in the background. */
 export async function getShelfCards(key: BrowseShelfKey): Promise<AnimeCard[]> {
   try {
-    const shelf = await prisma.browseShelf.findUnique({ where: { key } });
+    let shelf = await prisma.browseShelf.findUnique({ where: { key } });
+    if (!shelf || shelf.mediaIds.length === 0) {
+      await fillCatalogueShelvesIfNeeded();
+      shelf = await prisma.browseShelf.findUnique({ where: { key } });
+      scheduleShelfSync();
+    }
     if (!shelf || shelf.mediaIds.length === 0) {
       scheduleShelfSync();
       return [];

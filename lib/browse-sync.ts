@@ -8,7 +8,7 @@ import {
   getCurrentSeason,
   getNextSeason,
 } from "@/lib/anilist";
-import { hydrateAniListCircuit, shouldSkipAniList } from "@/lib/anilist-circuit";
+import { hydrateAniListCircuit, isAniListCircuitOpen } from "@/lib/anilist-circuit";
 import type { AnimeCard } from "@/types/anilist";
 import type { Prisma } from "@prisma/client";
 
@@ -40,20 +40,41 @@ export interface BrowseSyncResult {
   shelves: Record<string, number>;
   cardsCached: number;
   skipped?: boolean;
+  source?: "anilist" | "catalogue";
 }
 
-async function upsertShelf(
+/** Never replace a populated shelf with an empty AniList miss. */
+export function shouldWriteShelfIds(existingIds: number[], incomingIds: number[]): boolean {
+  if (incomingIds.length > 0) return true;
+  return existingIds.length === 0;
+}
+
+async function upsertShelfIds(
   key: BrowseShelfKey,
-  media: AnimeCard[],
+  mediaIds: number[],
   meta?: Prisma.InputJsonValue,
-): Promise<void> {
-  const mediaIds = media.map((m) => m.id);
+): Promise<number> {
+  const existing = await prisma.browseShelf.findUnique({ where: { key } });
+  const existingIds = existing?.mediaIds ?? [];
+  if (!shouldWriteShelfIds(existingIds, mediaIds)) {
+    return existingIds.length;
+  }
+
   const syncedAt = new Date();
   await prisma.browseShelf.upsert({
     where: { key },
     create: { key, mediaIds, meta: meta ?? undefined, syncedAt },
     update: { mediaIds, meta: meta ?? undefined, syncedAt },
   });
+  return mediaIds.length;
+}
+
+async function upsertShelf(
+  key: BrowseShelfKey,
+  media: AnimeCard[],
+  meta?: Prisma.InputJsonValue,
+): Promise<number> {
+  return upsertShelfIds(key, media.map((m) => m.id), meta);
 }
 
 async function cacheCards(media: AnimeCard[]): Promise<number> {
@@ -65,29 +86,127 @@ async function cacheCards(media: AnimeCard[]): Promise<number> {
   return unique.size;
 }
 
+function revalidateBrowseTags(): void {
+  for (const tag of BROWSE_CACHE_TAGS) {
+    try {
+      revalidateTag(tag, "max");
+    } catch {
+      // Outside a Next.js request (scripts) revalidate is a no-op
+    }
+  }
+}
+
+const HAS_COVER: Prisma.AnimeWhereInput = { coverImage: { not: null } };
+
+async function catalogueIds(
+  where: Prisma.AnimeWhereInput,
+  orderBy: Prisma.AnimeOrderByWithRelationInput[],
+  take: number,
+): Promise<number[]> {
+  const rows = await prisma.anime.findMany({
+    where: { ...HAS_COVER, ...where },
+    orderBy,
+    take,
+    select: { id: true },
+  });
+  return rows.map((row) => row.id);
+}
+
+/**
+ * Build home/anime/manga shelf ID lists from cached Anime rows.
+ * Used when AniList is down so empty shelves do not stay blank.
+ */
+export async function fillShelvesFromCatalogue(): Promise<BrowseSyncResult> {
+  const { season, year } = getCurrentSeason();
+  const { season: nextSeason, year: nextYear } = getNextSeason();
+  const seasonMeta = {
+    season,
+    year,
+    nextSeason,
+    nextYear,
+    source: "catalogue",
+  } satisfies Prisma.InputJsonObject;
+
+  const popularity = [{ popularity: "desc" as const }, { averageScore: "desc" as const }];
+  const score = [{ averageScore: "desc" as const }, { popularity: "desc" as const }];
+
+  const [
+    homeTrending,
+    homeSeasonal,
+    homeUpcoming,
+    homeManga,
+    animeTrending,
+    animeSeasonal,
+    animeUpcoming,
+    animeTopRated,
+    mangaTrending,
+    mangaPublishing,
+    mangaAllTime,
+  ] = await Promise.all([
+    catalogueIds({ type: "ANIME" }, popularity, 28),
+    catalogueIds({ type: "ANIME", season, seasonYear: year }, popularity, 20),
+    catalogueIds({ type: "ANIME", season: nextSeason, seasonYear: nextYear }, popularity, 20),
+    catalogueIds({ type: "MANGA" }, popularity, 7),
+    catalogueIds({ type: "ANIME" }, popularity, 20),
+    catalogueIds({ type: "ANIME", season, seasonYear: year }, popularity, 20),
+    catalogueIds({ type: "ANIME", season: nextSeason, seasonYear: nextYear }, popularity, 20),
+    catalogueIds({ type: "ANIME", averageScore: { not: null }, popularity: { gte: 10000 } }, score, 20),
+    catalogueIds({ type: "MANGA" }, popularity, 14),
+    catalogueIds({ type: "MANGA", status: "RELEASING" }, popularity, 14),
+    catalogueIds({ type: "MANGA", averageScore: { not: null } }, score, 14),
+  ]);
+
+  const shelves: Record<string, number> = {
+    "home:trending": await upsertShelfIds("home:trending", homeTrending, seasonMeta),
+    "home:seasonal": await upsertShelfIds("home:seasonal", homeSeasonal, seasonMeta),
+    "home:upcoming": await upsertShelfIds("home:upcoming", homeUpcoming, seasonMeta),
+    "home:manga": await upsertShelfIds("home:manga", homeManga, seasonMeta),
+    "anime:trending": await upsertShelfIds("anime:trending", animeTrending, seasonMeta),
+    "anime:seasonal": await upsertShelfIds("anime:seasonal", animeSeasonal, seasonMeta),
+    "anime:upcoming": await upsertShelfIds("anime:upcoming", animeUpcoming, seasonMeta),
+    "anime:topRated": await upsertShelfIds("anime:topRated", animeTopRated, seasonMeta),
+    "manga:trending": await upsertShelfIds("manga:trending", mangaTrending),
+    "manga:publishing": await upsertShelfIds("manga:publishing", mangaPublishing),
+    "manga:allTime": await upsertShelfIds("manga:allTime", mangaAllTime),
+  };
+
+  revalidateBrowseTags();
+
+  return {
+    syncedAt: new Date().toISOString(),
+    shelves,
+    cardsCached: 0,
+    source: "catalogue",
+  };
+}
+
 /**
  * Pull browse shelves from AniList into Postgres + Anime card cache.
- * Safe to call from cron or as a background seed when shelves are empty.
+ * If AniList is down or returns nothing, fill from the cached catalogue instead.
+ * Never overwrites a populated shelf with an empty list.
  */
 export async function syncBrowseShelves(): Promise<BrowseSyncResult> {
   await hydrateAniListCircuit();
-  if (shouldSkipAniList()) {
-    return {
-      syncedAt: new Date().toISOString(),
-      shelves: {},
-      cardsCached: 0,
-      skipped: true,
-    };
+  if (isAniListCircuitOpen()) {
+    return fillShelvesFromCatalogue();
   }
 
   const { season, year } = getCurrentSeason();
   const { season: nextSeason, year: nextYear } = getNextSeason();
 
-  const [home, anime, manga] = await Promise.all([
-    fetchHomePageMedia(season, year, nextSeason, nextYear),
-    fetchAnimeBrowseMedia(season, year, nextSeason, nextYear),
-    fetchMangaBrowseMedia(),
-  ]);
+  let home: Awaited<ReturnType<typeof fetchHomePageMedia>>;
+  let anime: Awaited<ReturnType<typeof fetchAnimeBrowseMedia>>;
+  let manga: Awaited<ReturnType<typeof fetchMangaBrowseMedia>>;
+  try {
+    [home, anime, manga] = await Promise.all([
+      fetchHomePageMedia(season, year, nextSeason, nextYear),
+      fetchAnimeBrowseMedia(season, year, nextSeason, nextYear),
+      fetchMangaBrowseMedia(),
+    ]);
+  } catch (err) {
+    console.error("Browse AniList fetch failed, filling from catalogue:", err);
+    return fillShelvesFromCatalogue();
+  }
 
   const seasonMeta = {
     season,
@@ -110,47 +229,32 @@ export async function syncBrowseShelves(): Promise<BrowseSyncResult> {
     ...manga.allTime.media,
   ];
 
-  const cardsCached = await cacheCards(allCards);
-
-  await Promise.all([
-    upsertShelf("home:trending", home.trending.media, seasonMeta),
-    upsertShelf("home:seasonal", home.seasonal.media, seasonMeta),
-    upsertShelf("home:upcoming", home.upcoming.media, seasonMeta),
-    upsertShelf("home:manga", home.manga.media, seasonMeta),
-    upsertShelf("anime:trending", anime.trending.media, seasonMeta),
-    upsertShelf("anime:seasonal", anime.seasonal.media, seasonMeta),
-    upsertShelf("anime:upcoming", anime.upcoming.media, seasonMeta),
-    upsertShelf("anime:topRated", anime.topRated.media, seasonMeta),
-    upsertShelf("manga:trending", manga.trending.media),
-    upsertShelf("manga:publishing", manga.publishing.media),
-    upsertShelf("manga:allTime", manga.allTime.media),
-  ]);
-
-  for (const tag of BROWSE_CACHE_TAGS) {
-    try {
-      revalidateTag(tag, "max");
-    } catch {
-      // Outside a Next.js request (scripts) revalidate is a no-op
-    }
+  if (allCards.length === 0) {
+    return fillShelvesFromCatalogue();
   }
 
+  const cardsCached = await cacheCards(allCards);
+
   const shelves: Record<string, number> = {
-    "home:trending": home.trending.media.length,
-    "home:seasonal": home.seasonal.media.length,
-    "home:upcoming": home.upcoming.media.length,
-    "home:manga": home.manga.media.length,
-    "anime:trending": anime.trending.media.length,
-    "anime:seasonal": anime.seasonal.media.length,
-    "anime:upcoming": anime.upcoming.media.length,
-    "anime:topRated": anime.topRated.media.length,
-    "manga:trending": manga.trending.media.length,
-    "manga:publishing": manga.publishing.media.length,
-    "manga:allTime": manga.allTime.media.length,
+    "home:trending": await upsertShelf("home:trending", home.trending.media, seasonMeta),
+    "home:seasonal": await upsertShelf("home:seasonal", home.seasonal.media, seasonMeta),
+    "home:upcoming": await upsertShelf("home:upcoming", home.upcoming.media, seasonMeta),
+    "home:manga": await upsertShelf("home:manga", home.manga.media, seasonMeta),
+    "anime:trending": await upsertShelf("anime:trending", anime.trending.media, seasonMeta),
+    "anime:seasonal": await upsertShelf("anime:seasonal", anime.seasonal.media, seasonMeta),
+    "anime:upcoming": await upsertShelf("anime:upcoming", anime.upcoming.media, seasonMeta),
+    "anime:topRated": await upsertShelf("anime:topRated", anime.topRated.media, seasonMeta),
+    "manga:trending": await upsertShelf("manga:trending", manga.trending.media),
+    "manga:publishing": await upsertShelf("manga:publishing", manga.publishing.media),
+    "manga:allTime": await upsertShelf("manga:allTime", manga.allTime.media),
   };
+
+  revalidateBrowseTags();
 
   return {
     syncedAt: new Date().toISOString(),
     shelves,
     cardsCached,
+    source: "anilist",
   };
 }
