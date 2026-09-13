@@ -53,6 +53,13 @@ const USER_REQUEST: Required<AniListRequestOptions> = {
   retryRateLimit: false,
 };
 
+/** First-time detail hydration — wait for a request slot; do not skip. */
+export const ANILIST_DETAIL_REQUEST: Required<AniListRequestOptions> = {
+  timeoutMs: 8000,
+  maxAttempts: 2,
+  retryRateLimit: true,
+};
+
 /** Cron / seed: keep retries and the historic 8s cap. */
 export const ANILIST_CRON_REQUEST: Required<AniListRequestOptions> = {
   timeoutMs: 8000,
@@ -117,9 +124,12 @@ async function anilistRequest<T>(
         continue;
       }
       if (controller.signal.aborted) {
-        const timeoutErr = new AniListUnavailableError("timeout", "AniList request timed out");
-        recordAniListFailure();
-        throw timeoutErr;
+        if (retryRateLimit && attempt < maxAttempts - 1) {
+          await sleep(500 * (attempt + 1));
+          continue;
+        }
+        // Slow GraphQL is not an outage — do not open the circuit.
+        throw new AniListUnavailableError("timeout", "AniList request timed out");
       }
       if (isAniListOutageError(err)) {
         recordAniListFailure();
@@ -903,11 +913,14 @@ export const getMediaById = cache(async (id: number): Promise<AnimeDetail | null
     }
   `;
   try {
-    const data = await anilistRequest<{ Media: AnimeDetail | null }>(query, {
-      id,
-    });
+    const data = await anilistRequest<{ Media: AnimeDetail | null }>(
+      query,
+      { id },
+      ANILIST_DETAIL_REQUEST,
+    );
     return data.Media;
-  } catch {
+  } catch (err) {
+    console.error("[getMediaById]", id, err);
     return null;
   }
 });
